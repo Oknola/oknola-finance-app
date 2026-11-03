@@ -1,4 +1,5 @@
 <% intro_mode = Current.user&.ui_layout_intro? %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <% home_path = intro_mode ? chats_path : root_path %>
 <%# Assistant type "mcp_only" removes every chat surface. MCP is unaffected. %>
 <% assistant_enabled = Current.family.assistant_enabled? %>
@@ -14,9 +15,10 @@ else
     bills_nav_item,
     { name: t(".nav.reports"), path: reports_path, icon: "chart-bar", icon_custom: false, active: page_active?(reports_path) },
     plan_nav_item,
-    ({ name: t(".nav.assistant"), path: chats_path, icon: "icon-assistant", icon_custom: true, active: page_active?(chats_path), mobile_only: true } if assistant_enabled)
+    ({ name: t(".nav.assistant"), path: chats_path, icon: "icon-assistant", icon_custom: true, active: page_active?(chats_path), mobile_only: !session[:oknola_embedded] } if assistant_enabled)
   ].compact
 end %>
+<% mobile_nav_items << { name: t("layouts.oknola.nav.settings"), path: accounts_path, icon: "settings", icon_custom: false, active: false } if session[:oknola_embedded] %>
 
 <% desktop_nav_items = mobile_nav_items.reject { |item| item[:mobile_only] } %>
 <% expanded_sidebar_class = "w-full" %>
@@ -87,13 +89,17 @@ end %>
           <% end %>
         </div>
 
-        <ul class="space-y-0.5">
-          <% desktop_nav_items.reject { |item| item[:mobile_only] }.each do |nav_item| %>
-            <li>
-              <%= render "layouts/shared/nav_item", **nav_item %>
-            </li>
-          <% end %>
-        </ul>
+        <% if session[:oknola_embedded] %>
+          <%= render "layouts/oknola/nav", items: desktop_nav_items %>
+        <% else %>
+          <ul class="space-y-0.5">
+            <% desktop_nav_items.reject { |item| item[:mobile_only] }.each do |nav_item| %>
+              <li>
+                <%= render "layouts/shared/nav_item", **nav_item %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
 
         <div class="pl-2 mt-auto mx-auto flex flex-col gap-2">
           <%= render DS::Link.new(
@@ -125,7 +131,7 @@ end %>
             <%= render "accounts/account_sidebar_tabs", family: Current.family, active_tab: @account_group_tab %>
           </div>
 
-          <% if Current.family.trialing? && !self_hosted? %>
+          <% if Current.family.trialing? && !self_hosted? && !session[:oknola_embedded] %>
             <div class="px-4 py-3 space-y-4 bg-container shadow-border-xs rounded-xl">
               <div class="flex items-start justify-between">
                 <div>
@@ -230,7 +236,7 @@ end %>
     <% end %>
     <%# "What's new" release highlight: one dialog per deployed release,
         shown on first interaction and tracked per account. %>
-    <% unless intro_mode %>
+    <% unless intro_mode || session[:oknola_embedded] %>
       <% if (tag = pending_release_tag) %>
         <%= render "layouts/shared/release_highlight", tag: tag %>
       <% end %>
