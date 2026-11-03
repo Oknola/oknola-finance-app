@@ -31,6 +31,9 @@ en:
       edit: Edit
       selected: selected
     form:
+      side_label: Side
+      side_business: Business
+      side_personal: Personal
       details: Details
       account: Account
       account_prompt: Select an Account
