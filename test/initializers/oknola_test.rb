@@ -45,30 +45,70 @@ class OknolaBootCheckTest < ActiveSupport::TestCase
 end
 
 class OknolaThrottleTest < ActionDispatch::IntegrationTest
+  SECRET = "test-oknola-handoff-secret-0123456789abcdef".freeze
+
   setup do
     @original_enabled = Rack::Attack.enabled
     @original_store = Rack::Attack.cache.store
+    @original_secret = ENV["OKNOLA_HANDOFF_SECRET"]
     Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
     Rack::Attack.enabled = true
+    ENV["OKNOLA_HANDOFF_SECRET"] = SECRET
+    # Counters are bucketed per period; a frozen clock keeps all calls in one.
+    freeze_time
   end
 
   teardown do
     Rack::Attack.enabled = @original_enabled
     Rack::Attack.cache.store = @original_store
+    ENV["OKNOLA_HANDOFF_SECRET"] = @original_secret
   end
 
-  test "the 21st Oknola call in a minute from one IP is throttled" do
-    # Counters are bucketed per period; a frozen clock keeps all calls in one.
-    freeze_time
+  test "the 21st session call in a minute from one IP is throttled" do
     20.times do
-      post oknola_handoff_path, params: {}, as: :json
+      get oknola_session_path(code: "nope")
+      assert_response :redirect
+    end
+
+    get oknola_session_path(code: "nope")
+    assert_response :too_many_requests
+  end
+
+  test "the 11th wrong-secret server call in a minute from one IP is throttled" do
+    5.times do
+      post oknola_handoff_path, params: {}, headers: bearer("wrong"), as: :json
+      assert_response :unauthorized
+    end
+    5.times do
+      delete oknola_account_path(sub: "any")
       assert_response :unauthorized
     end
 
-    post oknola_handoff_path, params: {}, as: :json
-    assert_response :too_many_requests
-
-    delete oknola_account_path(sub: "any")
+    post oknola_handoff_path, params: {}, headers: bearer("wrong"), as: :json
     assert_response :too_many_requests
   end
+
+  test "a blank configured secret counts every call as wrong" do
+    ENV["OKNOLA_HANDOFF_SECRET"] = ""
+
+    10.times { post oknola_handoff_path, params: {}, headers: bearer(""), as: :json }
+    post oknola_handoff_path, params: {}, headers: bearer(""), as: :json
+
+    assert_response :too_many_requests
+  end
+
+  test "server calls with the right secret are never throttled" do
+    30.times do
+      post oknola_handoff_path, params: {}, headers: bearer(SECRET), as: :json
+      assert_response :unprocessable_entity
+    end
+
+    delete oknola_account_path(sub: "unknown"), headers: bearer(SECRET)
+    assert_response :no_content
+  end
+
+  private
+    def bearer(secret)
+      { "Authorization" => "Bearer #{secret}" }
+    end
 end

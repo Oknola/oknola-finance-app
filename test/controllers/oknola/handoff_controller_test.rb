@@ -119,6 +119,36 @@ class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
     assert_not OidcIdentity.exists?(provider: "oknola", uid: SUB)
   end
 
+  test "an email change onto a Finance user outside Oknola is 409 and keeps the email" do
+    handoff
+    handoff(email: users(:family_admin).email)
+
+    assert_response :conflict
+    assert_equal "email_conflict", response.parsed_body["error"]
+    assert_equal EMAIL, oknola_user.reload.email
+  end
+
+  test "other validation failures are 422, not an email conflict" do
+    Family.stubs(:create!).raises(ActiveRecord::RecordInvalid.new(Family.new))
+
+    assert_no_difference [ "User.count", "OidcIdentity.count" ] do
+      handoff
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal "invalid", response.parsed_body["error"]
+  end
+
+  test "an identity a super admin removed is never re-created" do
+    SsoIdentityBlock.create!(provider: "oknola", uid_digest: SsoIdentityBlock.digest(SUB), identity_label: "removed")
+
+    assert_no_difference [ "Family.count", "User.count", "OidcIdentity.count" ] do
+      handoff
+    end
+
+    assert_response :gone
+  end
+
   test "an inactive user gets 410" do
     handoff
     oknola_user.update_columns(active: false)

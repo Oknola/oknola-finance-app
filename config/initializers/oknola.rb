@@ -18,6 +18,16 @@ module OknolaHardening
     errors
   end
 
+  # The shared bearer check for calls from the Oknola server. A blank or
+  # unset OKNOLA_HANDOFF_SECRET rejects every call.
+  def secret_valid?(authorization, env: ENV)
+    expected = env["OKNOLA_HANDOFF_SECRET"].to_s
+    return false if expected.blank?
+
+    scheme, token = authorization.to_s.split(" ", 2)
+    scheme == "Bearer" && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
+  end
+
   def verify!(**options)
     errors = boot_errors(**options)
     raise "Oknola production configuration incomplete: #{errors.join('; ')}" if errors.any?
@@ -31,6 +41,14 @@ Rails.application.config.after_initialize do
   OknolaHardening.verify! if Rails.env.production? && ENV["SECRET_KEY_BASE_DUMMY"].blank?
 end
 
-Rack::Attack.throttle("oknola/handoff", limit: 20, period: 1.minute) do |request|
-  request.ip if request.path.start_with?("/oknola/")
+# Code redemption comes from users' browsers, one IP each.
+Rack::Attack.throttle("oknola/session/ip", limit: 20, period: 1.minute) do |request|
+  request.ip if request.path == "/oknola/session"
+end
+
+# Server calls arrive from the Oknola server's shared egress IPs, so only
+# calls with a missing or wrong secret count; the right secret is never throttled.
+Rack::Attack.throttle("oknola/bad-secret/ip", limit: 10, period: 1.minute) do |request|
+  server_path = request.path == "/oknola/handoff" || request.path.start_with?("/oknola/accounts/")
+  request.ip if server_path && !OknolaHardening.secret_valid?(request.get_header("HTTP_AUTHORIZATION"))
 end

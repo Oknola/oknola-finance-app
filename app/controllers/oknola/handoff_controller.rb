@@ -29,20 +29,36 @@ module Oknola
       email = params[:email].to_s.strip.downcase
 
       if sub.blank? || !email.match?(URI::MailTo::EMAIL_REGEXP)
-        render json: { error: "invalid_request" }, status: :unprocessable_entity
+        render json: { error: "invalid" }, status: :unprocessable_entity
         return
       end
 
+      # A super admin removed this identity: it must not come back.
+      return render_gone if SsoIdentityBlock.blocked?(provider: PROVIDER, uid: sub)
+
       user = find_or_provision_user(sub, email)
-      return render(json: { error: "email_conflict" }, status: :conflict) unless user
-      return render(json: { error: "user_inactive" }, status: :gone) unless user.active?
-      return render(json: { error: "email_conflict" }, status: :conflict) unless sync_email(user, email)
+      return render_gone unless user.active?
+
+      user.update!(email: email) unless user.email == email
 
       code = SecureRandom.urlsafe_base64(32)
       Rails.cache.write(code_cache_key(code), { user_id: user.id, route: safe_route(params[:route]) }, expires_in: CODE_TTL)
 
       response.headers["Cache-Control"] = "no-store"
       render json: { code: code }
+    rescue ActiveRecord::RecordInvalid => e
+      # The email belongs to a Finance user Oknola does not own: never merged.
+      if e.record.is_a?(User) && e.record.errors.of_kind?(:email, :taken)
+        render json: { error: "email_conflict" }, status: :conflict
+      else
+        render json: { error: "invalid" }, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotUnique => e
+      if e.message.include?("index_users_on_email")
+        render json: { error: "email_conflict" }, status: :conflict
+      else
+        render json: { error: "invalid" }, status: :unprocessable_entity
+      end
     end
 
     def show
@@ -80,6 +96,10 @@ module Oknola
         "#{CODE_CACHE_PREFIX}#{Digest::SHA256.hexdigest(code)}"
       end
 
+      def render_gone
+        render json: { error: "user_inactive" }, status: :gone
+      end
+
       def sign_in_failed
         redirect_to new_session_path, alert: t("sessions.openid_connect.failed")
       end
@@ -94,9 +114,8 @@ module Oknola
 
         provision_user!(sub, email)
       rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
-        # A concurrent handoff for the same sub won the race, or the email
-        # belongs to a Finance user that Oknola does not own (never merged).
-        OidcIdentity.find_by(provider: PROVIDER, uid: sub)&.user
+        # A concurrent handoff for the same sub may have won the race.
+        OidcIdentity.find_by(provider: PROVIDER, uid: sub)&.user || raise
       end
 
       def provision_user!(sub, email)
@@ -135,14 +154,6 @@ module Oknola
           timezone: ActiveSupport::TimeZone[timezone].present? ? timezone : nil,
           country: country
         }
-      end
-
-      def sync_email(user, email)
-        return true if user.email == email
-
-        user.update(email: email)
-      rescue ActiveRecord::RecordNotUnique
-        false
       end
   end
 end
