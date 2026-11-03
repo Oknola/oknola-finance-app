@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "test_helper"
 
 class LocalizeTest < ActionDispatch::IntegrationTest
@@ -16,6 +17,7 @@ class LocalizeTest < ActionDispatch::IntegrationTest
   test "uses Accept-Language for onboarding when user locale is not set" do
     sign_in users(:family_admin)
 
+    users(:family_admin).update!(onboarded_at: nil)
     get preferences_onboarding_url, headers: { "Accept-Language" => "es-ES,es;q=0.9" }
     assert_response :success
     assert_select "h1", text: /Configura tus preferencias/i
@@ -24,6 +26,7 @@ class LocalizeTest < ActionDispatch::IntegrationTest
   test "falls back to family locale when Accept-Language is unsupported" do
     sign_in users(:family_admin)
 
+    users(:family_admin).update!(onboarded_at: nil)
     get preferences_onboarding_url, headers: { "Accept-Language" => "ru-RU,ru;q=0.9" }
     assert_response :success
     assert_select "h1", text: /Настройте ваши предпочтения/i
@@ -34,6 +37,7 @@ class LocalizeTest < ActionDispatch::IntegrationTest
     user.update!(locale: "fr")
     sign_in user
 
+    users(:family_admin).update!(onboarded_at: nil)
     get preferences_onboarding_url, headers: { "Accept-Language" => "es-ES,es;q=0.9" }
     assert_response :success
     assert_select "h1", text: /Configurez vos préférences/i
@@ -42,6 +46,7 @@ class LocalizeTest < ActionDispatch::IntegrationTest
   test "switches locale when locale param is provided" do
     sign_in users(:family_admin)
 
+    users(:family_admin).update!(onboarded_at: nil)
     get preferences_onboarding_url(locale: "fr")
     assert_response :success
     assert_select "h1", text: /Configurez vos préférences/i
@@ -50,6 +55,7 @@ class LocalizeTest < ActionDispatch::IntegrationTest
   test "ignores invalid locale param and uses family locale" do
     sign_in users(:family_admin)
 
+    users(:family_admin).update!(onboarded_at: nil)
     get preferences_onboarding_url(locale: "invalid_locale")
     assert_response :success
     assert_select "h1", text: /Configure your preferences/i

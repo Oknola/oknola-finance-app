@@ -1,0 +1,6 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+en:
+  layouts:
+    oknola:
+      nav:
+        settings: "Settings"

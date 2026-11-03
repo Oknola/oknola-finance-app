@@ -1,0 +1,9 @@
+<%# locals: (items:) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<ul class="space-y-0.5" data-oknola-nav>
+  <% items.each do |item| %>
+    <li>
+      <%= render "layouts/shared/nav_item", **item %>
+    </li>
+  <% end %>
+</ul>

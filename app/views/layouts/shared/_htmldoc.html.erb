@@ -1,10 +1,12 @@
 <%# locals: (sidebar_aware: false) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <!DOCTYPE html>
 
 <% theme = Current.user&.theme || "system" %>
 
 <html
   lang="en"
+  data-embedded="<%= session[:oknola_embedded] ? "true" : "false" %>"
   data-theme="<%= theme %>"
   data-controller="theme viewport"
   data-theme-user-preference-value="<%= Current.user&.theme || "system" %>"

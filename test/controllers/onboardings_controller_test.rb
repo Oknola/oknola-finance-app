@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "test_helper"
 
 class OnboardingsControllerTest < ActionDispatch::IntegrationTest
@@ -6,15 +7,48 @@ class OnboardingsControllerTest < ActionDispatch::IntegrationTest
     @family = @user.family
 
     # Reset onboarding state
-    @user.update!(set_onboarding_preferences_at: nil)
+    @user.update!(set_onboarding_preferences_at: nil, onboarded_at: nil)
 
     sign_in @user
+  end
+
+  %i[onboarding_url preferences_onboarding_url goals_onboarding_url trial_onboarding_url].each do |url|
+    test "redirects onboarded users from #{url} to the dashboard" do
+      @user.update!(onboarded_at: Time.current)
+
+      get public_send(url)
+
+      assert_redirected_to root_path
+    end
   end
 
   test "should get show" do
     get onboarding_url
     assert_response :success
     assert_select "h1", text: /set up your account/i
+  end
+
+  test "onboarded users without a subscription can reach trial from the dashboard in managed mode" do
+    Rails.configuration.stubs(:app_mode).returns("managed".inquiry)
+    @user.update!(onboarded_at: Time.current)
+    @family.subscription.destroy!
+
+    get root_path
+    assert_redirected_to trial_onboarding_path
+
+    follow_redirect!
+    assert_response :success
+  end
+
+  test "onboarded users without a subscription are redirected from trial in self-hosted mode" do
+    Rails.configuration.stubs(:app_mode).returns("self_hosted".inquiry)
+    ApplicationController.any_instance.stubs(:redis_connected?).returns(true)
+    @user.update!(onboarded_at: Time.current)
+    @family.subscription.destroy!
+
+    get trial_onboarding_url
+
+    assert_redirected_to root_path
   end
 
 
