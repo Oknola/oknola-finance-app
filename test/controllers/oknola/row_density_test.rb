@@ -28,6 +28,8 @@ class Oknola::RowDensityTest < ActionDispatch::IntegrationTest
       assert_includes classes, "min-h-12"
       assert_includes classes, "lg:min-h-9"
       assert_includes classes, "py-1"
+      assert_includes classes, "lg:py-0"
+      assert_not_includes classes, "lg:py-1"
       assert_not_includes classes, "lg:p-4"
     end
     assert_select "#{row_selector} p.privacy-sensitive.font-mono.text-right"

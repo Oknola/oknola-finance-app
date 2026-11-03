@@ -12,7 +12,7 @@
 
 <%= turbo_frame_tag dom_id(entry) do %>
   <%= turbo_frame_tag dom_id(transaction) do %>
-    <div class="group flex lg:grid lg:grid-cols-12 items-center text-primary text-sm font-medium px-3 py-1 lg:px-4 lg:py-1 min-h-12 lg:min-h-9 <%= "pl-8 lg:pl-12" if in_split_group %>"
+    <div class="group flex lg:grid lg:grid-cols-12 items-center text-primary text-sm font-medium px-3 py-1 lg:px-4 lg:py-0 min-h-12 lg:min-h-9 <%= "pl-8 lg:pl-12" if in_split_group %>"
          data-controller="clickable-row"
          data-action="click->clickable-row#open">
 
