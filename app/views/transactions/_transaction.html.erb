@@ -1,5 +1,5 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <%# locals: (entry:, balance_trend: nil, view_ctx: "global", in_split_group: false) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 
 <% transaction = entry.entryable %>
 <% side = Oknola::Side.for(transaction) %>
@@ -12,7 +12,7 @@
 
 <%= turbo_frame_tag dom_id(entry) do %>
   <%= turbo_frame_tag dom_id(transaction) do %>
-    <div class="group flex lg:grid lg:grid-cols-12 items-center text-primary text-sm font-medium p-3 lg:p-4 <%= "pl-8 lg:pl-12" if in_split_group %>"
+    <div class="group flex lg:grid lg:grid-cols-12 items-center text-primary text-sm font-medium px-3 py-1 lg:px-4 lg:py-0 min-h-12 lg:min-h-9 <%= "pl-8 lg:pl-12" if in_split_group %>"
          data-controller="clickable-row"
          data-action="click->clickable-row#open">
 
@@ -48,23 +48,23 @@
                 <%= render DS::FilledIcon.new(
                   icon: "arrow-right-left",
                   hex_color: Category::TRANSFER_COLOR,
-                  size: "lg",
+                  size: "sm",
                   rounded: true
                 ) %>
               <% elsif transaction_security_logo_url.present? %>
                 <%= image_tag Setting.transform_brand_fetch_url(transaction_security_logo_url),
-                    class: "w-9 h-9 rounded-full border border-secondary",
+                    class: "w-5 h-5 rounded-full border border-secondary",
                     loading: "lazy" %>
               <% elsif transaction.merchant&.logo_url.present? %>
                 <%= image_tag Setting.transform_brand_fetch_url(transaction.merchant.logo_url),
-                    class: "w-9 h-9 rounded-full border border-secondary",
+                    class: "w-5 h-5 rounded-full border border-secondary",
                     loading: "lazy" %>
               <% else %>
                 <div class="hidden lg:flex">
                   <%= render DS::FilledIcon.new(
                     variant: :text,
                     text: entry.name,
-                    size: "lg",
+                    size: "sm",
                     rounded: true
                   ) %>
                 </div>
@@ -72,8 +72,8 @@
             </div>
 
             <div class="truncate flex-1 min-w-0">
-              <div class="space-y-0.5">
-                <div class="flex items-center gap-1 min-w-0" data-tag-fit-bounds="0.5">
+              <div class="space-y-0.5 lg:space-y-0">
+                <div class="flex items-center gap-1 min-w-0 leading-5" data-tag-fit-bounds="0.5">
                   <div class="truncate flex-shrink">
                     <%= link_to(
                           entry.name,
@@ -156,7 +156,7 @@
                   </div>
                 </div>
 
-                <div class="text-secondary text-xs font-normal">
+                <div class="text-secondary text-xs font-normal leading-4">
                   <% if transaction.transfer? %>
                     <span class="text-secondary">
                       <%= transaction.loan_payment? ? t("transactions.show.loan_payment") : t("transactions.show.transfer") %> •
@@ -250,7 +250,7 @@
             <% end %>
             <%= content_tag :p,
                 transaction.transfer? && view_ctx == "global" ? "+/- #{format_money(entry.amount_money.abs)}" : format_money(-entry.amount_money),
-                class: ["privacy-sensitive", "text-green-600": entry.amount.negative?] %>
+                class: ["privacy-sensitive", "font-mono", "text-right", "tabular-nums", "text-green-600": entry.amount.negative?] %>
           </div>
         </div>
       </div>

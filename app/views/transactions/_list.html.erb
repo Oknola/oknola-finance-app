@@ -1,4 +1,5 @@
 <%# locals: (transactions:, projected_recurring:, q:, pagy:) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <div id="transactions"
   data-controller="bulk-select checkbox-toggle drag-and-drop-import"
   data-bulk-select-singular-label-value="<%= t(".transaction") %>"
@@ -23,7 +24,7 @@
   <% if @pagy.count > 0 || (@projected_recurring.any? && @q.blank?) %>
     <div class="grow overflow-y-auto">
       <% if @transactions.any? %>
-        <div class="grid-cols-12 bg-container-inset rounded-xl px-5 py-3 text-xs uppercase font-medium text-secondary items-center mb-4 grid">
+        <div class="grid-cols-12 bg-container-inset rounded-xl px-4 py-2 text-xs uppercase font-medium text-secondary items-center mb-4 grid">
           <div class="pl-0.5 col-span-5 flex items-center gap-4">
             <%= check_box_tag "selection_entry",
                 class: "checkbox checkbox--light hidden lg:block",
@@ -40,7 +41,7 @@
         </div>
       <% end %>
 
-      <div class="space-y-6">
+      <div class="space-y-4">
         <%= entries_by_date(@transactions.map(&:entry), totals: true) do |entries| %>
           <% if Current.user.show_split_grouped? %>
             <% group_split_entries(entries, @split_parents).each do |item| %>
