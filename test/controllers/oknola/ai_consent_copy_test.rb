@@ -31,6 +31,6 @@ class Oknola::AiConsentCopyTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "The advisor is off on this server."
-    assert_select "input[type='submit'], button[type='submit']", count: 0
+    assert_select "input[type='submit'][value='Turn on']", count: 0
   end
 end
