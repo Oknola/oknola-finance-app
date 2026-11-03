@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "application_system_test_case"
 
 class ChatsTest < ApplicationSystemTestCase
@@ -12,7 +13,7 @@ class ChatsTest < ApplicationSystemTestCase
     visit root_path
 
     within "#chat-container" do
-      assert_selector "h3", text: "Enable AI Chats"
+      assert_selector "h3", text: I18n.t("chats.ai_consent.title")
     end
   end
 
@@ -27,7 +28,7 @@ class ChatsTest < ApplicationSystemTestCase
 
     visit chats_path
 
-    assert_selector "h3", text: "Enable AI Chats"
+    assert_selector "h3", text: I18n.t("chats.ai_consent.title")
     assert_no_selector "textarea[name='chat[content]']"
     assert_no_selector "[data-action='chat#submitSampleQuestion']"
   end
