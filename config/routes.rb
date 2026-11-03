@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "sidekiq/web"
 require "sidekiq/cron/web"
 
@@ -1007,6 +1008,14 @@ Rails.application.routes.draw do
 
   # MCP server endpoint for external AI assistants (JSON-RPC 2.0)
   post "mcp", to: "mcp#handle"
+
+  # Oknola embedding: server-to-server handoff and account purge, and the
+  # one-time code sign-in the Oknola client opens.
+  namespace :oknola do
+    post :handoff, to: "handoff#create"
+    get :session, to: "handoff#show"
+    delete "accounts/:sub", to: "accounts#destroy", as: :account
+  end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

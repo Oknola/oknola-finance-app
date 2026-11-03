@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+
 require "test_helper"
 
 class CorsTest < ActionDispatch::IntegrationTest
@@ -50,23 +52,22 @@ class CorsTest < ActionDispatch::IntegrationTest
     assert_equal "*", response.headers["Access-Control-Allow-Origin"]
   end
 
-  test "cors headers are returned for session endpoints" do
-    post "/sessions",
-      params: { email: "test@example.com", password: "password" },
-      headers: { "Origin" => "http://localhost:3000" }
+  # Session endpoints are same-origin only: no cross-origin client uses them
+  # (the mobile client uses /api and /oauth), so a foreign page gets no CORS grant.
+  test "cors headers are not returned for session endpoints" do
+    get "/sessions/new", headers: { "Origin" => "https://x" }
 
-    assert_equal "*", response.headers["Access-Control-Allow-Origin"]
+    assert_nil response.headers["Access-Control-Allow-Origin"]
   end
 
-  test "cors preflight request is handled for session endpoints" do
-    options "/sessions/new",
+  test "cors preflight is not granted for session endpoints" do
+    options "/sessions",
       headers: {
-        "Origin" => "http://localhost:3000",
-        "Access-Control-Request-Method" => "GET",
+        "Origin" => "https://x",
+        "Access-Control-Request-Method" => "POST",
         "Access-Control-Request-Headers" => "Content-Type"
       }
 
-    assert_response :ok
-    assert_equal "*", response.headers["Access-Control-Allow-Origin"]
+    assert_nil response.headers["Access-Control-Allow-Origin"]
   end
 end
