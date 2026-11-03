@@ -1,7 +1,7 @@
 require "test_helper"
 
 class Oknola::AccountSideTest < ActiveSupport::TestCase
-  include EntriesTestHelper
+  include EntriesTestHelper, ActiveJob::TestHelper
 
   setup do
     @family = families(:dylan_family)
