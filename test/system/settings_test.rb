@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "application_system_test_case"
 
 class SettingsTest < ApplicationSystemTestCase
@@ -13,15 +14,12 @@ class SettingsTest < ApplicationSystemTestCase
 
     @settings_links += [
       [ "Preferences", settings_preferences_path ],
-      [ "Profile Info", settings_profile_path ],
-      [ "Security", settings_security_path ],
       [ "Categories", categories_path ],
       [ "Tags", tags_path ],
       [ "Rules", rules_path ],
       [ "Merchants", family_merchants_path ],
       [ "Guides", settings_guides_path ],
-      [ "What's new", changelog_path ],
-      [ "Feedback", feedback_path ]
+      [ "About", settings_about_path ]
     ]
 
     # Add admin settings if user is admin
