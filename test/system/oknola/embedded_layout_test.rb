@@ -66,6 +66,7 @@ class Oknola::StandardLayoutTest < ApplicationSystemTestCase
     assert_selector "a:has(> img[src*='logomark-color'])", visible: :visible
     assert_selector "a[href*='discord.gg']", visible: :visible
     assert_selector "[data-testid='user-menu']", count: 2, visible: :all
+    assert_selector "[data-testid='user-menu']", visible: :visible
     assert_no_selector "nav.h-full ul a", text: "Settings"
     assert_no_selector "nav.h-full ul a", text: "Assistant"
   end
