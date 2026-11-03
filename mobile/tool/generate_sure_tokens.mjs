@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -99,6 +100,19 @@ function resolveColorValue(tokens, value, mode, sourcePath) {
     return `0xFF${hexMatch[1].toUpperCase()}`;
   }
 
+  const rgbaMatch = value.match(
+    /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+(?:\.\d+)?|\.\d+)\s*\)$/,
+  );
+  if (rgbaMatch) {
+    const [red, green, blue, alpha] = rgbaMatch.slice(1).map(Number);
+    if ([red, green, blue].some((channel) => channel > 255) || alpha > 1) {
+      throw new Error(`[mobile-tokens] Invalid rgba color in ${sourcePath}: ${value}`);
+    }
+    return "0x" + [Math.round(alpha * 255), red, green, blue]
+      .map((channel) => channel.toString(16).toUpperCase().padStart(2, "0"))
+      .join("");
+  }
+
   const refMatch = value.match(/^\{([^|}]+)(?:\|([0-9]+)%?)?\}$/);
   if (refMatch) {
     const [, ref, alphaPercent] = refMatch;
@@ -134,7 +148,7 @@ function resolveWeight(tokens, path) {
   return `FontWeight.w${value}`;
 }
 
-// Parse a single-layer CSS box-shadow ("<x>px <y>px <blur>px <spread>px {color}")
+// Parse a single-layer CSS box-shadow with a reference, hex or rgba color
 // into a Dart `BoxShadow(...)` literal. Offsets and spread may be negative
 // (e.g. -4px); blur must be >= 0. A strict number pattern rejects malformed
 // dimensions (e.g. "1.2.3px") instead of emitting NaN into the generated Dart.
@@ -144,7 +158,7 @@ function resolveShadow(tokens, path, mode) {
   const num = "-?[0-9]+(?:\\.[0-9]+)?";
   const nonNeg = "[0-9]+(?:\\.[0-9]+)?";
   const match = String(value).match(
-    new RegExp(`^(${num})px (${num})px (${nonNeg})px (${num})px (\\{[^}]+\\})$`),
+    new RegExp(`^(${num})px (${num})px (${nonNeg})px (${num})px (\\{[^}]+\\}|#[0-9a-fA-F]{6}|rgba\\([^()]+\\))$`),
   );
   if (!match) {
     throw new Error(`[mobile-tokens] ${path} must be a single-layer box shadow: ${value}`);
@@ -192,6 +206,7 @@ function buildDart(tokens) {
   );
 
   return `// GENERATED CODE - DO NOT EDIT BY HAND.
+// Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 // Source: design/tokens/sure.tokens.json
 // Build: node mobile/tool/generate_sure_tokens.mjs
 

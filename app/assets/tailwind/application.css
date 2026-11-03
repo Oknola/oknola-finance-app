@@ -2,8 +2,8 @@
 
 @import "./sure-design-system.css";
 
-@import "./geist-font.css";
-@import "./geist-mono-font.css";
+/* Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 */
+@import "./oknola-fonts.css";
 
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
