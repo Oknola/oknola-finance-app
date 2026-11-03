@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 
 # CORS configuration for API access from mobile clients (Flutter) and other external apps.
