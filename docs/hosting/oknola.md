@@ -161,4 +161,4 @@ A 204 means purged (also for a `sub` that no longer exists).
 
 ## Known limits
 
-- **Memory.** `finance-web` is 0.5 CPU / 512 MB; `finance-worker` is 1 CPU / 2 GB (`1c-2g`), because AI jobs, imports and syncs run there. Upstream measures about 352 MB steady state but asks for at least 1 GB when AI features are on (`docs/hosting/docker.md`, "Running Sure on small (512 MB) hosts"). If the web restarts with out-of-memory events, move `finance-web` to `1c-2g` too.
+- **Memory.** `finance-web` and `finance-worker` are both 1 CPU / 2 GB (`1c-2g`). The web started on 0.5 CPU / 512 MB and was killed for running out of memory on the first page loads; upstream measures about 352 MB steady state but asks for at least 1 GB when AI features are on (`docs/hosting/docker.md`, "Running Sure on small (512 MB) hosts"). The web runs Puma in single-process mode (`WEB_CONCURRENCY=0` in `render.yaml`), because Render's default of 1 starts a master plus one worker. The worker runs AI jobs, imports and syncs.

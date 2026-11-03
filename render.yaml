@@ -7,7 +7,8 @@
 # secrets sit on each service and the group carries only the plain settings.
 # The web and worker services must get the SAME value for every shared secret.
 #
-# Plan IDs are Render's current names: web 0.5c-512mb (was Starter), worker
+# Plan IDs are Render's current names: web 1c-2g (was Standard; 512 MB ran out
+# of memory on the first sign-up), worker
 # 1c-2g (was Standard; AI jobs, imports and syncs run there), Postgres 0.5c-1g
 # (was Basic-1gb), Key Value 256mb (was Starter).
 #
@@ -21,7 +22,7 @@ services:
     image:
       url: ghcr.io/oknola/oknola-finance-app:oknola
     region: ohio
-    plan: 0.5c-512mb
+    plan: 1c-2g
     healthCheckPath: /up
     domains:
       - finance.oknola.com
@@ -29,6 +30,10 @@ services:
     # bin/docker-entrypoint, which runs db:prepare (migrations) before Puma.
     envVars:
       - fromGroup: finance-prod
+      # Single-process Puma: Puma reads WEB_CONCURRENCY itself and Render sets it
+      # to 1, which starts a master plus one worker and doubles memory for nothing.
+      - key: WEB_CONCURRENCY
+        value: "0"
       - key: DATABASE_URL
         fromDatabase:
           name: finance-db
