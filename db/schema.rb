@@ -9,8 +9,10 @@
 # migrations use external dependencies or application code.
 #
 # It's strongly recommended that you check this file into your version control system.
+#
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_090001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1857,6 +1859,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_090001) do
     t.index ["user_id"], name: "index_oidc_identities_on_user_id"
   end
 
+  create_table "oknola_acceptances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "accepted_at", null: false
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.string "version", null: false
+    t.index ["user_id", "kind", "version"], name: "index_oknola_acceptances_on_user_id_and_kind_and_version", unique: true
+  end
+
   create_table "onchain_wallet_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "asset_kind", null: false
     t.string "chain", null: false
@@ -3083,6 +3095,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_090001) do
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
   add_foreign_key "oidc_identities", "users"
+  add_foreign_key "oknola_acceptances", "users", on_delete: :cascade
   add_foreign_key "onchain_wallet_accounts", "onchain_wallet_items"
   add_foreign_key "onchain_wallet_items", "families"
   add_foreign_key "plaid_accounts", "plaid_items"

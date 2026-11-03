@@ -1,0 +1,18 @@
+---
+en:
+  oknola:
+    acceptances:
+      show:
+        title: "Finance is in early access."
+        intro: "You are among the first people using Finance. Expect rough edges and bugs; tell Oknola when you find one."
+        holds_title: "What Finance holds:"
+        holds_body: "the accounts, transactions, budgets and bank connections you add. Bank connections go through SimpleFIN or Plaid; with Plaid, Cardona Labs holds the access token for your bank. The advisor, if you turn it on, sends your Finance data to Anthropic's API."
+        guarantees_title: "No guarantees yet:"
+        guarantees_body: "during early access Finance comes as is, with no promise of uptime, accuracy or data retention beyond the backups Cardona Labs keeps."
+        way_out_title: "Your way out:"
+        way_out_body: "Settings → Exports downloads everything as CSV and NDJSON at any time. Deleting your Oknola account deletes your Finance data at once, with no archive; export first."
+        who_title: "Who runs it:"
+        who_body: "Cardona Labs, LLC, in the United States, on Render (Ohio). Oknola's terms and privacy policy apply, with the early-access clause."
+        agree: "I understand."
+        submit: "Continue"
+        unchecked: "Check “I understand.” to continue."

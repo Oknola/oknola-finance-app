@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 class ApplicationController < ActionController::Base
   include RestoreLayoutPreferences, Onboardable, Localize, AutoSync, Authentication, Invitable,
           SelfHostable, StoreLocation, Impersonatable, Breadcrumbable,
@@ -6,6 +7,8 @@ class ApplicationController < ActionController::Base
   include Pundit::Authorization
   include CodespacesForgeryProtection
   include WebUsageTracking
+  # After Authentication, so Current.session is set when it runs.
+  include Oknola::RequiresNotice
 
   include Pagy::Backend
 

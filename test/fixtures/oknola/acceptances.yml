@@ -1,0 +1,11 @@
+# Every fixture user has accepted the early-access notice, so upstream tests
+# that sign one in reach the page they test. Read from users.yml, so fixture
+# users added by an upstream merge are covered too. Tests of the notice remove
+# the row or use a new user.
+<% File.read(Rails.root.join("test/fixtures/users.yml")).scan(/^([a-z0-9_]+):\s*$/).flatten.each do |name| %>
+<%= name %>:
+  user: <%= name %>
+  kind: early_access
+  version: "1"
+  accepted_at: <%= 3.days.ago %>
+<% end %>
