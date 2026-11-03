@@ -11,6 +11,8 @@ class Oknola::NoWizardTest < ActionDispatch::IntegrationTest
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @original_secret = ENV["OKNOLA_HANDOFF_SECRET"]
     ENV["OKNOLA_HANDOFF_SECRET"] = SECRET
+    Rails.configuration.stubs(:app_mode).returns("self_hosted".inquiry)
+    ApplicationController.any_instance.stubs(:redis_connected?).returns(true)
   end
 
   teardown do

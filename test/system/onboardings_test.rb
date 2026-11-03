@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "application_system_test_case"
 
 class OnboardingsTest < ApplicationSystemTestCase
@@ -6,7 +7,7 @@ class OnboardingsTest < ApplicationSystemTestCase
     @family = @user.family
 
     # Reset onboarding state
-    @user.update!(set_onboarding_preferences_at: nil)
+    @user.update!(set_onboarding_preferences_at: nil, onboarded_at: nil)
 
     # Force English locale for tests
     I18n.locale = :en

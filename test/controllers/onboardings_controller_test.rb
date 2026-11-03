@@ -28,6 +28,29 @@ class OnboardingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /set up your account/i
   end
 
+  test "onboarded users without a subscription can reach trial from the dashboard in managed mode" do
+    Rails.configuration.stubs(:app_mode).returns("managed".inquiry)
+    @user.update!(onboarded_at: Time.current)
+    @family.subscription.destroy!
+
+    get root_path
+    assert_redirected_to trial_onboarding_path
+
+    follow_redirect!
+    assert_response :success
+  end
+
+  test "onboarded users without a subscription are redirected from trial in self-hosted mode" do
+    Rails.configuration.stubs(:app_mode).returns("self_hosted".inquiry)
+    ApplicationController.any_instance.stubs(:redis_connected?).returns(true)
+    @user.update!(onboarded_at: Time.current)
+    @family.subscription.destroy!
+
+    get trial_onboarding_url
+
+    assert_redirected_to root_path
+  end
+
 
   test "onboarding setup includes required moniker selection" do
     get onboarding_url

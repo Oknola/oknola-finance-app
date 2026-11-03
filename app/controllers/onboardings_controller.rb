@@ -21,6 +21,8 @@ class OnboardingsController < ApplicationController
     end
 
     def redirect_onboarded_user
+      return if action_name == "trial" && Current.family.needs_subscription?
+
       redirect_to root_path if @user.onboarded?
     end
 
