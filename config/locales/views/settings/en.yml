@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 ---
 en:
   views:
@@ -360,6 +361,7 @@ en:
         revoked: Connection revoked.
     settings_nav:
       accounts_label: Accounts
+      about_label: About
       advanced_section_title: Advanced
       ai_prompts_label: AI Prompts
       auto_matches_label: Auto Matches

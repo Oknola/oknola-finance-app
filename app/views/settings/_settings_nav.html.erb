@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <%
 nav_sections = [
   {
@@ -7,9 +8,6 @@ nav_sections = [
       { label: t(".bank_sync_label"), path: settings_providers_path, icon: "banknote", if: Current.user&.admin? },
       { label: t(".preferences_label"), path: settings_preferences_path, icon: "bolt" },
       { label: t(".appearance_label"), path: settings_appearance_path, icon: "palette" },
-      { label: t(".profile_label"), path: settings_profile_path, icon: "circle-user" },
-      { label: t(".security_label"), path: settings_security_path, icon: "shield-check" },
-      { label: t(".payment_label"), path: settings_payment_path, icon: "circle-dollar-sign", if: !self_hosted? && Current.family&.can_manage_subscription? }
     ]
   },
   {
@@ -48,8 +46,7 @@ nav_sections = [
     header: t(".other_section_title"),
     items: [
       { label: t(".guides_label"), path: settings_guides_path, icon: "book-open" },
-      { label: t(".whats_new_label"), path: changelog_path, icon: "box" },
-      { label: t(".feedback_label"), path: feedback_path, icon: "megaphone" }
+      { label: t(".about_label"), path: settings_about_path, icon: "info" }
     ]
   }
 ]
