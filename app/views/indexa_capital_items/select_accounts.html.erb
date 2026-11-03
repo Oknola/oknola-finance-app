@@ -1,10 +1,11 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <% content_for :title, t("indexa_capital_items.select_accounts.title") %>
 
 <%= render DS::Dialog.new do |dialog| %>
   <% dialog.with_header(title: t("indexa_capital_items.select_accounts.title")) do %>
     <div class="flex items-center gap-2">
       <%= icon "trending-up", class: "text-primary" %>
-      <span class="text-primary"><%= t("indexa_capital_items.select_accounts.description", product_name: "Maybe") %></span>
+      <span class="text-primary"><%= t("indexa_capital_items.select_accounts.description", product_name: product_name) %></span>
     </div>
   <% end %>
 

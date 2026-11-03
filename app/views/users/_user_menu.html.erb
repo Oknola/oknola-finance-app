@@ -1,4 +1,5 @@
 <%# locals: (user:, placement: "right-start", offset: 16, intro_mode: false) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 
 <% intro_mode = local_assigns.fetch(:intro_mode, false) %>
 
@@ -34,10 +35,10 @@
         <div class="px-4 py-3 border-t border-tertiary">
           <p class="text-sm">
             <span class="font-medium text-primary"><%= t(".version") %>:</span>
-            <%= link_to Sure.version.to_release_tag, "https://github.com/we-promise/sure/releases/tag/#{Sure.version.to_release_tag}", target: "_blank", class: "hover:underline" %>
+            <%= link_to Sure.version.to_release_tag, "https://github.com/Oknola/oknola-finance-app/releases", target: "_blank", class: "hover:underline" %>
 
             <% if Sure.commit_sha.present? %>
-              (<%= link_to Sure.commit_sha.first(7), "https://github.com/we-promise/sure/commit/#{Sure.commit_sha}", target: "_blank", class: "hover:underline" %>)
+              (<%= link_to Sure.commit_sha.first(7), "https://github.com/Oknola/oknola-finance-app/commit/#{Sure.commit_sha}", target: "_blank", class: "hover:underline" %>)
             <% end %>
           </p>
         </div>

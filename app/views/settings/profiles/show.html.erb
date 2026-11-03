@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <%= content_for :page_title, t(".page_title") %>
 
 <%= settings_section title: t(".profile_title"), subtitle: t(".profile_subtitle", product_name: product_name) do %>
@@ -169,19 +170,6 @@
         ) %>
       </div>
     <% end %>
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div class="w-full md:w-2/3">
-        <h3 class="font-medium text-primary"><%= t(".delete_account") %></h3>
-        <p class="text-secondary text-sm"><%= t(".delete_account_warning") %></p>
-      </div>
-
-      <%= render DS::Button.new(
-        text: t(".delete_account"),
-        variant: "destructive",
-        href: user_path(@user),
-        method: :delete,
-        confirm: CustomConfirm.for_resource_deletion("your account", high_severity: true)
-      ) %>
-    </div>
+    <p class="text-secondary text-sm"><%= t("settings.abouts.delete_account_pointer") %></p>
   </div>
 <% end %>
