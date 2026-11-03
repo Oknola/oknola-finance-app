@@ -94,6 +94,9 @@ class DesignTokensTest < ActiveSupport::TestCase
     refute_match(/geist/i, application)
     assert_includes application, '@import "./oknola-fonts.css";'
     fonts = File.read(Rails.root.join("app/assets/tailwind/oknola-fonts.css"))
+    space_grotesk_faces = fonts.scan(/@font-face\s*\{[^}]*font-family: 'Space Grotesk Variable';[^}]*\}/)
+    assert_equal 2, space_grotesk_faces.size
+    space_grotesk_faces.each { |face| assert_includes face, "size-adjust: 98%;" }
     paths = fonts.scan(/url\('\.\/([^']+\.woff2)'\)/).flatten
     assert_equal 4, paths.size
     paths.each { |path| assert File.file?(Rails.root.join("app/assets/fonts", path)), path }
