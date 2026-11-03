@@ -1,3 +1,4 @@
+<!-- Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 -->
 # Repository guidance
 
 ## Working in the repository
@@ -42,3 +43,13 @@ Adding or modifying `app/controllers/api/v1/` endpoints requires Minitest behavi
 - Read [provider sync guidance](docs/llm-guides/providers.md) when changing imports, pending transactions, FX metadata or diagnostics. Use `DebugLogEntry.capture(...)` for support-relevant failures and partial responses, with provider/source metadata and family/account-provider context where available.
 - For securities providers, follow [adding a securities provider](docs/llm-guides/adding-a-securities-provider.md).
 - For feature rollout, follow [preview-feature gating](docs/llm-guides/gating-a-preview-feature.md); for goals, read the [Goals guide](docs/llm-guides/goals.md).
+
+## Oknola fork rules
+
+This repository is Oknola/oknola-finance-app, Cardona Labs, LLC's public fork of Sure. Its working branch is `oknola`; every pull request targets `oknola`.
+
+- Never rebase, reset or force-push `oknola`. Upstream stable releases arrive by merge only.
+- Prefer new files over edits to upstream files: Oknola code goes in `app/controllers/oknola/`, `app/models/oknola/`, `test/**/oknola/` and `config/initializers/oknola.rb`. Fewer upstream edits keep the monthly merge small.
+- Every edited upstream file carries one notice line near its top, in that file's comment syntax: `Modified by Cardona Labs, LLC, <YYYY-MM-DD>, AGPL-3.0` (AGPL-3.0 section 5a). Keep every existing licence and copyright notice.
+- `bin/rails test` is green before every push.
+- The word "Maybe" never appears in a user-facing string, except the one attribution sentence on the About page.

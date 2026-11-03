@@ -1,3 +1,16 @@
+<!-- Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 -->
+# Oknola Finance App
+
+Oknola Finance App is the finance service behind **Finance** in [Oknola](https://oknola.com), run by Cardona Labs, LLC. It is based on [Sure](https://github.com/we-promise/sure), itself based on Maybe Finance. It is **not affiliated with or endorsed by** Maybe Finance Inc.
+
+- Licence: [AGPL-3.0](LICENSE), as upstream. Source of every running version: https://github.com/Oknola/oknola-finance-app
+- Oknola's own brand assets and marks (the Oknola and Cardona Labs names and logos) are not licensed under the AGPL.
+- Oknola's changes live on the `oknola` branch; upstream stable releases are merged into it.
+
+The rest of this README is upstream's.
+
+---
+
 [![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/we-promise/sure)
 [![View performance data on Skylight](https://badges.skylight.io/typical/s6PEZSKwcklL.svg)](https://oss.skylight.io/app/applications/s6PEZSKwcklL)
 [![Dosu](https://raw.githubusercontent.com/dosu-ai/assets/main/dosu-badge.svg)](https://app.dosu.dev/a72bdcfd-15f5-4edc-bd85-ea0daa6c3adc/ask)
