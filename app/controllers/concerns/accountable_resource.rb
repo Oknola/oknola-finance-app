@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 module AccountableResource
   extend ActiveSupport::Concern
 
@@ -47,6 +48,8 @@ module AccountableResource
       )
       @account.lock_saved_attributes!
     end
+
+    Oknola::AccountSide.set(@account, params.dig(:account, :side)) if params.dig(:account, :side).present?
 
     # Prefer the form-carried return_to, then the session value StoreLocation
     # captured from `?return_to=` (survives multi-step flows where the param
@@ -124,6 +127,8 @@ module AccountableResource
       render :edit, status: :unprocessable_entity
       return
     end
+
+    Oknola::AccountSide.set(@account, params.dig(:account, :side)) if params.dig(:account, :side).present?
 
     redirect_back_or_to account_path(@account), notice: t("accounts.update.success", type: accountable_type.name.underscore.humanize)
   end

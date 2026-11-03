@@ -1,4 +1,5 @@
 <%# locals: (account:, url:) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 
 <% if @error_message.present? %>
   <%= render DS::Alert.new(message: @error_message, variant: :error) %>
@@ -23,6 +24,12 @@
     <% end %>
 
     <%= yield form %>
+
+    <% if Oknola::AccountSide.available?(Current.family) %>
+      <%= form.select :side,
+          [[t(".side_business"), "business"], [t(".side_personal"), "personal"], [t(".side_mixed"), "mixed"]],
+          { label: t(".side_label"), selected: (account.persisted? ? Oknola::AccountSide.side_for(account) : "mixed") } %>
+    <% end %>
 
     <% if account.persisted? && account.supports_category_matcher? %>
       <div class="flex items-center justify-between gap-3 py-2">
