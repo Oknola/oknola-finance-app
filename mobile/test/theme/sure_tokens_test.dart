@@ -1,3 +1,4 @@
+// Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 // ignore_for_file: deprecated_member_use
 
 import 'dart:convert';
@@ -86,11 +87,11 @@ void main() {
   test('generated shadow scale carries mode-aware color and geometry', () {
     final lightSm = SureTokens.light.shadowSm.single;
     expect(lightSm.offset, const Offset(0, 1));
-    expect(lightSm.blurRadius, 6.0);
+    expect(lightSm.blurRadius, 0.0);
     expect(lightSm.spreadRadius, 0.0);
     expect(
       lightSm.color.value,
-      _resolveColorValue(tokens, '{color.black|6%}', dark: false),
+      _resolveColor(tokens, 'color.shadow', dark: false),
     );
     expect(
       SureTokens.dark.shadowSm.single.color.value,
@@ -98,6 +99,13 @@ void main() {
     );
     // The xl step keeps the canonical negative spread (0px 20px 24px -4px).
     expect(SureTokens.light.shadowXl.single.spreadRadius, -4.0);
+  });
+
+  test('generated rgba colors and shadows round alpha to ARGB bytes', () {
+    expect(SureTokens.light.shadow.value, 0x143C2D14);
+    expect(SureTokens.light.shadowSm.single.color.value, 0x143C2D14);
+    expect(SureTokens.light.shadowMd.single.color.value, 0x733C2D14);
+    expect(SureTokens.dark.shadowSm.single.color.value, 0x14FFFFFF);
   });
 }
 
@@ -123,6 +131,17 @@ int _resolveColorValue(
   final hex = RegExp(r'^#([0-9a-fA-F]{6})$').firstMatch(value);
   if (hex != null) {
     return int.parse('FF${hex.group(1)!}', radix: 16);
+  }
+
+  final rgba = RegExp(
+    r'^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+(?:\.\d+)?|\.\d+)\s*\)$',
+  ).firstMatch(value);
+  if (rgba != null) {
+    final alpha = (double.parse(rgba.group(4)!) * 255).round();
+    return (alpha << 24) |
+        (int.parse(rgba.group(1)!) << 16) |
+        (int.parse(rgba.group(2)!) << 8) |
+        int.parse(rgba.group(3)!);
   }
 
   final ref = RegExp(r'^\{([^|}]+)(?:\|([0-9]+)%?)?\}$').firstMatch(value);

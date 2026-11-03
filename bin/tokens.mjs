@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 // Sure design tokens build.
 // Reads design/tokens/sure.tokens.json (W3C DTCG-flavored), emits one Tailwind v4 CSS file.
 
@@ -11,6 +12,7 @@ const TOKENS = resolve(ROOT, "design/tokens/sure.tokens.json");
 const OUT = resolve(ROOT, "app/assets/tailwind/sure-design-system/_generated.css");
 
 const HEADER = `/*
+ * Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
  * GENERATED — do not edit by hand.
  * Source: design/tokens/sure.tokens.json
  * Build:  npm run tokens:build
@@ -80,10 +82,14 @@ function refToClass(refStr, prefix) {
   return prefix + "-" + parts.join("-");
 }
 
-// Utility @apply argument. If value is a raw class string (no `{}`), pass through.
+const HEX_COLOR = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+// Utility @apply argument. Literal colors become Tailwind arbitrary values.
+// If value is a raw class string (no `{}`), pass through.
 // If value is a `{ref}`, resolve to a Tailwind class via the given prefix.
 function utilityClasses(value, prefix) {
   if (typeof value !== "string") return "";
+  if (HEX_COLOR.test(value)) return `${prefix}-[${value}]`;
   if (!value.includes("{")) return value;
   return refToClass(value, prefix);
 }
@@ -119,7 +125,9 @@ function build() {
         ? `${raw}: ${resolveTemplate(node.$value)};`
         : `@apply ${utilityClasses(node.$value, prefix)};`;
 
-      const flipsViaVariable = dark && (raw || (node.$value.includes("{") && dark.includes("{")));
+      const flipsViaVariable = dark && (raw ||
+        ((node.$value.includes("{") || HEX_COLOR.test(node.$value)) &&
+          (dark.includes("{") || HEX_COLOR.test(dark))));
 
       let block = `@utility ${name} {\n  ${lightLine}`;
       if (flipsViaVariable) {
