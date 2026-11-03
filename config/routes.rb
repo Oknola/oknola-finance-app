@@ -387,6 +387,7 @@ Rails.application.routes.draw do
   end
 
   namespace :settings do
+    resource :about, only: :show
     resource :profile, only: [ :show, :destroy ]
     resource :preferences, only: %i[show update]
     resource :budget_shares, only: :update

@@ -1,0 +1,21 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<%= content_for :page_title, t(".page_title") %>
+
+<%= settings_section do %>
+  <div class="space-y-4 text-sm text-secondary">
+    <p><%= t(".built_on") %></p>
+    <p>
+      <%= t(".source") %>
+      <% if Sure.commit_sha.present? %>
+        <%= render DS::Link.new(text: Sure.commit_sha.first(7), href: "https://github.com/Oknola/oknola-finance-app/commit/#{Sure.commit_sha}") %>
+      <% else %>
+        <%= render DS::Link.new(text: t(".source_branch"), href: "https://github.com/Oknola/oknola-finance-app") %>
+      <% end %>
+    </p>
+    <p>
+      <%= t(".licence") %>
+      <%= render DS::Link.new(text: "AGPL-3.0", href: "https://github.com/Oknola/oknola-finance-app/blob/oknola/LICENSE") %>
+    </p>
+    <p><%= t(".disclaimer") %></p>
+  </div>
+<% end %>

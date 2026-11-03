@@ -1,0 +1,12 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+en:
+  settings:
+    abouts:
+      show:
+        page_title: About
+        built_on: Finance, built on Sure (AGPL-3.0).
+        source: "Source code of this version:"
+        source_branch: oknola branch
+        licence: "Licence:"
+        disclaimer: Not affiliated with or endorsed by Maybe Finance Inc.
+      delete_account_pointer: "To delete your account, use Oknola → Settings → Account. Export first: Settings → Exports."
