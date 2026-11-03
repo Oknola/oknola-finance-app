@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 require "test_helper"
 
 class OnboardingsControllerTest < ActionDispatch::IntegrationTest
@@ -6,9 +7,19 @@ class OnboardingsControllerTest < ActionDispatch::IntegrationTest
     @family = @user.family
 
     # Reset onboarding state
-    @user.update!(set_onboarding_preferences_at: nil)
+    @user.update!(set_onboarding_preferences_at: nil, onboarded_at: nil)
 
     sign_in @user
+  end
+
+  %i[onboarding_url preferences_onboarding_url goals_onboarding_url trial_onboarding_url].each do |url|
+    test "redirects onboarded users from #{url} to the dashboard" do
+      @user.update!(onboarded_at: Time.current)
+
+      get public_send(url)
+
+      assert_redirected_to root_path
+    end
   end
 
   test "should get show" do
