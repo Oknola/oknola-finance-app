@@ -1015,6 +1015,7 @@ Rails.application.routes.draw do
     post :handoff, to: "handoff#create"
     get :session, to: "handoff#show"
     delete "accounts/:sub", to: "accounts#destroy", as: :account
+    resource :notice, only: %i[show create], controller: "acceptances"
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

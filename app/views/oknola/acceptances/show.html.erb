@@ -1,0 +1,34 @@
+<%= content_for :prev_nav do %>
+  <%= image_tag "logomark-color.svg", class: "w-10 h-10" %>
+<% end %>
+
+<%= content_for :cancel_action do %>
+  <%= render "onboardings/logout" %>
+<% end %>
+
+<div class="max-w-lg w-full mx-auto">
+  <%= render DS::Card.new(class: "gap-4") do %>
+    <h1 class="text-2xl font-medium text-primary"><%= t(".title") %></h1>
+
+    <div class="space-y-3 text-sm text-secondary">
+      <p><%= t(".intro") %></p>
+      <p><strong class="font-medium text-primary"><%= t(".holds_title") %></strong> <%= t(".holds_body") %></p>
+      <p><strong class="font-medium text-primary"><%= t(".guarantees_title") %></strong> <%= t(".guarantees_body") %></p>
+      <p><strong class="font-medium text-primary"><%= t(".way_out_title") %></strong> <%= t(".way_out_body") %></p>
+      <p><strong class="font-medium text-primary"><%= t(".who_title") %></strong> <%= t(".who_body") %></p>
+    </div>
+
+    <% if @unchecked %>
+      <%= render DS::Alert.new(message: t(".unchecked"), variant: :error, live: :alert) %>
+    <% end %>
+
+    <%= form_with url: oknola_notice_path, method: :post, class: "space-y-4" do |form| %>
+      <label class="flex items-center gap-2 text-sm text-primary">
+        <%= form.check_box :accepted, { required: true, class: "checkbox checkbox--light" }, "1", "0" %>
+        <span><%= t(".agree") %></span>
+      </label>
+
+      <%= render DS::Button.new(text: t(".submit"), type: "submit", full_width: true) %>
+    <% end %>
+  <% end %>
+</div>
