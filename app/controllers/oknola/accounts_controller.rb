@@ -1,7 +1,8 @@
 # DELETE /oknola/accounts/:sub purges the Finance data of a deleted Oknola
 # account: the user, and the whole family when they are its last member.
 # Access ends at once (deactivated, sessions, tokens and the identity
-# revoked) and Sure's UserPurgeJob removes the data: 202. An unknown sub,
+# revoked) and Sure's UserPurgeJob removes the data: 202. If the job
+# cannot be enqueued, the purge runs in the request: 204. An unknown sub,
 # including a repeat call, is already purged: 204.
 module Oknola
   class AccountsController < ActionController::API
@@ -21,9 +22,25 @@ module Oknola
         user.update_columns(active: false, updated_at: Time.current)
         user.revoke_all_credentials!
       end
-      user.purge_later
 
-      head :accepted
+      if enqueue_purge(user)
+        head :accepted
+      else
+        # Access is already revoked and the identity gone, so a retry from
+        # Oknola would get 204 and never purge: purge now instead.
+        user.purge
+        head :no_content
+      end
     end
+
+    private
+      # perform_later returns false on ActiveJob::EnqueueError; an adapter can
+      # also raise directly (e.g. Redis unreachable).
+      def enqueue_purge(user)
+        user.purge_later
+      rescue StandardError => e
+        Rails.logger.error("[OKNOLA] purge enqueue failed for user_id=#{user.id}: #{e.class}")
+        false
+      end
   end
 end

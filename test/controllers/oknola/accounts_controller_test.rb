@@ -64,6 +64,17 @@ class Oknola::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_not Tag.exists?(id: tag_ids)
   end
 
+  test "purges in the request when the job cannot be enqueued" do
+    UserPurgeJob.stubs(:perform_later).raises(RedisClient::CannotConnectError.new("redis down"))
+
+    delete oknola_account_path(sub: SUB), headers: auth_headers
+
+    assert_response :no_content
+    assert_not User.exists?(@user.id)
+    assert_not Family.exists?(@family.id)
+    assert_not Account.exists?(@account.id)
+  end
+
   test "keeps the family when another member remains" do
     other = @family.users.create!(email: "stays@example.com", skip_password_validation: true, role: :admin, onboarded_at: Time.current)
 
