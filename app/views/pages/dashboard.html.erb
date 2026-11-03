@@ -1,10 +1,11 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
 <% content_for :page_header do %>
-  <div class="space-y-1 mb-6 flex gap-4 justify-between items-center lg:items-start">
+  <div class="space-y-1 mb-4 flex gap-4 justify-between items-center lg:items-start">
     <div class="space-y-1">
-      <h1 class="text-xl lg:text-3xl font-medium text-primary">
+      <h1 class="text-xl font-medium text-primary">
         <%= t("pages.dashboard.welcome", name: Current.user.first_name) %>
       </h1>
-      <p class="text-sm lg:text-base text-secondary">
+      <p class="text-sm text-secondary">
         <%= t("pages.dashboard.subtitle") %>
       </p>
     </div>
@@ -39,6 +40,7 @@
       <% end %>
 
       <%= render DS::Link.new(
+        variant: "primary",
         icon: "plus",
         text: t("pages.dashboard.new"),
         href: new_account_path,
@@ -59,7 +61,7 @@
 
 <%= turbo_frame_tag "dashboard_sections", target: "_top" do %>
   <% if accessible_accounts.any? %>
-    <div class="flex items-center justify-end mb-4">
+    <div class="flex items-center justify-end mb-3">
       <%# Keeps the widgets' own months and filters; a preset replaces any custom range. %>
       <%= render UI::PeriodPicker.new(selected: @period, url: root_path, frame: "dashboard_sections", extra_params: @dashboard_view_params.except(:start_date, :end_date)) %>
     </div>
