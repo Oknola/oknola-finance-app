@@ -25,27 +25,29 @@ class Oknola::AccountSideTest < ActiveSupport::TestCase
   end
 
   test "business creates a rule and enqueues its application" do
-    returned_rule = nil
+    returned_side = nil
     assert_enqueued_with(job: RuleJob) do
-      returned_rule = Oknola::AccountSide.set(@account, "business")
+      returned_side = Oknola::AccountSide.set(@account, "business")
     end
 
-    assert_instance_of Rule, returned_rule
-    assert_equal returned_rule.id, Oknola::AccountSide.rule_for(@account).id
+    assert_equal "business", returned_side
+    rule = Oknola::AccountSide.rule_for(@account)
+    assert_instance_of Rule, rule
   end
 
   test "personal updates the same rule and replaces the other side tag" do
     perform_enqueued_jobs { Oknola::AccountSide.set(@account, "business") }
     assert_includes @transaction.reload.tags, @business_tag
     rule = Oknola::AccountSide.rule_for(@account)
-    updated_rule = nil
+    returned_side = nil
     assert_no_difference "Rule.count" do
-      perform_enqueued_jobs { updated_rule = Oknola::AccountSide.set(@account, "personal") }
+      perform_enqueued_jobs { returned_side = Oknola::AccountSide.set(@account, "personal") }
     end
 
+    assert_equal "personal", returned_side
+    updated_rule = Oknola::AccountSide.rule_for(@account)
     assert_instance_of Rule, updated_rule
     assert_equal rule.id, updated_rule.id
-    assert_equal rule.id, Oknola::AccountSide.rule_for(@account).id
     assert_equal "personal", Oknola::AccountSide.side_for(@account)
     assert_includes @transaction.reload.tags, @personal_tag
     assert_not_includes @transaction.tags, @business_tag
