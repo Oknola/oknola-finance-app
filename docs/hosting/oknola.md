@@ -23,6 +23,7 @@ All in the Render workspace "Cardona Labs", region Ohio, from `render.yaml` at t
 | Postgres 16 | `finance-db` | Render's daily backups plus the weekly off-site copy below. |
 | Key Value | `finance-kv` | Sidekiq queues, Action Cable and `Rails.cache` (the one-time handoff codes). Internal connections only, `noeviction`. |
 | Env group | `finance-prod` | Every plain (non-secret) setting. Both services read it. |
+| R2 bucket (Cloudflare) | `oknola-finance-storage` | Active Storage: uploads, imports, exports. See Uploaded files. |
 
 Production refuses to boot unless all three `ACTIVE_RECORD_ENCRYPTION_*` values are set, `POSTHOG_FEEDBACK_ENABLED=false` and `REDIS_URL` is set (`config/initializers/oknola.rb`). A deploy that fails with "Oknola production configuration incomplete" names what is missing.
 
@@ -38,6 +39,7 @@ Render does not allow prompted (`sync: false`) values inside an environment grou
 | `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` | yes | yes | `openssl rand -hex 32` |
 | `OKNOLA_HANDOFF_SECRET` | yes | no | `openssl rand -hex 32`; the same value goes into the Supabase Edge Function secrets |
 | `ANTHROPIC_API_KEY` | yes | yes | console.anthropic.com, key "finance-prod" |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_ACCESS_KEY_ID`, `CLOUDFLARE_SECRET_ACCESS_KEY` | yes | yes | the storage bucket's R2 token, see Uploaded files |
 | `SENTRY_DSN` (optional) | yes | yes | sentry.io project "finance" |
 | `SMTP_PASSWORD`, `EMAIL_SENDER` (optional) | yes | yes | Resend key "finance-smtp"; the sender address |
 | `ONBOARDING_STATE`, `AUTH_LOCAL_LOGIN_ENABLED` | yes | no | see the sign-up order above |
@@ -49,6 +51,23 @@ GitHub repository secrets (Settings → Secrets and variables → Actions):
 - `RENDER_WEB_DEPLOY_HOOK_URL`, `RENDER_WORKER_DEPLOY_HOOK_URL`: from each service's Settings → Deploy Hook. Treat them as secrets: anyone holding one can redeploy.
 - `DATABASE_URL`: `finance-db` → Connect → External Database URL, for the off-site backup.
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`: a private Cloudflare R2 bucket and an API token limited to it (Object Read & Write). Add a lifecycle rule on the bucket to delete objects after 90 days.
+
+## Uploaded files
+
+Active Storage keeps uploads, imports and exports in R2 (`ACTIVE_STORAGE_SERVICE=cloudflare` and `CLOUDFLARE_BUCKET=oknola-finance-storage` in the `finance-prod` env group; the `cloudflare` service in `config/storage.yml`). Both services must use the same bucket: the worker builds exports the web serves, and reads imports the web received. Neither service's disk survives a deploy.
+
+Owner steps, before the first Blueprint apply:
+
+1. Cloudflare → R2 → Create bucket `oknola-finance-storage`. Keep it private (no public access, no custom domain). This is a separate bucket from the off-site backup one.
+2. R2 → Manage API tokens → Create API token: permission **Object Read & Write**, applied to `oknola-finance-storage` only. Do not reuse the backup token, and do not give this token access to the backup bucket.
+3. Paste on **both** `finance-web` and `finance-worker` (the first Blueprint apply prompts for them; later, each service → Environment), the same values on both:
+   - `CLOUDFLARE_ACCOUNT_ID`: the account id shown on the R2 overview page.
+   - `CLOUDFLARE_ACCESS_KEY_ID`, `CLOUDFLARE_SECRET_ACCESS_KEY`: the token's Access Key ID and Secret Access Key (shown once; keep them in the password manager).
+4. If the bucket gets another name, change `CLOUDFLARE_BUCKET` in the `finance-prod` env group.
+
+No CORS rule is needed: the app's screens upload through the app server (no Active Storage direct uploads in the UI), and downloads are redirects to short-lived signed R2 links, which a browser follows without CORS. If a screen ever adds direct uploads, add a CORS rule on the bucket allowing `PUT` from `https://finance.oknola.com` with the `Content-Type`, `Content-MD5` and `Content-Disposition` headers.
+
+The database backups do not include these files.
 
 ## Deploys
 
@@ -89,23 +108,26 @@ Rotate on suspected exposure (that is also an incident, below), never on a sched
 **`SECRET_KEY_BASE`.** It signs sessions and cookies and, through `Setting`'s encryptor (`app/models/setting.rb`), encrypts the instance-wide API keys saved in Settings → Hosting. It does not touch Active Record encryption, because the three `ACTIVE_RECORD_ENCRYPTION_*` values are set explicitly. Steps:
 
 1. Note which instance-wide keys are saved in Settings → Hosting (market data, AI provider tokens). After rotation they cannot be decrypted, and `Setting` returns the raw ciphertext without an error, so they must be re-entered.
-2. Set the new value on both services at once and redeploy both. Every user is signed out; Oknola users get a new session on their next handoff.
-3. Re-enter the keys from step 1 in Settings → Hosting, and check `/admin/system_health`.
+2. Note the SSO identity blocks listed on `/admin/users` (identities a super admin removed). Each block matches by an HMAC digest keyed from `SECRET_KEY_BASE` (`app/models/sso_identity_block.rb`); after rotation no block matches, so a removed identity can come back through the handoff. Only the digest is stored, so the blocks cannot be recomputed: watch for those people returning and deactivate them again (that writes new blocks).
+3. Set the new value on both services at once and redeploy both. Every user is signed out; Oknola users get a new session on their next handoff. Also invalidated: every subscribed bill-calendar feed URL (signed by `Rails.application.message_verifier("bills-user-feed")`; members copy the link again from Bills → calendar) and any unused password-reset or email-confirmation link.
+4. Re-enter the keys from step 1 in Settings → Hosting, and check `/admin/system_health`.
 
-**`ACTIVE_RECORD_ENCRYPTION_*`.** These encrypt bank-provider tokens, provider payloads, invitation tokens and emails. Rails can read with old keys while writing with new ones, but `config/initializers/active_record_encryption.rb` takes one value per key from the environment, so rotation is a code change, rehearsed on a restored copy before production:
+**`ACTIVE_RECORD_ENCRYPTION_*`.** These encrypt bank-provider tokens, provider payloads, invitation tokens and emails. `config/initializers/active_record_encryption.rb` takes one value per key from the environment, so any rotation is a code change, rehearsed on a restored copy before production. The three values do not rotate the same way (Rails 8.1, checked against `activerecord` 8.1.3.1):
 
-1. In a PR, let the initializer also read the old values (for example `ACTIVE_RECORD_ENCRYPTION_PREVIOUS_*`).
-   - Primary key only: `primary_key` becomes `[old, new]`; Rails tries every key to decrypt and encrypts with the last.
-   - Deterministic key or salt: Rails does not rotate these in place (its guide: key rotation is not supported for deterministic encryption, and the salt feeds every derived key). Add the old values as a previous scheme, `config.active_record.encryption.previous = [{ key_provider: <a provider built from the old key and old salt> }]`, and set `config.active_record.encryption.extend_queries = true` so lookups on deterministic columns (invitation tokens and emails, provider API keys) still match old rows. See "Previous encryption schemes" in the Rails Active Record Encryption guide.
-2. Deploy with both old and new values on both services.
-3. Re-encrypt every row: `bin/rails runner 'Rails.application.eager_load!; ActiveRecord::Base.descendants.select { |m| m.encrypted_attributes.present? && !m.abstract_class? }.each { |m| m.find_each(&:encrypt) }'` (Render → `finance-worker` → Shell).
-4. Check a few rows read back, then remove the old values and the previous scheme in a second PR.
+- **Primary key: rotate.** In a PR, let the initializer also read the old value (for example `ACTIVE_RECORD_ENCRYPTION_PREVIOUS_PRIMARY_KEY`) and set `primary_key` to `[old, new]`. Rails tries every key to decrypt and encrypts with the last.
+  1. Deploy with both values on both services.
+  2. Re-encrypt every row: `bin/rails runner 'Rails.application.eager_load!; ActiveRecord::Base.descendants.select { |m| m.encrypted_attributes.present? && !m.abstract_class? }.each { |m| m.find_each(&:encrypt) }'` (Render → `finance-worker` → Shell). This rewrites the non-deterministic columns under the new key; it leaves the deterministic ones as they are (they use the deterministic key, not the primary key).
+  3. Before a second PR drops the old value, prove it on a restored copy (below).
+- **Deterministic key: do not rotate in place.** Rails refuses more than one deterministic key ("Deterministic encryption keys can't be rotated"). The only way to keep reading old rows is a previous scheme (`config.active_record.encryption.previous = [{ key_provider: ActiveRecord::Encryption::DeterministicKeyProvider.new(old_key) }]` with `extend_queries = true`), and while any previous scheme exists Rails writes every deterministic attribute with the **oldest** scheme (`EncryptedAttributeType#serialize_with_oldest?`). So the re-encrypt pass above, and every normal save, keeps those columns under the old key: `users.email` and `users.otp_secret` (sign-in itself), the bank-provider `api_key` / `token` / `access_token` / `session_id` columns (for example `plaid_items.access_token`), `api_keys.display_key`, invitation tokens and emails (`grep -rn 'deterministic: true' app/models` lists them all). Removing the previous scheme afterwards makes them unreadable. If the old deterministic key is exposed, keep it as a permanent previous scheme, or move the data with a separately reviewed script that decrypts with the old key and writes new ciphertext with `update_columns`, rehearsed on a restored copy.
+- **Key derivation salt: do not rotate in place.** It is one global value that derives both the primary and the deterministic keys (`ActiveRecord::Encryption::KeyGenerator#derive_key_from`), and a previous scheme cannot carry its own salt. Keep the old salt. Changing it needs the same reviewed migration script as the deterministic key.
+
+**Never remove an old key or a previous scheme** until a console on a **restored copy** of production (Restore above), running the build with the old value or scheme removed, reads every encrypted column of every model: for example `bin/rails runner 'Rails.application.eager_load!; ActiveRecord::Base.descendants.select { |m| m.encrypted_attributes.present? && !m.abstract_class? }.each { |m| m.find_each { |r| m.encrypted_attributes.each { |a| r.public_send(a) } } }'` finishing without an `ActiveRecord::Encryption::Errors::Decryption`. Run it with `ACTIVE_RECORD_ENCRYPTION_SUPPORT_UNENCRYPTED_DATA` unset: with it on, Rails returns an unreadable value as its raw ciphertext instead of raising, and the check passes falsely.
 
 There is no `bin/rails db:encryption` re-encrypt task; `bin/rails db:encryption:init` only prints new keys.
 
 **`OKNOLA_HANDOFF_SECRET`.** Set the new value in Supabase (Edge Function secrets) and on `finance-web` within the same minute; handoffs fail with 401 in between.
 
-**`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `SENTRY_DSN`, deploy hooks, R2 token.** Create the new one, set it on both services (or in GitHub secrets), redeploy, then revoke the old one at the provider. A deploy hook is regenerated in the service's Settings.
+**`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `SENTRY_DSN`, deploy hooks, R2 tokens (backup and storage).** Create the new one, set it on both services (or in GitHub secrets), redeploy, then revoke the old one at the provider. A deploy hook is regenerated in the service's Settings.
 
 ## Incident
 
@@ -137,5 +159,4 @@ A 204 means purged (also for a `sub` that no longer exists).
 
 ## Known limits
 
-- **Memory.** The web and worker plans are 0.5 CPU / 512 MB. Upstream measures about 352 MB steady state but asks for at least 1 GB when AI features are on (`docs/hosting/docker.md`, "Running Sure on small (512 MB) hosts"). If the worker restarts with out-of-memory events, move `finance-worker` to `1c-2g`.
-- **Uploaded files.** `ACTIVE_STORAGE_SERVICE` is not set, so uploads go to the container's disk, which Render wipes on every deploy. Pointing it at an R2 bucket (`cloudflare` in `config/storage.yml`) keeps them.
+- **Memory.** `finance-web` is 0.5 CPU / 512 MB; `finance-worker` is 1 CPU / 2 GB (`1c-2g`), because AI jobs, imports and syncs run there. Upstream measures about 352 MB steady state but asks for at least 1 GB when AI features are on (`docs/hosting/docker.md`, "Running Sure on small (512 MB) hosts"). If the web restarts with out-of-memory events, move `finance-web` to `1c-2g` too.

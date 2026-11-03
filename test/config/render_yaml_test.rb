@@ -12,6 +12,9 @@ class RenderYamlTest < ActiveSupport::TestCase
     ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY
     ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
     ANTHROPIC_API_KEY
+    CLOUDFLARE_ACCOUNT_ID
+    CLOUDFLARE_ACCESS_KEY_ID
+    CLOUDFLARE_SECRET_ACCESS_KEY
     SENTRY_DSN
     SMTP_PASSWORD
     EMAIL_SENDER
@@ -106,6 +109,8 @@ class RenderYamlTest < ActiveSupport::TestCase
     assert_equal "finance.oknola.com", values["APP_DOMAIN"]
     assert_equal "anthropic", values["LLM_PROVIDER"]
     assert_equal "link_only", values["AUTH_JIT_MODE"]
+    assert_equal "cloudflare", values["ACTIVE_STORAGE_SERVICE"], "web and worker must share one Active Storage bucket"
+    assert values["CLOUDFLARE_BUCKET"].present?
     assert_equal "https://oknola.com/terms", values["LEGAL_TERMS_URL"]
     assert_equal "https://oknola.com/privacy", values["LEGAL_PRIVACY_URL"]
     assert_not values.key?("ONBOARDING_STATE"), "the sign-up switches are typed per deploy, not synced"

@@ -7,8 +7,9 @@
 # secrets sit on each service and the group carries only the plain settings.
 # The web and worker services must get the SAME value for every shared secret.
 #
-# Plan IDs are Render's current names: 0.5c-512mb (was Starter), Postgres
-# 0.5c-1g (was Basic-1gb), Key Value 256mb (was Starter).
+# Plan IDs are Render's current names: web 0.5c-512mb (was Starter), worker
+# 1c-2g (was Standard; AI jobs, imports and syncs run there), Postgres 0.5c-1g
+# (was Basic-1gb), Key Value 256mb (was Starter).
 #
 # The image is built and pushed by .github/workflows/publish-oknola.yml on every
 # push to the `oknola` branch; that workflow then calls the deploy hooks.
@@ -49,6 +50,14 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Active Storage on R2 (docs/hosting/oknola.md, "Uploaded files"):
+      # its own private bucket and token, not the backup ones.
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_ACCESS_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_SECRET_ACCESS_KEY
+        sync: false
       # Optional: leave blank to skip.
       - key: SENTRY_DSN
         sync: false
@@ -56,7 +65,7 @@ services:
         sync: false
       - key: EMAIL_SENDER
         sync: false
-      # Sign-up sequence (docs/hosting/oknola.md, "First deploy"): type `open`
+      # Sign-up sequence (docs/hosting/oknola.md, "Sign-up order"): type `open`
       # and `true` on the first apply, then set `closed` and `false` on this
       # service before any handoff user exists.
       - key: ONBOARDING_STATE
@@ -70,7 +79,7 @@ services:
     image:
       url: ghcr.io/oknola/oknola-finance-app:oknola
     region: ohio
-    plan: 0.5c-512mb
+    plan: 1c-2g
     dockerCommand: bundle exec sidekiq
     envVars:
       - fromGroup: finance-prod
@@ -92,6 +101,14 @@ services:
       - key: ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
         sync: false
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # Active Storage on R2 (docs/hosting/oknola.md, "Uploaded files"):
+      # its own private bucket and token, not the backup ones.
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_ACCESS_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_SECRET_ACCESS_KEY
         sync: false
       # Optional: leave blank to skip.
       - key: SENTRY_DSN
@@ -135,6 +152,12 @@ envVarGroups:
         value: "true"
       - key: RAILS_ASSUME_SSL
         value: "true"
+      # Uploads, imports and exports live in R2 (config/storage.yml, `cloudflare`),
+      # so web and worker see the same files and they survive deploys.
+      - key: ACTIVE_STORAGE_SERVICE
+        value: cloudflare
+      - key: CLOUDFLARE_BUCKET
+        value: oknola-finance-storage
       # Required off by config/initializers/oknola.rb.
       - key: POSTHOG_FEEDBACK_ENABLED
         value: "false"
