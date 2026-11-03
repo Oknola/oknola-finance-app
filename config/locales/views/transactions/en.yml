@@ -1,6 +1,12 @@
+# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 ---
 en:
   transactions:
+    side_toggle:
+      all: All
+      business: Business
+      personal: Personal
+      aria: Show transactions by side
     bulk_updates:
       new:
         cancel: Cancel
@@ -175,6 +181,9 @@ en:
       reject_match: Reject match
       transfer_confirmed: Transfer is confirmed
     transaction:
+      side:
+        business: Business
+        personal: Personal
       pending: Pending
       pending_tooltip: Pending transaction — may change when posted
       linked_with_provider: Linked with %{provider}

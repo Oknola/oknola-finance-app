@@ -1,0 +1,20 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<% tags = Array(q["tags"]) %>
+<% other_tags = tags - Oknola::Side::NAMES %>
+<% other_q = q.except("tags") %>
+<% all_q = other_tags.any? ? other_q.merge("tags" => other_tags) : other_q %>
+
+<%= render DS::SegmentedControl.new(aria_label: t("transactions.side_toggle.aria")) do |control| %>
+  <% control.with_segment(
+       t("transactions.side_toggle.all"),
+       active: (tags & Oknola::Side::NAMES).empty?,
+       href: transactions_path(q: all_q, page: 1)
+     ) %>
+  <% Oknola::Side::NAMES.each do |name| %>
+    <% control.with_segment(
+         t("transactions.side_toggle.#{name.downcase}"),
+         active: tags.include?(name),
+         href: transactions_path(q: other_q.merge("tags" => other_tags + [ name ]), page: 1)
+       ) %>
+  <% end %>
+<% end %>
