@@ -12,6 +12,11 @@ class Oknola::AcceptancesControllerTest < ActionDispatch::IntegrationTest
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @original_secret = ENV["OKNOLA_HANDOFF_SECRET"]
     ENV["OKNOLA_HANDOFF_SECRET"] = SECRET
+    # Finance runs self-hosted (no Stripe), so Sure's subscription redirect,
+    # which would send a new family to /onboarding/trial first, stays out of
+    # these tests (as with_self_hosting does).
+    Rails.configuration.stubs(:app_mode).returns("self_hosted".inquiry)
+    ApplicationController.any_instance.stubs(:redis_connected?).returns(true)
   end
 
   teardown do
