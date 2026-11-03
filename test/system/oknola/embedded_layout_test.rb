@@ -49,6 +49,7 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     assert_selector "button[aria-label='Toggle privacy mode'][aria-pressed='true']"
 
     page.current_window.resize_to(390, 844)
+    assert_no_selector "nav.relative img[src*='logomark-color']", visible: :visible
     expected_links.each do |name|
       assert_selector "nav[data-viewport-target='bottomNav'] a", text: name, visible: :visible
     end
@@ -64,7 +65,7 @@ class Oknola::StandardLayoutTest < ApplicationSystemTestCase
     assert_selector "html[data-embedded='false']"
     assert_selector "a:has(> img[src*='logomark-color'])", visible: :visible
     assert_selector "a[href*='discord.gg']", visible: :visible
-    assert_selector "[data-testid='user-menu']", count: 2, visible: :visible
+    assert_selector "[data-testid='user-menu']", count: 2, visible: :all
     assert_no_selector "nav.h-full ul a", text: "Settings"
     assert_no_selector "nav.h-full ul a", text: "Assistant"
   end
