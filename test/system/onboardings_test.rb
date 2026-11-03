@@ -247,7 +247,7 @@ class OnboardingsTest < ApplicationSystemTestCase
         click_on I18n.t("sessions.new.submit")
       end
 
-      # Wait for successful login
-      assert_current_path root_path
+      # Unfinished users are redirected to onboarding after login.
+      assert_current_path onboarding_path
     end
 end
