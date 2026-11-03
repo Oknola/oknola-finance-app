@@ -1,3 +1,4 @@
+<!-- Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 -->
 # Running finance.oknola.com (Oknola Finance App on Render)
 
 The runbook for Cardona Labs' production instance of the Oknola Finance App, a fork of Sure. The generic self-hosting guides in this folder still apply; this page covers what is specific to this instance.
@@ -156,6 +157,7 @@ A 204 means purged (also for a `sub` that no longer exists).
 ## Legal pages
 
 `LEGAL_TERMS_URL=https://oknola.com/terms` and `LEGAL_PRIVACY_URL=https://oknola.com/privacy` are set in the `finance-prod` env group, so `/terms` and `/privacy` redirect to oknola.com (`config/routes.rb`). They show a 404 until the site's terms PR (PT3) is merged.
+`test/controllers/oknola/legal_redirect_test.rb` proves both the redirect and the stock fallback.
 
 ## Known limits
 
