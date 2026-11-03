@@ -84,6 +84,8 @@ module Oknola
             actions: [ Rule::Action.new(action_attributes) ]
           )
         end
+
+        rule
       end
 
       rule.apply_later(ignore_attribute_locks: true)
