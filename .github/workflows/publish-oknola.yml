@@ -1,0 +1,164 @@
+# Oknola fork: build the production image on every push to `oknola`, push it
+# to ghcr.io/oknola/oknola-finance-app, then deploy it to Render.
+#
+# Shape follows upstream's publish.yml (ci -> build -> deploy_app), cut down
+# to one platform: Render runs linux/amd64 only. Upstream's publish.yml targets
+# we-promise images and apps and stays disabled in this repository.
+#
+# Tags pushed: `sha-<full commit sha>` (immutable, what the deploy hooks pin)
+# and `oknola` (what render.yaml names, so a fresh Blueprint apply works).
+#
+# The deploy job skips cleanly while the repository secrets
+# RENDER_WEB_DEPLOY_HOOK_URL / RENDER_WORKER_DEPLOY_HOOK_URL are unset, so the
+# first run (the merge that adds this file) only builds and pushes the image.
+
+name: Publish Oknola image
+
+on:
+  push:
+    branches:
+      - oknola
+    paths-ignore:
+      - 'charts/**'
+      - 'mobile/**'
+      - 'docs/**'
+      - '**/*.md'
+
+concurrency:
+  group: publish-oknola
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/oknola/oknola-finance-app
+  APP_URL: https://finance.oknola.com
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    if: github.repository == 'Oknola/oknola-finance-app'
+    uses: ./.github/workflows/ci.yml
+    with:
+      require_js_dependency_audit: false
+
+  build:
+    name: Build and push image
+    if: github.repository == 'Oknola/oknola-finance-app'
+    needs: [ ci ]
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to the container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          build-args: BUILD_COMMIT_SHA=${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=registry,ref=${{ env.IMAGE }}:cache-amd64
+          cache-to: type=registry,ref=${{ env.IMAGE }}:cache-amd64,mode=max
+          provenance: false
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+            ${{ env.IMAGE }}:oknola
+          # The source label links the package to this repository, which
+          # lets GITHUB_TOKEN keep pushing to it. No commas: list inputs split on them.
+          labels: |
+            org.opencontainers.image.source=https://github.com/Oknola/oknola-finance-app
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+            org.opencontainers.image.title=Oknola Finance App
+            org.opencontainers.image.description=Oknola Finance App based on Sure (we-promise/sure)
+            org.opencontainers.image.licenses=AGPL-3.0
+
+  deploy:
+    name: Deploy to Render
+    if: github.repository == 'Oknola/oknola-finance-app'
+    needs: [ build ]
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check Render deploy hooks
+        id: hooks
+        env:
+          WEB_DEPLOY_HOOK_URL: ${{ secrets.RENDER_WEB_DEPLOY_HOOK_URL }}
+          WORKER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_WORKER_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          if [[ -n "${WEB_DEPLOY_HOOK_URL}" && -n "${WORKER_DEPLOY_HOOK_URL}" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          elif [[ -z "${WEB_DEPLOY_HOOK_URL}" && -z "${WORKER_DEPLOY_HOOK_URL}" ]]; then
+            echo "::notice::Render deploy hooks are not set yet; image pushed, deploy skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Set both RENDER_WEB_DEPLOY_HOOK_URL and RENDER_WORKER_DEPLOY_HOOK_URL, or neither." >&2
+            exit 1
+          fi
+
+      - name: Deploy web service
+        if: steps.hooks.outputs.ready == 'true'
+        env:
+          WEB_DEPLOY_HOOK_URL: ${{ secrets.RENDER_WEB_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --get \
+            --data-urlencode "imgURL=${IMAGE}:sha-${GITHUB_SHA}" \
+            "${WEB_DEPLOY_HOOK_URL}"
+
+      - name: Wait for web service
+        if: steps.hooks.outputs.ready == 'true'
+        shell: bash
+        run: |
+          # Render deploy hooks are asynchronous. Give the deployment time to
+          # start before polling the public health endpoint.
+          sleep 60
+
+          for attempt in {1..24}; do
+            if curl --fail --silent --show-error --max-time 15 "${APP_URL}/up" > /dev/null; then
+              echo "Web service is healthy."
+              exit 0
+            fi
+
+            echo "Health check attempt ${attempt}/24 failed; retrying in 15 seconds."
+            sleep 15
+          done
+
+          echo "Web service did not become healthy in time." >&2
+          exit 1
+
+      - name: Deploy worker
+        if: steps.hooks.outputs.ready == 'true'
+        env:
+          WORKER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_WORKER_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --get \
+            --data-urlencode "imgURL=${IMAGE}:sha-${GITHUB_SHA}" \
+            "${WORKER_DEPLOY_HOOK_URL}"

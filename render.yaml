@@ -1,0 +1,164 @@
+# Render Blueprint for finance.oknola.com (Oknola Finance App, a fork of Sure).
+# Runbook: docs/hosting/oknola.md. Spec: https://render.com/docs/blueprint-spec
+#
+# No secret values live here. Every secret is `sync: false`: Render asks for it
+# once, when the Blueprint is first applied, and ignores it on later syncs.
+# Render does not allow `sync: false` inside an environment group, so the
+# secrets sit on each service and the group carries only the plain settings.
+# The web and worker services must get the SAME value for every shared secret.
+#
+# Plan IDs are Render's current names: 0.5c-512mb (was Starter), Postgres
+# 0.5c-1g (was Basic-1gb), Key Value 256mb (was Starter).
+#
+# The image is built and pushed by .github/workflows/publish-oknola.yml on every
+# push to the `oknola` branch; that workflow then calls the deploy hooks.
+
+services:
+  - type: web
+    name: finance-web
+    runtime: image
+    image:
+      url: ghcr.io/oknola/oknola-finance-app:oknola
+    region: ohio
+    plan: 0.5c-512mb
+    healthCheckPath: /up
+    domains:
+      - finance.oknola.com
+    # No dockerCommand: the image CMD (./bin/rails server) runs through
+    # bin/docker-entrypoint, which runs db:prepare (migrations) before Puma.
+    envVars:
+      - fromGroup: finance-prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finance-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: finance-kv
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        sync: false
+      - key: ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+        sync: false
+      - key: ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY
+        sync: false
+      - key: ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+        sync: false
+      - key: OKNOLA_HANDOFF_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Optional: leave blank to skip.
+      - key: SENTRY_DSN
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_SENDER
+        sync: false
+      # Sign-up sequence (docs/hosting/oknola.md, "First deploy"): type `open`
+      # and `true` on the first apply, then set `closed` and `false` on this
+      # service before any handoff user exists.
+      - key: ONBOARDING_STATE
+        sync: false
+      - key: AUTH_LOCAL_LOGIN_ENABLED
+        sync: false
+
+  - type: worker
+    name: finance-worker
+    runtime: image
+    image:
+      url: ghcr.io/oknola/oknola-finance-app:oknola
+    region: ohio
+    plan: 0.5c-512mb
+    dockerCommand: bundle exec sidekiq
+    envVars:
+      - fromGroup: finance-prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finance-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: finance-kv
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        sync: false
+      - key: ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+        sync: false
+      - key: ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY
+        sync: false
+      - key: ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Optional: leave blank to skip.
+      - key: SENTRY_DSN
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_SENDER
+        sync: false
+
+  - type: keyvalue
+    name: finance-kv
+    region: ohio
+    plan: 256mb
+    # Sidekiq jobs live here too, so never evict keys.
+    maxmemoryPolicy: noeviction
+    # Internal connections only.
+    ipAllowList: []
+
+databases:
+  - name: finance-db
+    databaseName: finance
+    user: finance
+    region: ohio
+    plan: 0.5c-1g
+    postgresMajorVersion: "16"
+    # No ipAllowList: the default allows external TLS connections with the
+    # password, which the weekly off-site backup (backup-offsite.yml) needs.
+
+envVarGroups:
+  - name: finance-prod
+    envVars:
+      - key: SELF_HOSTED
+        value: "true"
+      - key: PRODUCT_NAME
+        value: Finance
+      - key: BRAND_NAME
+        value: Oknola
+      - key: APP_DOMAIN
+        value: finance.oknola.com
+      - key: RAILS_FORCE_SSL
+        value: "true"
+      - key: RAILS_ASSUME_SSL
+        value: "true"
+      # Required off by config/initializers/oknola.rb.
+      - key: POSTHOG_FEEDBACK_ENABLED
+        value: "false"
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_MODEL
+        value: claude-haiku-5-5
+      # The ops super admin keeps password + MFA sign-in after local login closes.
+      - key: AUTH_LOCAL_ADMIN_OVERRIDE_ENABLED
+        value: "true"
+      - key: AUTH_JIT_MODE
+        value: link_only
+      # Live once PT3 merges on oknola-site; until then these pages 404.
+      - key: LEGAL_TERMS_URL
+        value: https://oknola.com/terms
+      - key: LEGAL_PRIVACY_URL
+        value: https://oknola.com/privacy
+      # Resend SMTP. Mail delivery fails until SMTP_PASSWORD and EMAIL_SENDER
+      # are set on both services; only the ops admin's password reset needs it.
+      - key: SMTP_ADDRESS
+        value: smtp.resend.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USERNAME
+        value: resend
+      - key: SMTP_TLS_ENABLED
+        value: "true"

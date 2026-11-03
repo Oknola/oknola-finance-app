@@ -1,0 +1,101 @@
+# Oknola fork: weekly off-site copy of the production database.
+#
+# Render keeps its own daily backups of finance-db; this is the copy that
+# survives losing the Render account. It dumps the database in pg_dump custom
+# format and uploads it to a Cloudflare R2 bucket.
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions), names only:
+#   DATABASE_URL          finance-db's External Database URL from Render
+#   R2_ACCOUNT_ID         Cloudflare account id (the R2 endpoint host)
+#   R2_ACCESS_KEY_ID      R2 API token with Object Read & Write on the bucket
+#   R2_SECRET_ACCESS_KEY
+#   R2_BUCKET             bucket name
+# While any of them is unset the run ends green with a notice and does nothing.
+#
+# Encrypted columns stay encrypted in the dump: a restore also needs the three
+# ACTIVE_RECORD_ENCRYPTION_* values (docs/hosting/oknola.md, "Restore").
+
+name: Off-site database backup
+
+on:
+  schedule:
+    - cron: '17 6 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: backup-offsite
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Dump finance-db to R2
+    if: github.repository == 'Oknola/oknola-finance-app'
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # As config/storage.yml's cloudflare service: R2 wants these off.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+
+    steps:
+      - name: Check backup secrets
+        id: secrets
+        shell: bash
+        run: |
+          missing=()
+          [[ -n "${DATABASE_URL}" ]] || missing+=(DATABASE_URL)
+          [[ -n "${R2_ACCOUNT_ID}" ]] || missing+=(R2_ACCOUNT_ID)
+          [[ -n "${AWS_ACCESS_KEY_ID}" ]] || missing+=(R2_ACCESS_KEY_ID)
+          [[ -n "${AWS_SECRET_ACCESS_KEY}" ]] || missing+=(R2_SECRET_ACCESS_KEY)
+          [[ -n "${R2_BUCKET}" ]] || missing+=(R2_BUCKET)
+          if (( ${#missing[@]} > 0 )); then
+            echo "::notice::Off-site backup not configured yet (missing: ${missing[*]}); skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install PostgreSQL 16 client
+        if: steps.secrets.outputs.ready == 'true'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --no-install-recommends -y postgresql-client-16
+
+      - name: Dump the database
+        if: steps.secrets.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          /usr/lib/postgresql/16/bin/pg_dump --format=custom --no-owner --no-privileges \
+            --dbname="${DATABASE_URL}" --file="${RUNNER_TEMP}/finance.dump"
+          # A readable table of contents proves the archive is complete.
+          /usr/lib/postgresql/16/bin/pg_restore --list "${RUNNER_TEMP}/finance.dump" > /dev/null
+          ls -l "${RUNNER_TEMP}/finance.dump"
+
+      - name: Upload to R2
+        if: steps.secrets.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="finance-db/$(date -u +%Y-%m-%dT%H%M%SZ)-${GITHUB_SHA::12}.dump"
+          aws s3 cp "${RUNNER_TEMP}/finance.dump" "s3://${R2_BUCKET}/${key}" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --only-show-errors
+          echo "Uploaded ${key}"
+
+      - name: Remove the local dump
+        if: always()
+        shell: bash
+        run: rm -f "${RUNNER_TEMP}/finance.dump"
