@@ -48,7 +48,7 @@ module Oknola
       selected_tag = family.tags.find_by!(name: side.capitalize)
       other_tag = family.tags.find_by(name: (side == "business" ? "Personal" : "Business"))
 
-      Account.transaction do
+      rule = Account.transaction do
         if other_tag
           Tagging.where(
             taggable_type: "Transaction",

@@ -24,6 +24,14 @@ class Oknola::AccountSideTest < ActiveSupport::TestCase
     assert_equal "business", Oknola::AccountSide.side_for(@account)
   end
 
+  test "business creates a rule and enqueues its application" do
+    assert_enqueued_with(job: RuleJob) do
+      Oknola::AccountSide.set(@account, "business")
+    end
+
+    assert Oknola::AccountSide.rule_for(@account)
+  end
+
   test "personal updates the same rule and replaces the other side tag" do
     perform_enqueued_jobs { Oknola::AccountSide.set(@account, "business") }
     assert_includes @transaction.reload.tags, @business_tag
