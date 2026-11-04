@@ -4,12 +4,8 @@ module Oknola
     NAMES = %w[Business Personal].freeze
 
     def self.for(transaction)
-      tag_names = transaction.tags.map(&:name)
-      NAMES.find { |name| tag_names.include?(name) }
-    end
-
-    def self.available?(family)
-      family.tags.where(name: NAMES).count == 2
+      side = transaction.oknola_side.presence || transaction.entry.account.oknola_side
+      side.capitalize
     end
   end
 end

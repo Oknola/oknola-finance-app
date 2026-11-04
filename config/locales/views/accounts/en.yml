@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 ---
 en:
   account:
@@ -40,10 +40,10 @@ en:
       new_account: New account
       no_accounts: No accounts yet
     form:
-      side_label: "This account is:"
+      side_label: "Default side"
       side_business: "Business"
       side_personal: "Personal"
-      side_mixed: "Mixed"
+      side_hint: "Default for this account's transactions. You can change any transaction."
       balance: "Balance on date:"
       opening_balance_date_label: Opening balance date
       name_label: Account name

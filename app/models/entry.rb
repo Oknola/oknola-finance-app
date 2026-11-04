@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Entry < ApplicationRecord
   include Monetizable, Enrichable
 
@@ -56,6 +57,7 @@ class Entry < ApplicationRecord
     new_record? && import_id.blank? && name.blank? && !cleared? &&
       entryable_type == "Transaction" && account&.family&.auto_generate_transaction_names?
   }
+  before_validation :normalize_transaction_side
 
   before_destroy :prevent_individual_child_deletion, if: :split_child?
   after_save :track_earliest_saved_date, if: :saved_change_to_date?
@@ -645,7 +647,8 @@ class Entry < ApplicationRecord
         name: bulk_update_params[:name],
         entryable_attributes: {
           category_id: bulk_update_params[:category_id],
-          merchant_id: bulk_update_params[:merchant_id]
+          merchant_id: bulk_update_params[:merchant_id],
+          oknola_side: bulk_update_params[:oknola_side]
         }.compact_blank
       }.compact_blank
 
@@ -693,6 +696,13 @@ class Entry < ApplicationRecord
   end
 
   private
+    def normalize_transaction_side
+      return unless entryable_type == "Transaction" && entryable
+      return unless entryable.oknola_side == account&.oknola_side
+
+      entryable.oknola_side = nil
+    end
+
     # Takes FOR UPDATE on the transaction row, then on this entry (lock! also reloads both), always
     # in that order so the split methods can't deadlock each other. Yields the transaction, or nil
     # for other entryables.

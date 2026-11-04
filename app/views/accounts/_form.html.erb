@@ -25,11 +25,9 @@
 
     <%= yield form %>
 
-    <% if Oknola::AccountSide.available?(Current.family) %>
-      <%= form.select :side,
-          [[t(".side_business"), "business"], [t(".side_personal"), "personal"], [t(".side_mixed"), "mixed"]],
-          { label: t(".side_label"), selected: (account.persisted? ? Oknola::AccountSide.side_for(account) : "mixed") } %>
-    <% end %>
+    <%= form.select :side,
+        [[t(".side_business"), "business"], [t(".side_personal"), "personal"]],
+        { label: t(".side_label"), selected: (account.persisted? ? Oknola::AccountSide.side_for(account) : "personal"), help_text: t(".side_hint") } %>
 
     <% if account.persisted? && account.supports_category_matcher? %>
       <div class="flex items-center justify-between gap-3 py-2">

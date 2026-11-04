@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 ---
 en:
   transactions:
@@ -23,6 +23,8 @@ en:
         notes_placeholder: Enter a note that will be applied to selected transactions
         overview: Overview
         save: Save
+        side_label: Side
+        side_unchanged: Leave unchanged
         tags_label: Tags
         transactions_section: Transactions
     unknown_name: Unknown transaction

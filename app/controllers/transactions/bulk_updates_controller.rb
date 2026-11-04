@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Transactions::BulkUpdatesController < ApplicationController
   def new
   end
@@ -34,7 +35,7 @@ class Transactions::BulkUpdatesController < ApplicationController
 
     def bulk_update_params
       params.require(:bulk_update)
-            .permit(:date, :notes, :name, :category_id, :merchant_id, entry_ids: [], tag_ids: [])
+            .permit(:date, :notes, :name, :category_id, :merchant_id, :oknola_side, entry_ids: [], tag_ids: [])
     end
 
     # Resolve category, merchant and tag IDs through the current family so IDs

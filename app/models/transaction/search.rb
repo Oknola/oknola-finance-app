@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Transaction::Search
   include ActiveModel::Model
   include ActiveModel::Attributes
@@ -149,6 +150,7 @@ class Transaction::Search
   ATTACHMENT_STATUSES = %w[with without].freeze
 
   attribute :search, :string
+  attribute :side, :string
   attribute :amount, :string
   attribute :amount_operator, :string
   attribute :types, array: true
@@ -188,6 +190,7 @@ class Transaction::Search
       query = apply_status_filter(query, status)
       query = self.class.apply_merchant_filter(query, merchants)
       query = self.class.apply_tag_filter(query, tags)
+      query = apply_side_filter(query, side)
       query = apply_ai_status_filter(query, ai_status)
       query = apply_attachment_status_filter(query, attachment_status)
       query = EntrySearch.apply_search_filter(query, search)
@@ -345,5 +348,11 @@ class Transaction::Search
       else
         query
       end
+    end
+
+    def apply_side_filter(query, selected_side)
+      return query unless %w[business personal].include?(selected_side)
+
+      query.where("COALESCE(transactions.oknola_side, accounts.oknola_side) = ?", selected_side)
     end
 end

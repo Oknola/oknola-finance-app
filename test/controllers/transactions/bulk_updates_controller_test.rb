@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Transactions::BulkUpdatesControllerTest < ActionDispatch::IntegrationTest
@@ -33,6 +34,21 @@ class Transactions::BulkUpdatesControllerTest < ActionDispatch::IntegrationTest
       assert_equal "Updated note", transaction.notes
       assert_equal [ Tag.first.id, Tag.second.id ], transaction.entryable.tag_ids.sort
     end
+  end
+
+  test "bulk update changes the effective side for selected transactions" do
+    entry = create_transaction(account: accounts(:depository))
+    entry.account.update!(oknola_side: "business")
+
+    post transactions_bulk_update_url, params: {
+      bulk_update: {
+        entry_ids: [ entry.id ],
+        oknola_side: "personal"
+      }
+    }
+
+    assert_redirected_to transactions_url
+    assert_equal "personal", entry.transaction.reload.oknola_side
   end
 
   test "bulk update preloads transaction records" do

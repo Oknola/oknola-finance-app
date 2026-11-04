@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # Signs Oknola users in to Finance without a Finance password.
 #
 # POST /oknola/handoff is server to server: the Oknola server, holding the
@@ -12,7 +13,6 @@ module Oknola
     PROVIDER = "oknola".freeze
     CODE_TTL = 60.seconds
     CODE_CACHE_PREFIX = "oknola_handoff:".freeze
-    SEED_TAGS = %w[Business Personal].freeze
     THEMES = %w[light dark system].freeze
     # An in-app path only: one leading "/", never "//" (protocol-relative),
     # no backslashes, whitespace or control characters.
@@ -134,9 +134,6 @@ module Oknola
             set_onboarding_preferences_at: Time.current
           )
           user.oidc_identities.create!(provider: PROVIDER, uid: sub)
-          SEED_TAGS.each_with_index do |name, index|
-            family.tags.create!(name: name, color: Tag::COLORS[index])
-          end
           user
         end
       end
