@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Oknola::AccountsControllerTest < ActionDispatch::IntegrationTest
@@ -16,6 +17,8 @@ class Oknola::AccountsControllerTest < ActionDispatch::IntegrationTest
 
     @user = OidcIdentity.find_by!(provider: "oknola", uid: SUB).user
     @family = @user.family
+    @family.tags.create!(name: "Business")
+    @family.tags.create!(name: "Personal")
     @account = @family.accounts.create!(
       name: "Checking", balance: 100, currency: "USD", accountable: Depository.new(subtype: "checking")
     )

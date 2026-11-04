@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Oknola::RowDensityTest < ActionDispatch::IntegrationTest
@@ -9,12 +9,11 @@ class Oknola::RowDensityTest < ActionDispatch::IntegrationTest
     sign_in @user = users(:family_admin)
     Entry.delete_all
 
-    business_tag = @user.family.tags.create!(name: "Business")
-    @user.family.tags.create!(name: "Personal")
-    @entry = create_transaction(name: "Dense transaction", tags: [ business_tag ])
+    accounts(:depository).update!(oknola_side: "business")
+    @entry = create_transaction(name: "Dense transaction")
   end
 
-  test "transaction rows use the dense layout and retain the business chip" do
+  test "transaction rows use the dense layout and show the account's business side" do
     get transactions_path(page: 1)
 
     assert_response :success
