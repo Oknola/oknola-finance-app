@@ -32,6 +32,28 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     take_screenshot
   end
 
+  test "Oknola income quick entry starts on income and saves with its account side" do
+    visit "/oknola/new/income"
+
+    assert_selector "[data-transaction-type-tabs-target='tab'][data-nature='inflow'][aria-current='true']"
+    assert_selector "#entry_amount:focus"
+
+    select_ds("Account", accounts(:depository))
+    assert_checked_field "entry_side_business", visible: :all
+    fill_in "Amount", with: "12.50"
+    fill_in "Description", with: "Quick Income"
+    assert_field "Description", with: "Quick Income"
+    choose "entry_side_business", allow_label_click: true
+
+    find_field("Amount").send_keys(:enter)
+
+    assert_no_selector "#entry_amount"
+    entry = Entry.order(:created_at).last
+    assert_equal "Quick Income", entry.name
+    assert_equal(-12.5, entry.amount)
+    assert_includes entry.transaction.tags, @business
+  end
+
   test "account changes select its side and mixed clears both chips" do
     visit new_transaction_path
     select_ds("Account", accounts(:depository))
