@@ -44,6 +44,20 @@ class TransactionAttachmentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:alert], I18n.t("active_storage.uploads.family_quota_exceeded")
   end
 
+  test "shows quota error for refused turbo stream attachment without rendering a missing attachment" do
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      assert_no_difference "@transaction.attachments.count" do
+        post transaction_attachments_path(@transaction),
+             params: { attachment: fixture_file_upload("test.txt", "application/pdf") },
+             as: :turbo_stream
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes CGI.unescapeHTML(response.body), I18n.t("active_storage.uploads.family_quota_exceeded")
+    assert_includes response.body, "transaction_attachments_#{@transaction.id}"
+  end
+
   test "should ignore blank attachments in array" do
     file = fixture_file_upload("test.txt", "application/pdf")
 

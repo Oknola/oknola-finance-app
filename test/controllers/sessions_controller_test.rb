@@ -81,6 +81,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "password sign-in redirects to invitation confirmation without changing family" do
     inviter = users(:empty)
+    @user.update!(onboarded_at: nil)
     invitation = inviter.family.invitations.create!(
       email: @user.email,
       role: "member",
@@ -94,6 +95,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to confirm_invitation_path(invitation.token)
     assert_equal original_family_id, @user.reload.family_id
     assert_nil invitation.reload.accepted_at
+    follow_redirect!
+    assert_response :success
+    assert_select "button", text: I18n.t("invitations.confirm.join")
   end
 
   test "codespaces still rejects unrelated origins" do

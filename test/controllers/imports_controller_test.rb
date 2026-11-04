@@ -267,6 +267,21 @@ class ImportsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to import_url(created_import)
   end
 
+  test "shows quota error when PDF upload is refused" do
+    assert_no_difference [ "AccountStatement.count", "Import.where(type: 'PdfImport').count" ] do
+      with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+        post imports_url, params: {
+          import: {
+            import_file: file_fixture_upload("imports/sample_bank_statement.pdf", "application/pdf")
+          }
+        }
+      end
+    end
+
+    assert_redirected_to new_import_url
+    assert_equal I18n.t("active_storage.uploads.family_quota_exceeded"), flash[:alert]
+  end
+
   test "duplicate pdf import does not enqueue processing twice for reused import" do
     assert_difference "AccountStatement.count", 1 do
       assert_difference "Import.where(type: 'PdfImport').count", 1 do

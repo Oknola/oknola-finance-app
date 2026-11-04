@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "digest"
 
 class ImportSession < ApplicationRecord
@@ -211,19 +212,23 @@ class ImportSession < ApplicationRecord
   end
 
   def create_chunk!(sequence:, client_chunk_id:, checksum:, content:, filename:, content_type:)
-    imports.create!(
+    import = imports.create!(
       family: family,
       type: "SureImport",
       sequence: sequence,
       client_chunk_id: client_chunk_id,
       checksum: checksum
-    ).tap do |import|
-      import.ndjson_file.attach(
-        io: StringIO.new(content),
-        filename: filename,
-        content_type: content_type
-      )
-    end
+    )
+    attached = import.ndjson_file.attach(
+      io: StringIO.new(content),
+      filename: filename,
+      content_type: content_type
+    )
+    return import if attached
+
+    error = ActiveRecord::RecordInvalid.new(import)
+    import.destroy!
+    raise error
   end
   private :create_chunk!
 
@@ -352,11 +357,13 @@ class ImportSession < ApplicationRecord
       return false if chunk_ready_for_retry?(chunk, checksum)
       return true if chunk.ndjson_file.attached? && chunk_content_checksum(chunk) == checksum
 
-      chunk.ndjson_file.attach(
+      attached = chunk.ndjson_file.attach(
         io: StringIO.new(content),
         filename: filename,
         content_type: content_type
       )
+      raise ActiveRecord::RecordInvalid.new(chunk) unless attached
+
       true
     end
 

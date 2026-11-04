@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 module Api
   module V1
     class AuthController < BaseController
@@ -292,41 +293,26 @@ module Api
           skip_password_validation: true
         )
 
-        if invitation.present?
-          # Accept the pending invitation: join the existing family
-          user.family_id = invitation.family_id
-          user.role = invitation.role
-        else
-          user.family = Family.new
+        user.family = Family.new
 
-          # New family creators must be able to administer their own family.
-          # Lower provider defaults are promoted to admin by role_for_new_family_creator,
-          # while intentional super_admin defaults remain supported.
-          provider_config = Rails.configuration.x.auth.sso_providers&.find { |p| p[:name] == cached[:provider] }
-          provider_default_role = provider_config&.dig(:settings, :default_role)
-        end
+        # New family creators must be able to administer their own family.
+        # Lower provider defaults are promoted to admin by role_for_new_family_creator,
+        # while intentional super_admin defaults remain supported.
+        provider_config = Rails.configuration.x.auth.sso_providers&.find { |p| p[:name] == cached[:provider] }
+        provider_default_role = provider_config&.dig(:settings, :default_role)
 
         identity = nil
         account_created = false
 
         begin
           account_created = ActiveRecord::Base.transaction do
-            unless invitation.present?
-              User.lock_first_user_role!
-              user.role = User.role_for_new_family_creator(fallback_role: provider_default_role || :admin)
-            end
+            User.lock_first_user_role!
+            fallback_role = invitation.present? ? :admin : (provider_default_role || :admin)
+            user.role = User.role_for_new_family_creator(fallback_role: fallback_role)
 
             unless user.save
               raise ActiveRecord::Rollback
             end
-
-            # Mark invitation as accepted if one was used
-            invitation&.update!(accepted_at: Time.current)
-
-            # Joining an existing family via invitation must honor the family's
-            # default sharing policy, matching Invitation#accept_for, so a mobile
-            # SSO invitee sees the accounts the family shares by default.
-            user.family.auto_share_existing_accounts_with(user) if invitation.present?
 
             identity = OidcIdentity.create_from_omniauth(build_omniauth_hash(cached), user)
             true

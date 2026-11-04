@@ -383,6 +383,9 @@ class OidcAccountsControllerTest < ActionController::TestCase
     family = families(:dylan_family)
     family.update!(default_account_sharing: "shared")
     invitation = family.invitations.create!(email: "invitee@example.com", role: "member", inviter: users(:family_admin))
+    Rails.configuration.x.auth.stubs(:sso_providers).returns([
+      { name: "openid_connect", settings: { default_role: "super_admin" } }
+    ])
 
     session[:pending_oidc_auth] = {
       "provider" => "openid_connect", "uid" => "invite-uid-1",
@@ -391,10 +394,12 @@ class OidcAccountsControllerTest < ActionController::TestCase
 
     post :create_user
     assert_redirected_to confirm_invitation_path(invitation.token)
+    assert_nil User.find_by!(email: "invitee@example.com").onboarded_at
 
     invitee = User.find_by(email: "invitee@example.com")
     assert_not_nil invitee
     assert_not_equal family.id, invitee.family_id
+    assert_equal "admin", invitee.role
     assert_nil invitation.reload.accepted_at
     assert_equal invitation.token, session[:pending_invitation_token]
     assert_empty AccountShare.where(user: invitee)

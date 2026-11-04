@@ -45,10 +45,14 @@ class TransactionAttachmentsController < ApplicationController
           # Remove invalid attachments
           newly_added = Array(attachment_proxy).reject { |a| existing_ids.include?(a.id) }
           newly_added.each(&:purge)
-          error_messages = @transaction.errors.full_messages.join(", ")
+          error_messages = @transaction.errors.full_messages.join(", ").presence || t("active_storage.uploads.upload_rejected")
+          @transaction.reload
           respond_to do |format|
             format.html { redirect_back_or_to transaction_path(@transaction), alert: t("transactions.attachments.failed_upload", error: error_messages) }
-            format.turbo_stream { flash.now[:alert] = t("transactions.attachments.failed_upload", error: error_messages) }
+            format.turbo_stream do
+              flash.now[:alert] = t("transactions.attachments.failed_upload", error: error_messages)
+              render :create, status: :unprocessable_entity
+            end
           end
         end
       end

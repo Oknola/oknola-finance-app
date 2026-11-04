@@ -146,7 +146,8 @@ class OidcAccountsController < ApplicationController
     begin
       account_created = ActiveRecord::Base.transaction do
         User.lock_first_user_role!
-        @user.role = User.role_for_new_family_creator(fallback_role: provider_default_role || :admin)
+        fallback_role = invitation.present? ? :admin : (provider_default_role || :admin)
+        @user.role = User.role_for_new_family_creator(fallback_role: fallback_role)
 
         unless @user.save
           raise ActiveRecord::Rollback

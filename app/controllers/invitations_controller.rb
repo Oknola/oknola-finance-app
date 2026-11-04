@@ -1,6 +1,7 @@
 # Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class InvitationsController < ApplicationController
   skip_authentication only: :accept
+  skip_before_action :require_onboarding_and_upgrade, only: :confirm
   def new
     @invitation = Invitation.new
   end
