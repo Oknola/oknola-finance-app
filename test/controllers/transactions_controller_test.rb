@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class TransactionsControllerTest < ActionDispatch::IntegrationTest
@@ -173,6 +174,37 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to account_url(created_entry.account)
     assert_equal "Transaction created", flash[:notice]
     assert_enqueued_with(job: SyncJob)
+  end
+
+  test "rejects transaction references owned by another family" do
+    foreign_family = families(:empty)
+    foreign_category = foreign_family.categories.create!(name: "Foreign category")
+    foreign_merchant = foreign_family.merchants.create!(name: "Foreign merchant", type: "FamilyMerchant")
+    foreign_tag = foreign_family.tags.create!(name: "Foreign tag")
+    references = [
+      { category_id: foreign_category.id },
+      { merchant_id: foreign_merchant.id },
+      { tag_ids: [ foreign_tag.id ] }
+    ]
+
+    references.each do |reference_params|
+      assert_no_difference [ "Entry.count", "Transaction.count" ] do
+        post transactions_url, params: {
+          entry: {
+            account_id: @entry.account_id,
+            name: "Foreign reference",
+            date: Date.current,
+            currency: "USD",
+            amount: 100,
+            nature: "outflow",
+            entryable_type: @entry.entryable_type,
+            entryable_attributes: reference_params
+          }
+        }
+      end
+
+      assert_response :unprocessable_entity
+    end
   end
 
   test "resubmitting the same idempotency key does not create a duplicate transaction" do

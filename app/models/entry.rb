@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Entry < ApplicationRecord
   include Monetizable, Enrichable
 
@@ -56,6 +57,7 @@ class Entry < ApplicationRecord
     new_record? && import_id.blank? && name.blank? && !cleared? &&
       entryable_type == "Transaction" && account&.family&.auto_generate_transaction_names?
   }
+  before_validation :set_transaction_validation_family
 
   before_destroy :prevent_individual_child_deletion, if: :split_child?
   after_save :track_earliest_saved_date, if: :saved_change_to_date?
@@ -741,6 +743,10 @@ class Entry < ApplicationRecord
     # category or merchant selected either still fails the presence
     # validation below, so a transaction can never end up with no
     # information distinguishing it from any other.
+    def set_transaction_validation_family
+      entryable.validation_family_id = account&.family_id if entryable_type == "Transaction" && entryable
+    end
+
     def set_default_name
       # Category#display_name, not #name -- default categories store the
       # translated label in the `name` column itself (see Category#display_name),

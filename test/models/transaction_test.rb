@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class TransactionTest < ActiveSupport::TestCase
@@ -37,6 +38,50 @@ class TransactionTest < ActiveSupport::TestCase
     transaction = Transaction.new(extra: { "enable_banking" => { "pending" => false } })
 
     assert_not transaction.pending?
+  end
+
+  test "rejects categories, family merchants and tags from another family" do
+    foreign_family = families(:empty)
+    foreign_category = foreign_family.categories.create!(name: "Foreign category")
+    foreign_merchant = foreign_family.merchants.create!(name: "Foreign merchant", type: "FamilyMerchant")
+    foreign_tag = foreign_family.tags.create!(name: "Foreign tag")
+
+    transaction_for = lambda do |attributes|
+      Transaction.new(attributes).tap do |transaction|
+        transaction.entry = Entry.new(
+          account: accounts(:depository),
+          name: "Family-scoped reference",
+          date: Date.current,
+          currency: "USD",
+          amount: 10
+        )
+      end
+    end
+
+    {
+      category: [ transaction_for.call(category: foreign_category), :category ],
+      merchant: [ transaction_for.call(merchant: foreign_merchant), :merchant ],
+      tags: [ transaction_for.call(tags: [ foreign_tag ]), :tags ]
+    }.each do |association, (transaction, error_attribute)|
+      assert_not transaction.save, "#{association} from another family must not be saved"
+      assert transaction.errors.of_kind?(error_attribute, :invalid)
+    end
+  end
+
+  test "allows a shared provider merchant on a transaction" do
+    provider_merchant = ProviderMerchant.create!(name: "Shared merchant", source: "plaid")
+    transaction = create_transaction(account: accounts(:depository)).entryable
+
+    assert transaction.update(merchant: provider_merchant)
+    assert_equal provider_merchant, transaction.reload.merchant
+  end
+
+  test "does not save a foreign tag on an existing transaction" do
+    foreign_tag = families(:empty).tags.create!(name: "Foreign tag")
+    transaction = create_transaction(account: accounts(:depository)).entryable
+
+    assert_not transaction.update(tags: [ foreign_tag ])
+    assert_not_includes transaction.reload.tags, foreign_tag
   end
 
   # The SQL forms of "is this pending?" must give the answer pending? gives for

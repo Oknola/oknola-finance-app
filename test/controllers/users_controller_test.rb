@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class UsersControllerTest < ActionDispatch::IntegrationTest
@@ -30,6 +31,39 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to settings_profile_url
     assert_equal "Your profile has been updated.", flash[:notice]
     assert_equal "es", @user.reload.locale
+  end
+
+  test "Oknola-linked users cannot change email through form or JSON" do
+    @user.oidc_identities.create!(provider: "oknola", uid: "oknola-#{@user.id}")
+
+    get settings_profile_url
+    assert_select "input[name='user[email]'][readonly]"
+    assert_includes response.body, I18n.t("users.update.email_managed_by_oknola")
+
+    patch user_url(@user), params: { user: { email: "changed@example.com" } }
+
+    assert_redirected_to settings_profile_url
+    assert_equal I18n.t("users.update.email_managed_by_oknola"), flash[:alert]
+    assert_equal "bob@bobdylan.com", @user.reload.email
+    assert_nil @user.unconfirmed_email
+
+    patch user_url(@user), params: { user: { email: "changed@example.com" } }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal [ I18n.t("users.update.email_managed_by_oknola") ], response.parsed_body["errors"]
+    assert_equal "bob@bobdylan.com", @user.reload.email
+    assert_nil @user.unconfirmed_email
+  end
+
+  test "a user without an Oknola identity can initiate an email change" do
+    user = users(:family_member)
+    sign_in user
+    new_email = "new-email@example.com"
+
+    patch user_url(user), params: { user: { email: new_email } }
+
+    assert_redirected_to settings_profile_url
+    assert_equal new_email, user.reload.unconfirmed_email.presence || user.email
   end
 
   test "admin can update enabled family currencies" do
