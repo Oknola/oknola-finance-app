@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # Sophtron API client for account aggregation.
 #
 # Sophtron uses two API shapes:
@@ -5,8 +6,11 @@
 # - V1 RPC-style endpoints for institution connection, jobs, MFA, accounts, and transactions.
 class Provider::Sophtron < Provider
   include HTTParty
+  extend Oknola::AllowedHost
 
   DEFAULT_BASE_URL = "https://api.sophtron.com/api"
+  ALLOWED_BASE_URLS = [ "https://api.sophtron.com" ].freeze
+  ALLOWED_BASE_PATHS = [ "", "/", "/api", "/api/", "/v2", "/v2/", "/api/v2", "/api/v2/" ].freeze
   USER_AGENT = "Sure Finance Sophtron Client"
   FAILURE_JOB_STATUSES = %w[Completed Timeout Failed Failure Error].freeze
 
@@ -27,8 +31,22 @@ class Provider::Sophtron < Provider
   def initialize(user_id, access_key, base_url: DEFAULT_BASE_URL)
     @user_id = user_id
     @access_key = access_key
-    @base_url = normalize_base_url(base_url)
+    @base_url = self.class.normalize_base_url(base_url)
+    raise ArgumentError, "Sophtron base URL is not allowed" unless @base_url.present?
     super()
+  end
+
+  def self.normalize_base_url(value)
+    normalize_allowed_base_url(
+      value,
+      default_url: DEFAULT_BASE_URL,
+      allowed_base_urls: ALLOWED_BASE_URLS,
+      allowed_paths: ALLOWED_BASE_PATHS
+    )
+  end
+
+  def self.allowed_base_url?(value)
+    normalize_base_url(value).present?
   end
 
   def auth_header_for(method, api_path)
@@ -378,17 +396,6 @@ class Provider::Sophtron < Provider
       JSON.parse(body, symbolize_names: true)
     rescue JSON::ParserError
       body
-    end
-
-    def normalize_base_url(value)
-      url = value.presence || DEFAULT_BASE_URL
-      url = url.to_s.chomp("/")
-      url = url.delete_suffix("/v2") if url.end_with?("/v2")
-
-      parsed = URI.parse(url)
-      parsed.path.to_s.end_with?("/api") ? url : "#{url}/api"
-    rescue URI::InvalidURIError
-      DEFAULT_BASE_URL
     end
 
     def normalize_account(account, user_institution_id:)

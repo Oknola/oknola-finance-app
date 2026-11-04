@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -104,6 +105,15 @@ class MercuryItemsControllerTest < ActionDispatch::IntegrationTest
 
     assert_turbo_stream status: :unprocessable_entity, action: "replace", target: "mercury-providers-panel"
     assert_includes response.body, ERB::Util.html_escape("Name can't be blank")
+  end
+
+  test "rejects a disallowed base URL from a family admin" do
+    patch mercury_item_url(@second_item),
+          params: { mercury_item: { base_url: "https://evil.example" } },
+          as: :turbo_stream
+
+    assert_turbo_stream status: :unprocessable_entity, action: "replace", target: "mercury-providers-panel"
+    assert_equal "https://api.mercury.com/api/v1", @second_item.reload.base_url
   end
 
   # Redirecting back to Bank sync would collapse the open connection row.

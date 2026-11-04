@@ -1,8 +1,15 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Provider::LunchflowTest < ActiveSupport::TestCase
   setup do
-    @provider = Provider::Lunchflow.new("test_key", base_url: "https://www.lunchflow.app/api/v1")
+    @provider = Provider::Lunchflow.new("test_key")
+  end
+
+  test "normalizes only the Lunchflow production origin" do
+    assert_equal Provider::Lunchflow::DEFAULT_BASE_URL, Provider::Lunchflow.normalize_base_url("https://lunchflow.app")
+    assert_nil Provider::Lunchflow.normalize_base_url("https://lunchflow.app.evil.example")
+    assert_raises(ArgumentError) { Provider::Lunchflow.new("test_key", base_url: "https://127.0.0.1") }
   end
 
   test "retries a wrapped GoCardless rate limit and preserves its type" do

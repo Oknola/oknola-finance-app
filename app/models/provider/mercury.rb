@@ -1,15 +1,35 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Provider::Mercury
   include HTTParty
   extend SslConfigurable
+  extend Oknola::AllowedHost
 
   headers "User-Agent" => "Sure Finance Mercury Client"
   default_options.merge!({ timeout: 120 }.merge(httparty_ssl_options))
 
+  DEFAULT_BASE_URL = "https://api.mercury.com/api/v1"
+  ALLOWED_BASE_URLS = [ "https://api.mercury.com", "https://api-sandbox.mercury.com" ].freeze
+  ALLOWED_BASE_PATHS = [ "", "/", "/api/v1", "/api/v1/" ].freeze
+
   attr_reader :token, :base_url
 
-  def initialize(token, base_url: "https://api.mercury.com/api/v1")
+  def initialize(token, base_url: DEFAULT_BASE_URL)
     @token = token
-    @base_url = base_url
+    @base_url = self.class.normalize_base_url(base_url)
+    raise ArgumentError, "Mercury base URL is not allowed" unless @base_url.present?
+  end
+
+  def self.normalize_base_url(value)
+    normalize_allowed_base_url(
+      value,
+      default_url: DEFAULT_BASE_URL,
+      allowed_base_urls: ALLOWED_BASE_URLS,
+      allowed_paths: ALLOWED_BASE_PATHS
+    )
+  end
+
+  def self.allowed_base_url?(value)
+    normalize_base_url(value).present?
   end
 
   # Get all accounts

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class LunchflowItem < ApplicationRecord
   include Syncable, Provided, Unlinking, Encryptable, DestroyableLater
 
@@ -14,6 +15,8 @@ class LunchflowItem < ApplicationRecord
 
   validates :name, presence: true
   validates :api_key, presence: true, on: :create
+  validate :base_url_must_be_allowed
+  before_validation :normalize_base_url
 
   belongs_to :family
   has_one_attached :logo, dependent: :purge_later
@@ -156,17 +159,24 @@ class LunchflowItem < ApplicationRecord
   end
 
   def effective_base_url
-    return DEFAULT_BASE_URL if base_url.blank?
+    Provider::Lunchflow.normalize_base_url(base_url) || DEFAULT_BASE_URL
+  end
 
-    uri = URI.parse(base_url)
-    return DEFAULT_BASE_URL unless uri.is_a?(URI::HTTPS)
-    return DEFAULT_BASE_URL unless uri.host == "lunchflow.app"
-    return DEFAULT_BASE_URL unless [ "", "/", "/api/v1", "/api/v1/" ].include?(uri.path)
-    return DEFAULT_BASE_URL unless uri.query.blank?
-    return DEFAULT_BASE_URL unless uri.fragment.blank?
+  private
+    def normalize_base_url
+      stripped = base_url.to_s.strip
+      if stripped.blank?
+        self.base_url = nil
+        return
+      end
 
-    DEFAULT_BASE_URL
-  rescue URI::InvalidURIError
-    DEFAULT_BASE_URL
+      normalized = Provider::Lunchflow.normalize_base_url(stripped)
+      self.base_url = normalized if normalized.present?
+    end
+
+    def base_url_must_be_allowed
+      return if base_url.blank? || Provider::Lunchflow.allowed_base_url?(base_url)
+
+      errors.add(:base_url, :invalid)
   end
 end

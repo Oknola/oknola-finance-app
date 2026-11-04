@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class LunchflowItemTest < ActiveSupport::TestCase
@@ -27,6 +28,48 @@ class LunchflowItemTest < ActiveSupport::TestCase
     @lunchflow_item.base_url = "https://lunchflow.app/api/v1/"
 
     assert_equal LunchflowItem::DEFAULT_BASE_URL, @lunchflow_item.effective_base_url
+  end
+
+  test "base_url accepts only the Lunchflow production origin" do
+    [ "https://lunchflow.app", "https://lunchflow.app/api/v1/" ].each do |base_url|
+      item = LunchflowItem.new(family: families(:empty), name: "Allowed Lunchflow", api_key: "key", base_url: base_url)
+
+      assert item.valid?, "#{base_url.inspect} should be valid"
+      assert_equal LunchflowItem::DEFAULT_BASE_URL, item.effective_base_url
+    end
+  end
+
+  test "base_url rejects non-Lunchflow origins and unsafe URL components" do
+    [
+      "http://lunchflow.app/api/v1",
+      "https://169.254.169.254",
+      "https://127.0.0.1",
+      "https://localhost",
+      "https://10.0.0.1",
+      "https://lunchflow.app.evil.example",
+      "https://evil.example/lunchflow.app",
+      "https://user@lunchflow.app",
+      "https://lunchflow.app:444",
+      "https://lunchflow.app/api/v1?query=1",
+      "https://lunchflow.app/api/v1#fragment"
+    ].each do |base_url|
+      item = LunchflowItem.new(family: families(:empty), name: "Invalid Lunchflow", api_key: "key", base_url: base_url)
+
+      refute item.valid?, "Expected #{base_url.inspect} to be invalid"
+      assert_includes item.errors.details[:base_url].map { |error| error[:error] }, :invalid
+    end
+  end
+
+  test "legacy disallowed base_url is never requested" do
+    bad_url = "https://169.254.169.254"
+    @lunchflow_item.update_column(:base_url, bad_url)
+    stub_request(:get, "#{LunchflowItem::DEFAULT_BASE_URL}/accounts")
+      .to_return(status: 200, body: { accounts: [] }.to_json)
+
+    @lunchflow_item.reload.lunchflow_provider.get_accounts
+
+    assert_requested(:get, "#{LunchflowItem::DEFAULT_BASE_URL}/accounts")
+    assert_not_requested(:get, bad_url)
   end
 
   test "sync status summary covers every German count branch" do

@@ -51,7 +51,7 @@ GitHub repository secrets (Settings → Secrets and variables → Actions):
 
 - `RENDER_WEB_DEPLOY_HOOK_URL`, `RENDER_WORKER_DEPLOY_HOOK_URL`: from each service's Settings → Deploy Hook. Treat them as secrets: anyone holding one can redeploy.
 - `DATABASE_URL`: `finance-db` → Connect → External Database URL, for the off-site backup.
-- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`: a private Cloudflare R2 bucket and an API token limited to it (Object Read & Write). Add a lifecycle rule on the bucket to delete objects after 90 days.
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`: a private Cloudflare R2 bucket and an API token limited to it (Object Read & Write). Add a lifecycle rule on the bucket to delete objects after 29 days (R2 object storage → the bucket → Settings → Object Lifecycle Rules → Add rule: name `expire-dumps`, prefix `finance-db/`, delete objects after 29 days → Save changes). Oknola's Finance terms promise deleted data leaves backups within 30 days, and R2 may take up to a day to act on a rule; never lengthen it.
 
 ## Uploaded files
 

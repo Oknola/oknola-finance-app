@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class LunchflowItemsControllerTest < ActionDispatch::IntegrationTest
@@ -31,6 +32,16 @@ class LunchflowItemsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to settings_providers_url
     assert_match "Name can't be blank", flash[:alert]
+  end
+
+  test "rejects a disallowed base URL from a family admin" do
+    item = lunchflow_items(:one)
+    patch lunchflow_item_url(item),
+          params: { lunchflow_item: { base_url: "https://evil.example" } },
+          as: :turbo_stream
+
+    assert_turbo_stream status: :unprocessable_entity, action: "replace", target: "lunchflow-providers-panel"
+    assert_nil item.reload.base_url
   end
 
   test "setup accounts renders German subtype options without English fallbacks" do
