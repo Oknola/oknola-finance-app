@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class InvitationsController < ApplicationController
   skip_authentication only: :accept
   def new
@@ -15,18 +16,11 @@ class InvitationsController < ApplicationController
     @invitation.inviter = Current.user
 
     if save_invitation
-      normalized_email = @invitation.email.to_s.strip.downcase
-      existing_user = User.find_by(email: normalized_email)
-      if existing_user && @invitation.would_orphan_owned_accounts?(existing_user)
-        flash[:alert] = t(".existing_user_has_family_data")
-      elsif existing_user && @invitation.accept_for(existing_user)
-        flash[:notice] = t(".existing_user_added")
-      elsif existing_user
-        flash[:alert] = t(".failure")
-      else
-        InvitationMailer.invite_email(@invitation).deliver_later unless self_hosted?
-        flash[:notice] = t(".success")
-      end
+      # Oknola: never accept on the invitee's behalf. An existing user joins only
+      # by opening the invitation link themselves (accept_choice), and the inviter
+      # sees the same answer whether or not the email has an account.
+      InvitationMailer.invite_email(@invitation).deliver_later unless self_hosted?
+      flash[:notice] = t(".success")
     else
       flash[:alert] = t(".failure")
     end
@@ -71,8 +65,8 @@ class InvitationsController < ApplicationController
     # Persist the invitation, treating a raced partial-unique-index violation as
     # an ordinary save failure. A concurrent double-submit can still slip between
     # the `no_duplicate_pending_invitation_in_family` validation and the INSERT.
-    # Scoping the rescue to the save alone keeps later writes in #create (e.g.
-    # accept_for) from silently swallowing a genuine RecordNotUnique.
+    # Scoping the rescue to the save alone keeps any later write in #create from
+    # silently swallowing a genuine RecordNotUnique.
     def save_invitation
       @invitation.save
     rescue ActiveRecord::RecordNotUnique
