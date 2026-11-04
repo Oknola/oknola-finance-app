@@ -18,7 +18,7 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     assert_selector "#entry_amount:focus"
     assert_equal "entry_amount", page.evaluate_script("document.activeElement.id")
 
-    calculator_bar = find(".money-field-wrapper [data-money-field-operator-param='+']").ancestor("div")
+    calculator_bar = find(".money-field-wrapper [data-money-field-operator-param='+']").ancestor("div.absolute.top-full")
     type_tabs = find("[data-controller='transaction-type-tabs']")
     assert_operator calculator_bar.evaluate_script("this.getBoundingClientRect().bottom"),
                     :<=, type_tabs.evaluate_script("this.getBoundingClientRect().top")
@@ -71,23 +71,38 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     assert_no_selector "#entry_side_personal", visible: :all
   end
 
-  test "Enter saves expense and income with the selected side tag" do
-    { "Expense" => 12.5, "Income" => -12.5 }.each do |tab, amount|
-      visit new_transaction_path
-      click_link tab
-      select_ds("Account", accounts(:depository))
-      fill_in "Amount", with: "12.50"
-      fill_in "Description", with: "Quick #{tab}"
-      choose "entry_side_business", allow_label_click: true
+  test "Enter in Amount saves an expense with the selected side tag" do
+    visit new_transaction_path
+    click_link "Expense"
+    select_ds("Account", accounts(:depository))
+    fill_in "Amount", with: "12.50"
+    fill_in "Description", with: "Quick Expense"
+    choose "entry_side_business", allow_label_click: true
 
-      find_field(tab == "Expense" ? "Amount" : "Description").send_keys(:enter)
+    find_field("Amount").send_keys(:enter)
 
-      assert_no_selector "#entry_amount"
-      entry = Entry.order(:created_at).last
-      assert_equal "Quick #{tab}", entry.name
-      assert_equal amount, entry.amount
-      assert_includes entry.transaction.tags, @business
-    end
+    assert_no_selector "#entry_amount"
+    entry = Entry.order(:created_at).last
+    assert_equal "Quick Expense", entry.name
+    assert_equal 12.5, entry.amount
+    assert_includes entry.transaction.tags, @business
+  end
+
+  test "Enter in Description saves an income with the selected side tag" do
+    visit new_transaction_path
+    click_link "Income"
+    select_ds("Account", accounts(:depository))
+    fill_in "Amount", with: "12.50"
+    fill_in "Description", with: "Quick Income"
+    choose "entry_side_business", allow_label_click: true
+
+    find_field("Description").send_keys(:enter)
+
+    assert_no_selector "#entry_amount"
+    entry = Entry.order(:created_at).last
+    assert_equal "Quick Income", entry.name
+    assert_equal(-12.5, entry.amount)
+    assert_includes entry.transaction.tags, @business
   end
 
   test "a manual side choice overrides the account default on save" do

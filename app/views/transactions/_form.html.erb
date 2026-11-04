@@ -74,7 +74,7 @@
       <% end %>
     </div>
 
-    <div class="form-field combobox">
+    <div class="form-field combobox" data-controller="oknola-quick-entry" data-action="keyup.enter->oknola-quick-entry#submitDescription">
       <%= f.combobox :name,
             name_suggestions_transactions_path,
             free_text: true,
