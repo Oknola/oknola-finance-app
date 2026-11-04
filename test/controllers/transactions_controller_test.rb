@@ -681,6 +681,19 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ tag.id ], child.reload.entryable.tag_ids
   end
 
+  test "tag-only transaction updates ignore a tag from another family" do
+    @entry.entryable.update!(tag_ids: [ tags(:one).id ])
+    original_tag_ids = @entry.entryable.reload.tag_ids
+    foreign_tag = users(:empty).family.tags.create!(name: "Foreign transaction tag")
+
+    patch transaction_url(@entry), params: {
+      entry: { entryable_attributes: { id: @entry.entryable_id, tag_ids: [ foreign_tag.id ] } }
+    }
+
+    assert_response :redirect
+    assert_equal original_tag_ids, @entry.reload.entryable.tag_ids
+  end
+
   test "can update tags through tag-only endpoint" do
     patch tags_transaction_url(@entry, format: :json), params: {
       tag_ids: [ tags(:one).id, tags(:two).id ]

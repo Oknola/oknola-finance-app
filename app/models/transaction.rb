@@ -54,19 +54,27 @@ class Transaction < ApplicationRecord
   end
 
   validate :exchange_rate_must_be_valid
-  validate :references_belong_to_entry_family
+  validate :references_belong_to_entry_family, if: :references_changed?
 
   private
+
+    def references_changed?
+      category_id_changed? || merchant_id_changed? || association(:tags).loaded?
+    end
 
     def references_belong_to_entry_family
       family_id = entry&.account&.family_id || validation_family_id
       return if family_id.nil?
 
-      errors.add(:category, :invalid) if category && category.family_id != family_id
-      if merchant.is_a?(FamilyMerchant) && merchant.family_id != family_id
+      if category_id_changed? && category && category.family_id != family_id
+        errors.add(:category, :invalid)
+      end
+      if merchant_id_changed? && merchant.is_a?(FamilyMerchant) && merchant.family_id != family_id
         errors.add(:merchant, :invalid)
       end
-      errors.add(:tags, :invalid) if tags.any? { |tag| tag.family_id != family_id }
+      if association(:tags).loaded? && association(:tags).target.any? { |tag| tag.family_id != family_id }
+        errors.add(:tags, :invalid)
+      end
     end
 
     def exchange_rate_must_be_valid

@@ -68,6 +68,22 @@ class TransactionTest < ActiveSupport::TestCase
     end
   end
 
+  test "entry validation rejects a loaded foreign-family transaction tag" do
+    foreign_tag = families(:empty).tags.create!(name: "Foreign entry tag")
+    transaction = Transaction.new(tags: [ foreign_tag ])
+    entry = Entry.new(
+      account: accounts(:depository),
+      name: "Foreign tag",
+      date: Date.current,
+      currency: "USD",
+      amount: 10,
+      entryable: transaction
+    )
+
+    assert_not entry.valid?
+    assert entry.errors.of_kind?(:entryable, :invalid)
+  end
+
   test "allows a shared provider merchant on a transaction" do
     provider_merchant = ProviderMerchant.create!(name: "Shared merchant", source: "plaid")
     transaction = create_transaction(account: accounts(:depository)).entryable
@@ -82,6 +98,13 @@ class TransactionTest < ActiveSupport::TestCase
 
     assert_not transaction.update(tags: [ foreign_tag ])
     assert_not_includes transaction.reload.tags, foreign_tag
+  end
+
+  test "does not run family reference checks when transaction references are unchanged" do
+    transaction = create_transaction(account: accounts(:depository)).entryable.reload
+    transaction.expects(:references_belong_to_entry_family).never
+
+    transaction.update!(extra: { "test_metadata" => true })
   end
 
   # The SQL forms of "is this pending?" must give the answer pending? gives for
