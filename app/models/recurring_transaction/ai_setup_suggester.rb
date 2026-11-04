@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class RecurringTransaction
   # Turns charge history into a reviewed bill-configuration proposal via the
   # family's configured LLM provider. Two modes:
@@ -59,6 +60,8 @@ class RecurringTransaction
         raise Error, "Provider failed: #{result.error&.message}" unless result.success?
 
         normalize(result.data)
+      rescue Oknola::AiBudget::Exceeded => e
+        raise Error, "Provider failed: #{e.message}"
       end
 
       def llm_provider

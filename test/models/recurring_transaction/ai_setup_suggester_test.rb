@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class RecurringTransaction::AiSetupSuggesterTest < ActiveSupport::TestCase
@@ -17,6 +18,20 @@ class RecurringTransaction::AiSetupSuggesterTest < ActiveSupport::TestCase
     assert_raises(Suggester::Error) do
       Suggester.new(@family, user: @user).suggest_from_entries(@entries)
     end
+  end
+
+  test "converts AI budget exhaustion into a handled suggestion error" do
+    provider = Object.new
+    provider.define_singleton_method(:suggest_bill_setup) do |**|
+      raise Oknola::AiBudget::Exceeded, "Monthly AI allowance reached"
+    end
+    Provider::Registry.stubs(:preferred_llm_provider).returns(provider)
+
+    error = assert_raises(Suggester::Error) do
+      Suggester.new(@family, user: @user).suggest_from_entries(@entries)
+    end
+
+    assert_equal "Provider failed: Monthly AI allowance reached", error.message
   end
 
   test "raises on empty charge history instead of asking the model to guess" do

@@ -1,8 +1,14 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 require "test_helper"
 
 class RackAttackTest < ActionDispatch::IntegrationTest
+  setup do
+    ensure_tailwind_build
+  end
+
   test "rack attack is configured" do
     # Verify Rack::Attack is enabled in middleware stack
     middleware_classes = Rails.application.middleware.map(&:klass)
@@ -42,6 +48,40 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       password_change/ip password_change/user
     ].each do |name|
       assert_includes throttles, name, "#{name} should have rate limiting configured"
+    end
+    assert_includes throttles, "ai/chat", "chat posts should have rate limiting"
+  end
+
+  test "chat posts share a per-user limit across web and API routes, with IP fallback" do
+    block = Rack::Attack.throttles["ai/chat"].block
+    user = users(:family_admin)
+    session = user.sessions.create!
+
+    web_request = throttle_request("/chats/#{chats(:one).id}/messages", method: "POST", session_cookie: session.id)
+    api_request = throttle_request("/api/v1/chats", method: "POST", session_cookie: session.id)
+    anonymous_request = throttle_request("/api/v1/chats", method: "POST")
+
+    assert_equal "user:#{user.id}", block.call(web_request)
+    assert_equal "user:#{user.id}", block.call(api_request)
+    assert_equal "ip:203.0.113.5", block.call(anonymous_request)
+    assert_nil block.call(throttle_request("/chats", method: "GET", session_cookie: session.id))
+    assert_nil block.call(throttle_request("/chats/#{chats(:one).id}/messages/retry", method: "POST", session_cookie: session.id))
+  end
+
+  test "the eleventh chat post within a minute returns 429" do
+    ensure_tailwind_build
+    user = users(:family_admin)
+    chat = user.chats.first
+    sign_in user
+
+    with_rack_attack_enabled do
+      10.times do
+        post chat_messages_url(chat), params: { message: { content: "Hello" } }
+        assert_response :redirect
+      end
+
+      post chat_messages_url(chat), params: { message: { content: "Hello" } }
+      assert_response :too_many_requests
     end
   end
 

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class MessagesController < ApplicationController
   include RequiresAiConsent
   include FeatureGuardable
@@ -13,7 +14,7 @@ class MessagesController < ApplicationController
     @message = UserMessage.new(
       chat: @chat,
       content: message_params[:content],
-      ai_model: message_params[:ai_model].presence || Chat.default_model
+      ai_model: Chat.default_model
     )
 
     if @message.save
@@ -50,7 +51,7 @@ class MessagesController < ApplicationController
     end
 
     def message_params
-      params.require(:message).permit(:content, :ai_model)
+      params.require(:message).permit(:content)
     end
 
     def guard_ai_enabled

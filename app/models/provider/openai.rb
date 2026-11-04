@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Provider::Openai < Provider
   include LlmConcept
   include LangfuseTraceable
@@ -190,6 +191,8 @@ class Provider::Openai < Provider
   end
 
   def auto_categorize(transactions: [], user_categories: [], model: "", family: nil, json_mode: nil)
+    Oknola::AiBudget.check!(family)
+
     with_provider_response do
       if user_categories.blank?
         family_id = family&.id || "unknown"
@@ -229,6 +232,8 @@ class Provider::Openai < Provider
   end
 
   def suggest_bill_setup(charges: [], categories: [], current_config: nil, model: "", family: nil)
+    Oknola::AiBudget.check!(family)
+
     with_provider_response do
       effective_model = model.presence || @default_model
 
@@ -257,6 +262,8 @@ class Provider::Openai < Provider
   end
 
   def auto_detect_merchants(transactions: [], user_merchants: [], model: "", family: nil, json_mode: nil)
+    Oknola::AiBudget.check!(family)
+
     with_provider_response do
       effective_model = model.presence || @default_model
 
@@ -290,6 +297,8 @@ class Provider::Openai < Provider
   end
 
   def enhance_provider_merchants(merchants: [], model: "", family: nil, json_mode: nil)
+    Oknola::AiBudget.check!(family)
+
     with_provider_response do
       effective_model = model.presence || @default_model
 
@@ -339,6 +348,8 @@ class Provider::Openai < Provider
   # @param family [Family, nil] usage attribution
   # @return [Provider::Response] structured result or provider failure
   def process_pdf(pdf_content:, model: "", family: nil, json_mode: nil)
+    Oknola::AiBudget.check!(family)
+
     with_provider_response do
       effective_model = model.presence || @default_model
       raise Error, "Model does not support PDF/vision processing: #{effective_model}" unless supports_pdf_processing?(model: effective_model)
@@ -377,6 +388,8 @@ class Provider::Openai < Provider
   end
 
   def extract_bank_statement(pdf_content:, model: "", family: nil, json_mode: nil)
+    Oknola::AiBudget.check!(family)
+
     with_provider_response do
       effective_model = model.presence || @default_model
 
@@ -416,6 +429,8 @@ class Provider::Openai < Provider
     user_identifier: nil,
     family: nil
   )
+    Oknola::AiBudget.check!(family)
+
     if supports_responses_endpoint?
       # Native path uses the Responses API which chains history via
       # `previous_response_id`; it does NOT need (and must not receive)

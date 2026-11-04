@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 class Api::V1::ChatsController < Api::V1::BaseController
   include Pagy::Backend
   before_action :require_ai_enabled
@@ -24,7 +26,7 @@ class Api::V1::ChatsController < Api::V1::BaseController
         @message = @chat.messages.build(
           content: chat_params[:message],
           type: "UserMessage",
-          ai_model: chat_params[:model].presence || Chat.default_model
+          ai_model: Chat.default_model
         )
 
         if @message.save
@@ -80,7 +82,7 @@ class Api::V1::ChatsController < Api::V1::BaseController
     end
 
     def chat_params
-      params.permit(:title, :message, :model)
+      params.permit(:title, :message)
     end
 
     def update_chat_params

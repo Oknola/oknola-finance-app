@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class AutoCategorizeJobTest < ActiveJob::TestCase
@@ -80,6 +81,19 @@ class AutoCategorizeJobTest < ActiveJob::TestCase
     assert_equal "Family::AutoCategorizer::Error", entry.metadata["error_class"]
     assert_equal "Failed to auto-categorize transactions: Fixed prompt tokens exceed context budget", entry.metadata["error_message"]
     assert_equal [ transaction.id ], entry.metadata["transaction_ids"]
+  end
+
+  test "skips over-budget categorization without failing or retrying the job" do
+    transaction_ids = [ SecureRandom.uuid ]
+    @family.stubs(:auto_categorize_transactions).with(transaction_ids)
+      .raises(Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded")
+    RuleRun.stubs(:find_by).with(id: @rule_run.id).returns(@rule_run)
+    @rule_run.expects(:complete_job!).with(modified_count: 0).once
+    Rails.logger.expects(:info).with { |message| message.include?("Skipping auto-categorization") }.once
+
+    assert_nothing_raised do
+      AutoCategorizeJob.perform_now(@family, transaction_ids: transaction_ids, rule_run_id: @rule_run.id)
+    end
   end
 
   test "fails the rule run when no categories are available" do

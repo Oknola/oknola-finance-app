@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ProcessPdfJobTest < ActiveJob::TestCase
@@ -129,6 +130,18 @@ class ProcessPdfJobTest < ActiveJob::TestCase
 
     assert_equal "failed", @import.reload.status
     assert @import.error.present?
+  end
+
+  test "returns an over-budget PDF import to pending without raising" do
+    attach_pdf!(@import)
+    @import.expects(:process_with_ai).once
+      .raises(Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded")
+    Rails.logger.expects(:info).with { |message| message.include?("Skipping PDF processing") }.once
+
+    assert_nothing_raised { ProcessPdfJob.perform_now(@import) }
+
+    assert_equal "pending", @import.reload.status
+    assert_nil @import.error
   end
 
   test "skips already failed import" do

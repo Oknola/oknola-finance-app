@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 require "test_helper"
 
 class Api::V1::MessagesControllerTest < ActionDispatch::IntegrationTest
@@ -39,7 +41,7 @@ class Api::V1::MessagesControllerTest < ActionDispatch::IntegrationTest
   test "should create message with write scope" do
     assert_difference "UserMessage.count" do
       post "/api/v1/chats/#{@chat.id}/messages",
-        params: { content: "Test message", model: "gpt-4" },
+        params: { content: "Test message", model: "claude-opus-anything" },
         headers: bearer_auth_header(@write_token)
     end
 
@@ -48,6 +50,18 @@ class Api::V1::MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Test message", response_body["content"]
     assert_equal "user_message", response_body["type"]
     assert_equal "pending", response_body["ai_response_status"]
+    assert_equal Chat.default_model, @chat.messages.where(type: "UserMessage").order(:created_at).last.ai_model
+  end
+
+  test "rejects an oversized message" do
+    assert_no_difference "UserMessage.count" do
+      post "/api/v1/chats/#{@chat.id}/messages",
+        params: { content: "a" * 4_001 },
+        headers: bearer_auth_header(@write_token)
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body)["details"], "Content #{I18n.t("chats.message_too_long")}"
   end
 
   test "should enqueue assistant response job" do

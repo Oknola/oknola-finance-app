@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class ChatsController < ApplicationController
   include ActionView::RecordIdentifier
   include RequiresAiConsent
@@ -24,7 +25,17 @@ class ChatsController < ApplicationController
   end
 
   def create
-    @chat = Current.user.chats.start!(chat_params[:content], model: chat_params[:ai_model])
+    model = Chat.default_model
+    message = UserMessage.new(
+      content: chat_params[:content],
+      ai_model: model
+    )
+    message.valid?
+    if message.errors[:content].any?
+      return redirect_to new_chat_path, alert: message.errors.full_messages_for(:content).to_sentence
+    end
+
+    @chat = Current.user.chats.start!(message.content, model: model)
     set_last_viewed_chat(@chat)
     redirect_to chat_path(@chat, thinking: true)
   end
@@ -67,7 +78,7 @@ class ChatsController < ApplicationController
     end
 
     def chat_params
-      params.require(:chat).permit(:title, :content, :ai_model)
+      params.require(:chat).permit(:title, :content)
     end
 
     def guard_create_ai_enabled

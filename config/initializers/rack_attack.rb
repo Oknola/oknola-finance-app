@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 class Rack::Attack
   # Enable Rack::Attack only in production and staging (disable in test/development to avoid rate-limit flakiness)
   enabled = Rails.env.production? || Rails.env.staging?
@@ -166,6 +168,16 @@ class Rack::Attack
         "user:#{user_id}" if user_id
       end
     end
+  end
+
+  chat_post_path = ->(request) do
+    request.path.match?(%r{\A/(?:api/v1/)?chats(?:/[^/]+/messages)?(?:\.[^./?]+)?\z})
+  end
+
+  throttle("ai/chat", limit: 10, period: 1.minute) do |request|
+    next unless request.post? && chat_post_path.call(request)
+
+    password_change_user.call(request) || "ip:#{request.ip}"
   end
 
   # Rack::MethodOverride runs earlier in the stack, so the form's

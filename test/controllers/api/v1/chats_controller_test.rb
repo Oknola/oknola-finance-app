@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 require "test_helper"
 
 class Api::V1::ChatsControllerTest < ActionDispatch::IntegrationTest
@@ -59,7 +61,7 @@ class Api::V1::ChatsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Chat.count" do
       post "/api/v1/chats",
-        params: { title: "New chat", message: "Hello AI" },
+        params: { title: "New chat", message: "Hello AI", model: "claude-opus-anything" },
         headers: api_headers(api_key)
     end
 
@@ -95,6 +97,19 @@ class Api::V1::ChatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
     response_body = JSON.parse(response.body)
     assert_equal "New chat", response_body["title"]
+    chat = @user.chats.find(response_body["id"])
+    assert_equal Chat.default_model, chat.messages.find_by!(type: "UserMessage").ai_model
+  end
+
+  test "rejects an oversized initial message" do
+    assert_no_difference "Chat.count" do
+      post "/api/v1/chats",
+        params: { title: "New chat", message: "a" * 4_001 },
+        headers: bearer_auth_header(@write_token)
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes JSON.parse(response.body)["details"], "Content #{I18n.t("chats.message_too_long")}"
   end
 
   test "should not create chat with read scope" do
