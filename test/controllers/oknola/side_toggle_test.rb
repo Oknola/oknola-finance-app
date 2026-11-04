@@ -85,6 +85,6 @@ class Oknola::SideToggleTest < ActionDispatch::IntegrationTest
     end
 
     def assert_side_chip(entry, side)
-      assert_select "turbo-frame##{dom_id(entry)} .flex-shrink-0 > span[title='#{side}']", count: 1
+      assert_select "turbo-frame##{dom_id(entry)} .text-xs > span[title='#{side}']", count: 1
     end
 end

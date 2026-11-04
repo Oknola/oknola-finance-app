@@ -150,13 +150,11 @@
 
                 <div class="text-secondary text-xs font-normal leading-4">
                   <% if side.present? %>
-                    <span class="inline-flex align-middle mr-1">
-                      <%= render DS::Pill.new(
-                        label: t("transactions.transaction.side.#{side.downcase}"),
-                        tone: side == "Business" ? :info : :neutral,
-                        marker: false
-                      ) %>
-                    </span>
+                    <%= render DS::Pill.new(
+                      label: t("transactions.transaction.side.#{side.downcase}"),
+                      tone: side == "Business" ? :info : :neutral,
+                      marker: false
+                    ) %>
                   <% end %>
                   <% if transaction.transfer? %>
                     <span class="text-secondary">

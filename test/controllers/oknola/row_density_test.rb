@@ -33,6 +33,6 @@ class Oknola::RowDensityTest < ActionDispatch::IntegrationTest
     end
     assert_select "#{row_selector} p.privacy-sensitive.font-mono.text-right"
     assert_select "#{row_selector} img.w-9", count: 0
-    assert_select "#{row_selector} .flex-shrink-0 > span[title='Business']", count: 1
+    assert_select "#{row_selector} .text-xs > span[title='Business']", count: 1
   end
 end
