@@ -88,14 +88,6 @@
                   </div>
 
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    <% if side.present? %>
-                      <%= render DS::Pill.new(
-                        label: t("transactions.transaction.side.#{side.downcase}"),
-                        tone: side == "Business" ? :info : :neutral,
-                        marker: false
-                      ) %>
-                    <% end %>
-
                     <% if transaction.one_time? %>
                       <span class="text-orange-500" title="One-time <%= entry.amount.negative? ? "income" : "expense" %> (excluded from averages)">
                         <%= icon "asterisk", size: "sm", color: "current" %>
@@ -157,6 +149,15 @@
                 </div>
 
                 <div class="text-secondary text-xs font-normal leading-4">
+                  <% if side.present? %>
+                    <span class="inline-flex align-middle mr-1">
+                      <%= render DS::Pill.new(
+                        label: t("transactions.transaction.side.#{side.downcase}"),
+                        tone: side == "Business" ? :info : :neutral,
+                        marker: false
+                      ) %>
+                    </span>
+                  <% end %>
                   <% if transaction.transfer? %>
                     <span class="text-secondary">
                       <%= transaction.loan_payment? ? t("transactions.show.loan_payment") : t("transactions.show.transfer") %> •
