@@ -125,8 +125,9 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     source = create_transaction(account: accounts(:credit_card), tags: [ @personal, tags(:one) ])
     visit new_transaction_path(duplicate_entry_id: source.id, account_id: "")
 
-    assert_checked_field "entry_side_personal", visible: :all
+    assert_checked_field "entry_side_business", visible: :all
     select_ds("Account", accounts(:credit_card))
+    assert_checked_field "entry_side_personal", visible: :all
     select_ds("Account", accounts(:depository))
     assert_checked_field "entry_side_business", visible: :all
     find_field("Amount").send_keys(:enter)
@@ -138,7 +139,7 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     assert_nil saved.transaction.oknola_side
   end
 
-  test "duplicating a Business transaction never saves a tag twice" do
+  test "duplicating a Business-tagged transaction keeps the tag as ordinary metadata" do
     source = create_transaction(tags: [ @business, tags(:one) ])
     visit new_transaction_path(duplicate_entry_id: source.id)
 
@@ -148,7 +149,7 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     assert_no_selector "#entry_amount"
     saved = Entry.order(:created_at).last
     assert_not_equal source.id, saved.id
-    assert_equal [ tags(:one).id ], saved.transaction.tag_ids
+    assert_equal [ @business.id, tags(:one).id ].sort, saved.transaction.tag_ids.sort
     assert_nil saved.transaction.oknola_side
     saved.transaction.taggings.group(:tag_id).count.each_value do |count|
       assert_equal 1, count
