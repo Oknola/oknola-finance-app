@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class RecurringTransaction
   # Turns charge history into a reviewed bill-configuration proposal via the
   # family's configured LLM provider. Two modes:
@@ -13,6 +14,7 @@ class RecurringTransaction
   # the shape without re-validating LLM output.
   class AiSetupSuggester
     Error = Class.new(StandardError)
+    BudgetExceeded = Class.new(Error)
     MAX_CHARGES = 40
 
     Suggestion = Data.define(
@@ -59,6 +61,8 @@ class RecurringTransaction
         raise Error, "Provider failed: #{result.error&.message}" unless result.success?
 
         normalize(result.data)
+      rescue Oknola::AiBudget::Exceeded
+        raise BudgetExceeded, Oknola::AiBudget.user_message
       end
 
       def llm_provider

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ChatTest < ActiveSupport::TestCase
@@ -188,6 +189,18 @@ class ChatTest < ActiveSupport::TestCase
     chat.add_error(StandardError.new("something totally unknown happened"))
 
     assert_equal I18n.t("chat.errors.default"), chat.presentable_error_message
+  end
+
+  test "shows the monthly AI allowance reset date when budget is exceeded" do
+    chat = chats(:one)
+    travel_to Time.utc(2026, 11, 4) do
+      chat.add_error(Oknola::AiBudget::Exceeded.new("Monthly AI allowance exceeded"))
+
+      assert_equal(
+        I18n.t("chats.ai_budget_exceeded", reset_date: I18n.l(Date.new(2026, 12, 1), format: :long)),
+        chat.presentable_error_message
+      )
+    end
   end
 
   test "falls back to a friendly message for legacy serialized errors" do

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class PdfImportTest < ActiveSupport::TestCase
@@ -256,6 +257,17 @@ class PdfImportTest < ActiveSupport::TestCase
     existing_import = PdfImport.create_from_statement!(statement: statement)
 
     assert_equal existing_import, PdfImport.create_from_statement!(statement: statement)
+  end
+
+  test "statement backed import can be retried after a failed AI-budget run" do
+    statement = create_pdf_statement
+    failed_import = PdfImport.create_from_statement!(statement: statement)
+    failed_import.update!(status: :failed, error: Oknola::AiBudget.user_message)
+
+    retry_import = PdfImport.create_from_statement!(statement: statement)
+
+    assert_not_equal failed_import, retry_import
+    assert_equal "pending", retry_import.status
   end
 
   test "assigning account links statement backed import statement" do

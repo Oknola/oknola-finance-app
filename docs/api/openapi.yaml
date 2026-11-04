@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 ---
 openapi: 3.0.3
 info:
@@ -5992,10 +5993,8 @@ paths:
                   example: Monthly budget review
                 message:
                   type: string
+                  maxLength: 4000
                   description: Optional initial message in the chat
-                model:
-                  type: string
-                  description: Optional OpenAI model identifier
               required:
               - title
         required: true
@@ -6115,8 +6114,7 @@ paths:
               properties:
                 content:
                   type: string
-                model:
-                  type: string
+                  maxLength: 4000
               required:
               - content
         required: true

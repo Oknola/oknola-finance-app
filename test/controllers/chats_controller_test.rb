@@ -1,7 +1,9 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ChatsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    ensure_tailwind_build
     @user = users(:family_admin)
     @family = families(:dylan_family)
     sign_in @user
@@ -61,14 +63,25 @@ class ChatsControllerTest < ActionDispatch::IntegrationTest
     Usage.stubs(:capture)
     Usage.expects(:capture).with("ai_assistant_served_daily").never
     assert_difference("Chat.count") do
-      post chats_url, params: { chat: { content: "Hello", ai_model: "gpt-4.1" } }
+      post chats_url, params: { chat: { content: "Hello", ai_model: "claude-opus-anything" } }
     end
 
     chat = Chat.order(created_at: :desc).first
 
     assert_redirected_to chat_path(chat, thinking: true)
     assert_equal "Hello", chat.title
-    assert_equal "Hello", chat.messages.find_by!(type: "UserMessage").content
+    user_message = chat.messages.find_by!(type: "UserMessage")
+    assert_equal "Hello", user_message.content
+    assert_equal Chat.default_model, user_message.ai_model
+  end
+
+  test "shows the message length validation on the new chat form" do
+    assert_no_difference "Chat.count" do
+      post chats_url, params: { chat: { content: "a" * 4_001 } }
+    end
+
+    assert_redirected_to new_chat_path
+    assert_equal "Content #{I18n.t("chats.message_too_long")}", flash[:alert]
   end
 
   test "redirects to chats index instead of creating a chat if AI is disabled" do

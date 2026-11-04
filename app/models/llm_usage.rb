@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class LlmUsage < ApplicationRecord
   belongs_to :family
 
@@ -12,7 +13,7 @@ class LlmUsage < ApplicationRecord
 
   # Last complete review of every listed model, not a provider price-change date.
   # Sources, dated changes and estimation limits: docs/hosting/ai.md#cost-considerations
-  PRICING_VERIFIED_ON = Date.new(2026, 10, 17).freeze
+  PRICING_VERIFIED_ON = Date.new(2026, 11, 4).freeze
 
   # Standard USD pricing per 1M tokens, excluding regional and service-tier modifiers.
   # Source: https://developers.openai.com/api/docs/pricing
@@ -121,6 +122,13 @@ class LlmUsage < ApplicationRecord
     },
     # Source: https://platform.claude.com/docs/en/about-claude/pricing
     "anthropic" => {
+      "claude-haiku-5-5" => {
+        prompt: 0.10, completion: 0.50,
+        long_context: { threshold: 100_000, prompt: 0.50, completion: 2.50 }
+      },
+      "claude-sonnet-5-5" => { prompt: 2.00, completion: 10.00 },
+      "claude-opus-5-5" => { prompt: 4.00, completion: 20.00 },
+      "claude-fable-5-1" => { prompt: 10.00, completion: 50.00 },
       "claude-opus-4-7" => { prompt: 5.00, completion: 25.00 },
       "claude-opus-4-6" => { prompt: 5.00, completion: 25.00 },
       "claude-sonnet-4-6" => { prompt: 3.00, completion: 15.00 },

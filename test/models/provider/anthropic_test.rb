@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 require "ostruct"
 
@@ -131,6 +132,28 @@ class Provider::AnthropicTest < ActiveSupport::TestCase
     assert_not response.success?
     assert_kind_of Provider::Anthropic::Error, response.error
     assert_match(/rate limit/i, response.error.message)
+  end
+
+  test "family-scoped requests stop before any API call when the budget is exhausted" do
+    family = families(:dylan_family)
+    client = mock
+    client.expects(:messages).never
+    @subject.instance_variable_set(:@client, client)
+    requests = [
+      -> { @subject.chat_response("hello", model: @subject_model, family: family) },
+      -> { @subject.auto_categorize(transactions: [ { id: "1" } ], user_categories: [ { name: "Food" } ], family: family) },
+      -> { @subject.auto_detect_merchants(transactions: [ { id: "1" } ], family: family) },
+      -> { @subject.enhance_provider_merchants(merchants: [ { id: "1", name: "Shop" } ], family: family) },
+      -> { @subject.suggest_bill_setup(charges: [ { amount: "1" } ], family: family) },
+      -> { @subject.process_pdf(pdf_content: "pdf", family: family) },
+      -> { @subject.extract_bank_statement(pdf_content: "pdf", family: family) }
+    ]
+
+    with_env_overrides("OKNOLA_AI_MONTHLY_USD" => "0") do
+      requests.each do |request|
+        assert_raises(Oknola::AiBudget::Exceeded, &request)
+      end
+    end
   end
 
   test "chat_response accepts messages: kwarg passed by Responder without raising" do

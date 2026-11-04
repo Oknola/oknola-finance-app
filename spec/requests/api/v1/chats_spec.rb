@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Chats', type: :request do
@@ -111,8 +113,7 @@ RSpec.describe 'API V1 Chats', type: :request do
         type: :object,
         properties: {
           title: { type: :string, example: 'Monthly budget review' },
-          message: { type: :string, description: 'Optional initial message in the chat' },
-          model: { type: :string, description: 'Optional OpenAI model identifier' }
+          message: { type: :string, maxLength: 4000, description: 'Optional initial message in the chat' }
         },
         required: %w[title]
       }
@@ -120,8 +121,7 @@ RSpec.describe 'API V1 Chats', type: :request do
       let(:chat_params) do
         {
           title: 'Travel planning',
-          message: 'Can you help me plan a summer trip?',
-          model: 'gpt-4-turbo'
+          message: 'Can you help me plan a summer trip?'
         }
       end
 
@@ -239,16 +239,14 @@ RSpec.describe 'API V1 Chats', type: :request do
       parameter name: :message_params, in: :body, required: true, schema: {
         type: :object,
         properties: {
-          content: { type: :string },
-          model: { type: :string }
+          content: { type: :string, maxLength: 4000 }
         },
         required: %w[content]
       }
 
       let(:message_params) do
         {
-          content: 'Please summarise the last conversation.',
-          model: 'gpt-4'
+          content: 'Please summarise the last conversation.'
         }
       end
 

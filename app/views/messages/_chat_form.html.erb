@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
 <%# locals: (chat: nil, message_hint: nil) %>
 
 <div id="chat-form" class="space-y-2"
@@ -10,9 +11,6 @@
   <%= form_with model: model,
                 class: "flex lg:flex-col gap-2 bg-container px-2 py-1.5 rounded-full lg:rounded-lg shadow-border-xs",
                 data: { chat_target: "form", action: "submit->chat-reservation#hide" } do |f| %>
-
-    <%# In the future, this will be a dropdown with different AI models %>
-    <%= f.hidden_field :ai_model, value: default_ai_model %>
 
     <%= f.text_area :content, placeholder: t(".placeholder"), value: message_hint, autofocus: message_hint.present?,
                   class: "w-full border-0 focus:ring-0 text-sm resize-none px-1 bg-transparent",

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+
 class Api::V1::MessagesController < Api::V1::BaseController
   before_action :require_ai_enabled
   before_action :ensure_write_scope, only: [ :create, :retry ]
@@ -9,7 +11,7 @@ class Api::V1::MessagesController < Api::V1::BaseController
     @message = @chat.messages.build(
       content: message_params[:content],
       type: "UserMessage",
-      ai_model: message_params[:model].presence || Chat.default_model
+      ai_model: Chat.default_model
     )
 
     if @message.save
@@ -55,6 +57,6 @@ class Api::V1::MessagesController < Api::V1::BaseController
     end
 
     def message_params
-      params.permit(:content, :model)
+      params.permit(:content)
     end
 end

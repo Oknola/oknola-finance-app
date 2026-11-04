@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # Inherits RecurringTransactionsController so the re-rendered "new" template
 # resolves its relative partials ("form") against recurring_transactions/.
 class RecurringTransactions::SmartFillsController < RecurringTransactionsController
@@ -36,6 +37,9 @@ class RecurringTransactions::SmartFillsController < RecurringTransactionsControl
                      .suggest_from_entries(evidence_entries(entry, income: income))
       apply_suggestion(suggestion)
       @smart_fill = suggestion
+    rescue RecurringTransaction::AiSetupSuggester::BudgetExceeded => e
+      Rails.logger.warn("Smart fill failed for entry #{entry.id}: #{e.class}: #{e.message}")
+      @smart_fill_error = e.message
     rescue RecurringTransaction::AiSetupSuggester::Error => e
       Rails.logger.warn("Smart fill failed for entry #{entry.id}: #{e.class}: #{e.message}")
       @smart_fill_error = t(".failed")

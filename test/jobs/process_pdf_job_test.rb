@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ProcessPdfJobTest < ActiveJob::TestCase
@@ -129,6 +130,34 @@ class ProcessPdfJobTest < ActiveJob::TestCase
 
     assert_equal "failed", @import.reload.status
     assert @import.error.present?
+  end
+
+  test "marks an over-budget PDF import failed with the localized allowance message" do
+    attach_pdf!(@import)
+    @import.expects(:process_with_ai).once
+      .raises(Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded")
+    Rails.logger.expects(:info).with { |message| message.include?("Skipping PDF processing") }.once
+
+    assert_nothing_raised { ProcessPdfJob.perform_now(@import) }
+
+    assert_equal "failed", @import.reload.status
+    assert_equal Oknola::AiBudget.user_message, @import.error
+  end
+
+  test "budget exhaustion during statement extraction keeps the failed import retryable" do
+    attach_pdf!(@import)
+    @import.update!(ai_summary: "Statement summary", document_type: "bank_statement")
+    @import.stubs(:process_with_ai).returns(OpenStruct.new(document_type: "bank_statement"))
+    @import.expects(:extract_transactions)
+      .raises(Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded")
+    @family.stubs(:upload_document).returns(nil)
+    Rails.logger.stubs(:info)
+
+    ProcessPdfJob.perform_now(@import)
+
+    assert_equal "failed", @import.reload.status
+    assert_equal Oknola::AiBudget.user_message, @import.error
+    assert @import.ai_processed?
   end
 
   test "skips already failed import" do

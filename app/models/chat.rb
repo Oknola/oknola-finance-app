@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Chat < ApplicationRecord
   include Debuggable
 
@@ -263,9 +264,15 @@ class Chat < ApplicationRecord
 
     def build_error_payload(error)
       technical_message = error_message_for(error)
+      message =
+        if error.is_a?(Oknola::AiBudget::Exceeded)
+          Oknola::AiBudget.user_message
+        else
+          classify_error_message(technical_message)
+        end
 
       {
-        message: classify_error_message(technical_message),
+        message: message,
         technical_message: technical_message,
         type: error.class.name
       }

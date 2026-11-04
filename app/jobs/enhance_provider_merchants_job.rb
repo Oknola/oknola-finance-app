@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class EnhanceProviderMerchantsJob < ApplicationJob
   queue_as :ai_low_priority
 
@@ -23,6 +24,12 @@ class EnhanceProviderMerchantsJob < ApplicationJob
 
       Rails.cache.write(key, batches.size, raw: true, expires_in: LOCK_TTL)
       batches.each { |ids| self.class.perform_later(family, merchant_ids: ids) }
+    end
+  rescue Oknola::AiBudget::Exceeded => error
+    Rails.logger.info("Skipping merchant enhancement for family #{family.id}: #{error.message}")
+    if merchant_ids
+      key = self.class.lock_key(family)
+      Rails.cache.delete(key) if Rails.cache.decrement(key, 1, expires_in: LOCK_TTL).to_i <= 0
     end
   end
 end

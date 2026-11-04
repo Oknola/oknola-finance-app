@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class ProcessPdfJob < ApplicationJob
   queue_as :ai_low_priority
 
@@ -40,6 +41,9 @@ class ProcessPdfJob < ApplicationJob
       # Other document types are marked complete (no further action needed)
       final_status = statement_with_transactions?(document_type) && pdf_import.rows_count > 0 ? :pending : :complete
       pdf_import.update!(status: final_status)
+    rescue Oknola::AiBudget::Exceeded => e
+      Rails.logger.info("Skipping PDF processing for import #{pdf_import.id}: #{e.message}")
+      pdf_import.update!(status: :failed, error: Oknola::AiBudget.user_message)
     rescue StandardError => e
       sanitized_error = sanitize_error_message(e)
       Rails.logger.error("PDF processing failed for import #{pdf_import.id}: #{e.class.name} - #{sanitized_error}")

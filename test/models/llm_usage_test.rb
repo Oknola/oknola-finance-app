@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class LlmUsageTest < ActiveSupport::TestCase
@@ -131,6 +132,32 @@ class LlmUsageTest < ActiveSupport::TestCase
 
     # 1M input * $3/MTok + 100K output * $15/MTok = $3.00 + $1.50 = $4.50
     assert_in_delta 4.5, cost, 0.0001
+  end
+
+  test "calculate_cost uses the supplied Anthropic 5.5 and Fable pricing" do
+    {
+      "claude-haiku-5-5" => 0.015,
+      "claude-sonnet-5-5" => 0.3,
+      "claude-opus-5-5" => 0.6,
+      "claude-fable-5-1" => 1.5
+    }.each do |model, expected_cost|
+      cost = LlmUsage.calculate_cost(model: model, prompt_tokens: 100_000, completion_tokens: 10_000)
+
+      assert_in_delta expected_cost, cost, 0.000001, model
+    end
+  end
+
+  test "calculate_cost uses Haiku 5.5 long-context pricing and existing cache multipliers" do
+    long_context = LlmUsage.calculate_cost(
+      model: "claude-haiku-5-5", prompt_tokens: 1_000_000, completion_tokens: 100_000
+    )
+    cached = LlmUsage.calculate_cost(
+      model: "claude-haiku-5-5", prompt_tokens: 1_000_000, completion_tokens: 100_000,
+      cache_creation_tokens: 100_000, cache_read_tokens: 100_000
+    )
+
+    assert_in_delta 0.75, long_context, 0.000001
+    assert_in_delta 0.8175, cached, 0.000001
   end
 
   %w[claude-opus-4-6 claude-opus-4-7].each do |model|

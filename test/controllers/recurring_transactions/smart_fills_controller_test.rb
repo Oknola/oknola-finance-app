@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class RecurringTransactions::SmartFillsControllerTest < ActionDispatch::IntegrationTest
@@ -54,6 +55,20 @@ class RecurringTransactions::SmartFillsControllerTest < ActionDispatch::Integrat
     assert_match "Could not analyze the charge history", response.body
     assert_select "input[name=?][value=?]", "recurring_transaction[name]", "GYM MEMBERSHIP",
       { count: 1 }, "the entry's own prefill must survive a failed suggestion"
+  end
+
+  test "budget exhaustion shows the localized allowance message" do
+    provider = Object.new
+    provider.define_singleton_method(:suggest_bill_setup) do |**|
+      raise Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded"
+    end
+    Provider::Registry.stubs(:preferred_llm_provider).returns(provider)
+
+    post smart_fill_recurring_transactions_url(entry_id: @entry.id),
+         headers: { "Turbo-Frame" => "modal" }
+
+    assert_response :success
+    assert_select "div.mb-5.rounded-lg.bg-container-inset", text: Oknola::AiBudget.user_message
   end
 
   test "forbidden without an LLM provider" do

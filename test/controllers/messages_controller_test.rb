@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class MessagesControllerTest < ActionDispatch::IntegrationTest
@@ -7,9 +8,17 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "can create a message" do
-    post chat_messages_url(@chat), params: { message: { content: "Hello", ai_model: "gpt-4.1" } }
+    post chat_messages_url(@chat), params: { message: { content: "Hello", ai_model: "claude-opus-anything" } }
 
     assert_redirected_to chat_path(@chat, thinking: true)
+    assert_equal Chat.default_model, @chat.messages.where(type: "UserMessage").order(:created_at).last.ai_model
+  end
+
+  test "shows the message length validation in the chat form" do
+    post chat_messages_url(@chat), params: { message: { content: "a" * 4_001 } }
+
+    assert_redirected_to chat_path(@chat)
+    assert_equal "Content #{I18n.t("chats.message_too_long")}", flash[:alert]
   end
 
   test "redirects to chats when message save races with chat deletion" do
