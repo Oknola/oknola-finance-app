@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Provider::MercuryTest < ActiveSupport::TestCase
@@ -14,6 +15,13 @@ class Provider::MercuryTest < ActiveSupport::TestCase
   test "initializes with custom base_url" do
     assert_equal "test_token", @provider.token
     assert_equal "https://api-sandbox.mercury.com/api/v1", @provider.base_url
+  end
+
+  test "normalizes allowlisted base URLs and refuses disallowed origins" do
+    assert_equal "https://api.mercury.com/api/v1", Provider::Mercury.normalize_base_url("https://api.mercury.com")
+    assert_equal "https://api-sandbox.mercury.com/api/v1", Provider::Mercury.normalize_base_url("https://api-sandbox.mercury.com/api/v1/")
+    assert_nil Provider::Mercury.normalize_base_url("https://api.mercury.com.evil.example")
+    assert_raises(ArgumentError) { Provider::Mercury.new("test_token", base_url: "https://127.0.0.1") }
   end
 
   test "MercuryError includes error_type" do

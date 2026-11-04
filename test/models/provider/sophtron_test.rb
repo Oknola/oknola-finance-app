@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Provider::SophtronTest < ActiveSupport::TestCase
@@ -18,6 +19,15 @@ class Provider::SophtronTest < ActiveSupport::TestCase
     )
 
     assert_equal "FIApiAUTH:developer-user:#{expected_signature}:#{expected_auth_path}", auth_header
+  end
+
+  test "normalizes only the Sophtron production origin" do
+    assert_equal Provider::Sophtron::DEFAULT_BASE_URL, Provider::Sophtron.normalize_base_url("https://api.sophtron.com")
+    assert_equal Provider::Sophtron::DEFAULT_BASE_URL, Provider::Sophtron.normalize_base_url("https://api.sophtron.com/api/v2/")
+    assert_nil Provider::Sophtron.normalize_base_url("https://api.sophtron.com.evil.example")
+    assert_raises(ArgumentError) do
+      Provider::Sophtron.new("developer-user", @access_key, base_url: "https://127.0.0.1")
+    end
   end
 
   test "lists v2 customers" do

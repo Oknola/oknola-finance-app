@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # Represents a Sophtron integration item for a family.
 #
 # A SophtronItem stores Sophtron API credentials and manages the connection
@@ -41,6 +42,8 @@ class SophtronItem < ApplicationRecord
   validates :name, presence: true
   validates :user_id, presence: true, on: :create
   validates :access_key, presence: true, on: :create
+  validate :base_url_must_be_allowed
+  before_validation :normalize_base_url
 
   belongs_to :family
   belongs_to :current_job_sophtron_account, class_name: "SophtronAccount", optional: true
@@ -372,8 +375,28 @@ class SophtronItem < ApplicationRecord
   end
 
   def effective_base_url
-    base_url.presence || Provider::Sophtron::DEFAULT_BASE_URL
+    Provider::Sophtron.normalize_base_url(base_url) || Provider::Sophtron::DEFAULT_BASE_URL
   end
+
+  private
+    def normalize_base_url
+      stripped = base_url.to_s.strip
+      if stripped.blank?
+        self.base_url = nil
+        return
+      end
+
+      normalized = Provider::Sophtron.normalize_base_url(stripped)
+      self.base_url = normalized if normalized.present?
+    end
+
+    def base_url_must_be_allowed
+      return if base_url.blank? || Provider::Sophtron.allowed_base_url?(base_url)
+
+      errors.add(:base_url, :invalid)
+    end
+
+  public
 
   def generated_customer_unique_id
     "sure-family-#{family.id}"
