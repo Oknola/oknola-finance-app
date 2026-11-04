@@ -1,5 +1,5 @@
 <%# locals: (entry:, account_currencies:, manual_accounts:, categories:, merchants:, tags:) %>
-<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
 <% auto_generate_names = Current.family.auto_generate_transaction_names? %>
 <% side_tags = Oknola::QuickEntry.side_tags(Current.family) %>
 <% account_sides = Oknola::QuickEntry.account_sides(Current.family, manual_accounts + [entry.account].compact) %>
@@ -41,11 +41,13 @@
         <fieldset class="space-y-2">
           <legend class="text-sm text-secondary"><%= t(".side_label") %></legend>
           <div class="flex gap-2">
-            <% side_tags.each do |side, tag_id| %>
-              <div>
-                <%= radio_button_tag "entry[entryable_attributes][tag_ids][]", tag_id, false, id: "entry_side_#{side}", class: "sr-only peer" %>
-                <%= label_tag "entry_side_#{side}", t(".side_#{side}"), class: "inline-block border border-primary rounded-full px-3 py-1 text-sm text-secondary peer-checked:bg-container-inset peer-checked:text-primary peer-checked:border-solid peer-focus-visible:outline-2 peer-focus-visible:outline-focus-ring peer-focus-visible:outline-offset-0" %>
-              </div>
+            <%= f.fields_for :entryable do |ef| %>
+              <% side_tags.each do |side, tag_id| %>
+                <div>
+                  <%= radio_button_tag "entry[entryable_attributes][tag_ids][]", tag_id, ef.object.tag_ids.include?(tag_id), id: "entry_side_#{side}", class: "sr-only peer" %>
+                  <%= label_tag "entry_side_#{side}", t(".side_#{side}"), class: "inline-block border border-primary rounded-full px-3 py-1 text-sm text-secondary peer-checked:bg-container-inset peer-checked:text-primary peer-checked:border-solid peer-focus-visible:outline-2 peer-focus-visible:outline-focus-ring peer-focus-visible:outline-offset-0" %>
+                </div>
+              <% end %>
             <% end %>
           </div>
         </fieldset>
@@ -144,8 +146,8 @@
             ) %>
         <%= render DS::TagSelect.new(
               form: ef,
-              tags: tags,
-              selected_ids: ef.object.tag_ids
+              tags: tags.reject { |tag| side_tags.value?(tag.id) },
+              selected_ids: (ef.object.tag_ids - side_tags.values).uniq
             ) %>
       <% end %>
       <%= f.text_area :notes,

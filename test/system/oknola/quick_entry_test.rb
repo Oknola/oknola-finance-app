@@ -1,6 +1,8 @@
 require "application_system_test_case"
 
 class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
+  include EntriesTestHelper
+
   setup do
     @user = users(:family_admin)
     @business = @user.family.tags.create!(name: "Business")
@@ -94,5 +96,40 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
 
     assert_no_selector "#entry_amount"
     assert_equal [ @personal ], Entry.order(:created_at).last.transaction.tags.to_a
+  end
+
+  test "a Personal duplicate preserves its chip and switching to Business saves one side" do
+    @user.update!(default_account_id: accounts(:depository).id)
+    Oknola::AccountSide.set(accounts(:credit_card), "personal")
+    source = create_transaction(account: accounts(:credit_card), tags: [ @personal, tags(:one) ])
+    visit new_transaction_path(duplicate_entry_id: source.id, account_id: "")
+
+    assert_checked_field "entry_side_personal", visible: :all
+    select_ds("Account", accounts(:credit_card))
+    select_ds("Account", accounts(:depository))
+    assert_checked_field "entry_side_business", visible: :all
+    find_field("Amount").send_keys(:enter)
+
+    assert_no_selector "#entry_amount"
+    saved = Entry.order(:created_at).last
+    assert_not_equal source.id, saved.id
+    assert_equal [ @business.id, tags(:one).id ].sort, saved.transaction.tag_ids.sort
+    assert_equal 1, saved.transaction.taggings.where(tag_id: [ @business.id, @personal.id ]).count
+  end
+
+  test "duplicating a Business transaction never saves a tag twice" do
+    source = create_transaction(tags: [ @business, tags(:one) ])
+    visit new_transaction_path(duplicate_entry_id: source.id)
+
+    assert_checked_field "entry_side_business", visible: :all
+    find_field("Amount").send_keys(:enter)
+
+    assert_no_selector "#entry_amount"
+    saved = Entry.order(:created_at).last
+    assert_not_equal source.id, saved.id
+    assert_equal [ @business.id, tags(:one).id ].sort, saved.transaction.tag_ids.sort
+    saved.transaction.taggings.group(:tag_id).count.each_value do |count|
+      assert_equal 1, count
+    end
   end
 end

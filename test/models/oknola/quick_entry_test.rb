@@ -32,11 +32,23 @@ class Oknola::QuickEntryTest < ActiveSupport::TestCase
     )
   end
 
-  test "account sides remain unset when a side tag is missing" do
+  test "account sides skip classification when a side tag is missing" do
     account = accounts(:depository)
     Oknola::AccountSide.set(account, "business")
     @personal.destroy!
 
-    assert_equal({ account.id => nil }, Oknola::QuickEntry.account_sides(@family, [ account ]))
+    Oknola::AccountSide.expects(:side_for).never
+
+    assert_empty Oknola::QuickEntry.account_sides(@family, [ account ])
+  end
+
+  test "account sides skip enumerating accounts when no side tags exist" do
+    @business.destroy!
+    @personal.destroy!
+    accounts = mock
+    accounts.expects(:to_h).never
+    Oknola::AccountSide.expects(:side_for).never
+
+    assert_empty Oknola::QuickEntry.account_sides(@family, accounts)
   end
 end

@@ -5,14 +5,15 @@ export default class extends Controller {
 
   connect() {
     this.accountId = null;
-    this.pick();
+    if (this.element.querySelector('input[type="radio"]:checked')) {
+      this.accountId = this.selectedAccountId();
+    } else {
+      this.pick();
+    }
   }
 
   pick() {
-    const account = this.element
-      .closest("form")
-      .querySelector('[name="entry[account_id]"]');
-    const accountId = account?.value;
+    const accountId = this.selectedAccountId();
     if (accountId === this.accountId) return;
 
     this.accountId = accountId;
@@ -21,5 +22,11 @@ export default class extends Controller {
     for (const radio of this.element.querySelectorAll('input[type="radio"]')) {
       radio.checked = radio.value === String(tagId);
     }
+  }
+
+  selectedAccountId() {
+    return this.element
+      .closest("form")
+      .querySelector('[name="entry[account_id]"]')?.value;
   }
 }
