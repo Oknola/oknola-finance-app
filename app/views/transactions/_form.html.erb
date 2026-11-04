@@ -9,13 +9,15 @@
     <%= render "shared/form_errors", model: entry %>
   <% end %>
 
-  <%= f.money_field :amount,
-    label: t(".amount"),
-    required: true,
-    autofocus: true,
-    container_class: "money-field-wrapper",
-    amount_data: { transaction_form_target: "amount", action: "input->transaction-form#onAmountChange" },
-    currency_data: { transaction_form_target: "currency", action: "change->transaction-form#onCurrencyChange" } %>
+  <div class="pb-10">
+    <%= f.money_field :amount,
+      label: t(".amount"),
+      required: true,
+      autofocus: true,
+      container_class: "money-field-wrapper",
+      amount_data: { transaction_form_target: "amount", action: "input->transaction-form#onAmountChange" },
+      currency_data: { transaction_form_target: "currency", action: "change->transaction-form#onCurrencyChange" } %>
+  </div>
 
   <section data-controller="transaction-type-tabs">
     <%= render "shared/transaction_type_tabs", active_tab: params[:nature] == "inflow" ? "income" : "expense", account_id: params[:account_id] %>

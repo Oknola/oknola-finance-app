@@ -18,6 +18,11 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     assert_selector "#entry_amount:focus"
     assert_equal "entry_amount", page.evaluate_script("document.activeElement.id")
 
+    calculator_bar = find(".money-field-wrapper [data-money-field-operator-param='+']").ancestor("div")
+    type_tabs = find("[data-controller='transaction-type-tabs']")
+    assert_operator calculator_bar.evaluate_script("this.getBoundingClientRect().bottom"),
+                    :<=, type_tabs.evaluate_script("this.getBoundingClientRect().top")
+
     [ "#entry_amount", "label[for='entry_side_business']", "label[for='entry_side_personal']",
       "[data-select-target='button']", "[data-category-select-target='button']" ].each do |selector|
       field = find(selector)
