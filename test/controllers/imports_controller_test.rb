@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ImportsControllerTest < ActionDispatch::IntegrationTest
@@ -570,6 +571,26 @@ class ImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_import_url
     assert_equal I18n.t("imports.create.file_too_large", max_size: configured_limit / 1.megabyte), flash[:alert]
+  end
+
+  test "does not report success when Sure import attachment exceeds family quota" do
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      assert_no_difference "Import.count" do
+        post imports_url, params: {
+          import: {
+            type: "SureImport",
+            import_file: Rack::Test::UploadedFile.new(
+              StringIO.new(%({"type":"Account","data":{}}\n)),
+              "application/x-ndjson",
+              original_filename: "all.ndjson"
+            )
+          }
+        }
+      end
+    end
+
+    assert_redirected_to new_import_url
+    assert_equal I18n.t("active_storage.uploads.family_quota_exceeded"), flash[:alert]
   end
 
   test "shows a friendly warning when a Sure import's transactions reference merchants missing from the export (#3113)" do

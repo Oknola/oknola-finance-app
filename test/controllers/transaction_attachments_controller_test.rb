@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class TransactionAttachmentsControllerTest < ActionDispatch::IntegrationTest
@@ -28,6 +29,19 @@ class TransactionAttachmentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to transaction_path(@transaction)
     assert_match "2 attachments uploaded successfully", flash[:notice]
+  end
+
+  test "shows quota error when attachment is refused" do
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      assert_no_difference "@transaction.attachments.count" do
+        post transaction_attachments_path(@transaction), params: {
+          attachment: fixture_file_upload("test.txt", "application/pdf")
+        }
+      end
+    end
+
+    assert_redirected_to transaction_path(@transaction)
+    assert_includes flash[:alert], I18n.t("active_storage.uploads.family_quota_exceeded")
   end
 
   test "should ignore blank attachments in array" do

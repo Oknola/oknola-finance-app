@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class TransactionAttachmentsController < ApplicationController
   before_action :set_transaction
   before_action :set_attachment, only: [ :show, :destroy ]
@@ -33,7 +34,7 @@ class TransactionAttachmentsController < ApplicationController
         existing_ids = @transaction.attachments.pluck(:id)
         attachment_proxy = @transaction.attachments.attach(attachments)
 
-        if @transaction.valid?
+        if attachment_proxy && @transaction.valid?
           count = new_count
           message = count == 1 ? t("transactions.attachments.uploaded_one") : t("transactions.attachments.uploaded_many", count: count)
           respond_to do |format|
@@ -44,7 +45,7 @@ class TransactionAttachmentsController < ApplicationController
           # Remove invalid attachments
           newly_added = Array(attachment_proxy).reject { |a| existing_ids.include?(a.id) }
           newly_added.each(&:purge)
-          error_messages = @transaction.errors.full_messages_for(:attachments).join(", ")
+          error_messages = @transaction.errors.full_messages.join(", ")
           respond_to do |format|
             format.html { redirect_back_or_to transaction_path(@transaction), alert: t("transactions.attachments.failed_upload", error: error_messages) }
             format.turbo_stream { flash.now[:alert] = t("transactions.attachments.failed_upload", error: error_messages) }

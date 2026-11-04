@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Import::UploadsControllerTest < ActionDispatch::IntegrationTest
@@ -64,6 +65,21 @@ class Import::UploadsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_equal I18n.t("imports.create.file_too_large", max_size: configured_limit / 1.megabyte), flash[:alert]
+  end
+
+  test "shows quota error instead of continuing when NDJSON attachment is refused" do
+    uploaded_file = Rack::Test::UploadedFile.new(
+      StringIO.new(%({"type":"Account","data":{}}\n)),
+      "application/x-ndjson",
+      original_filename: "all.ndjson"
+    )
+
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      patch import_upload_url(imports(:sure)), params: { import: { ndjson_file: uploaded_file } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal I18n.t("active_storage.uploads.family_quota_exceeded"), flash[:alert]
   end
 
   test "invalid csv cannot be uploaded" do

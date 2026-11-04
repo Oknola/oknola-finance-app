@@ -35,16 +35,7 @@ Rails.application.config.to_prepare do
       end
 
       def authorize_direct_upload
-        unless Current.user
-          render json: { error: t("active_storage.uploads.authentication_required") }, status: :unprocessable_entity
-          return
-        end
-
-        reason = Oknola::StorageQuota.exceeded_reason(Current.family, params.dig(:blob, :byte_size))
-        return unless reason
-
-        status = reason == :file_too_large ? :content_too_large : :unprocessable_entity
-        render json: { error: t("active_storage.uploads.#{reason}") }, status: status
+        render json: { error: t("active_storage.uploads.direct_uploads_disabled") }, status: :forbidden
       end
 
       def protected_attachment_authorized?(attachment)
@@ -200,6 +191,7 @@ Rails.application.config.to_prepare do
     (ActiveStorage::DirectUploadsController if defined?(ActiveStorage::DirectUploadsController))
   ].compact.each do |controller|
     controller.include ActiveStorageAttachmentAuthorization
+    controller.skip_authentication if controller == ActiveStorage::DirectUploadsController
   end
 
   ActiveStorage::Attachment.include Oknola::StorageQuota::AttachmentValidation

@@ -1,4 +1,3 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 module Oknola
   class StorageQuota
     FILE_LIMIT_ENV = "OKNOLA_UPLOAD_MAX_MB"
@@ -63,6 +62,10 @@ module Oknola
       end
     end
 
+    def self.quota_exempt?(record)
+      record.is_a?(FamilyExport) || record.is_a?(ArchivedExport)
+    end
+
     def self.configured_limit_bytes(variable, default, unit)
       limit = Float(ENV.fetch(variable, default))
       limit.finite? && limit >= 0 ? limit * unit : 0
@@ -81,6 +84,8 @@ module Oknola
       private
 
         def within_family_storage_quota
+          return if Oknola::StorageQuota.quota_exempt?(record)
+
           family = Oknola::StorageQuota.family_for(record)
           return if family.blank? || blob.blank?
 
@@ -100,6 +105,8 @@ module Oknola
 
         def within_attachment_storage_quota
           return unless respond_to?(:attachment_changes)
+          return if attachment_changes.empty?
+          return if Oknola::StorageQuota.quota_exempt?(self)
 
           family = Oknola::StorageQuota.family_for(self)
           return if family.blank?

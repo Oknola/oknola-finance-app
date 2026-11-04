@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Import::UploadsController < ApplicationController
   include ImportGuestGuardable
 
@@ -55,7 +56,13 @@ class Import::UploadsController < ApplicationController
 
       if ndjson_valid?(content)
         uploaded.rewind
-        @import.ndjson_file.attach(uploaded)
+        unless @import.ndjson_file.attach(uploaded)
+          flash.now[:alert] = upload_error(@import)
+          @import.reload
+          render :show, status: :unprocessable_entity
+          return
+        end
+
         @import.sync_ndjson_rows_count!
         redirect_to import_path(@import), notice: t("imports.create.ndjson_uploaded")
       else
@@ -67,6 +74,10 @@ class Import::UploadsController < ApplicationController
 
     def set_import
       @import = Current.family.imports.find(params[:import_id])
+    end
+
+    def upload_error(record)
+      record.errors.full_messages.to_sentence.presence || t("active_storage.uploads.upload_rejected")
     end
 
     def handle_qif_upload

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
@@ -74,9 +75,25 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
       post sessions_url,
         params: { email: @user.email, password: user_password_test },
         headers: { "Origin" => "https://localhost:3000" }
-
       assert_response :unprocessable_content
     end
+  end
+
+  test "password sign-in redirects to invitation confirmation without changing family" do
+    inviter = users(:empty)
+    invitation = inviter.family.invitations.create!(
+      email: @user.email,
+      role: "member",
+      inviter: inviter
+    )
+    original_family_id = @user.family_id
+
+    get new_session_path(invitation: invitation.token)
+    post sessions_path, params: { email: @user.email, password: user_password_test }
+
+    assert_redirected_to confirm_invitation_path(invitation.token)
+    assert_equal original_family_id, @user.reload.family_id
+    assert_nil invitation.reload.accepted_at
   end
 
   test "codespaces still rejects unrelated origins" do

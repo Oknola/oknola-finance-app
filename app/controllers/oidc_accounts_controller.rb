@@ -132,42 +132,25 @@ class OidcAccountsController < ApplicationController
       skip_password_validation: true
     )
 
-    if invitation.present?
-      # Accept the pending invitation: join the existing family
-      @user.family_id = invitation.family_id
-      @user.role = invitation.role
-    else
-      # Create new family for this user
-      @user.family = Family.new
+    @user.family = Family.new
 
-      # New family creators must be able to administer their own family.
-      # Lower provider defaults are promoted to admin by role_for_new_family_creator,
-      # while intentional super_admin defaults remain supported.
-      provider_config = Rails.configuration.x.auth.sso_providers&.find { |p| p[:name] == @pending_auth["provider"] }
-      provider_default_role = provider_config&.dig(:settings, :default_role)
-    end
+    # New family creators must be able to administer their own family.
+    # Lower provider defaults are promoted to admin by role_for_new_family_creator,
+    # while intentional super_admin defaults remain supported.
+    provider_config = Rails.configuration.x.auth.sso_providers&.find { |p| p[:name] == @pending_auth["provider"] }
+    provider_default_role = provider_config&.dig(:settings, :default_role)
 
     identity = nil
     account_created = false
 
     begin
       account_created = ActiveRecord::Base.transaction do
-        unless invitation.present?
-          User.lock_first_user_role!
-          @user.role = User.role_for_new_family_creator(fallback_role: provider_default_role || :admin)
-        end
+        User.lock_first_user_role!
+        @user.role = User.role_for_new_family_creator(fallback_role: provider_default_role || :admin)
 
         unless @user.save
           raise ActiveRecord::Rollback
         end
-
-        # Mark invitation as accepted if one was used
-        invitation&.update!(accepted_at: Time.current)
-
-        # Joining an existing family via invitation must honor the family's
-        # default sharing policy, matching Invitation#accept_for. Without this a
-        # JIT SSO invitee lands in the family but sees none of its accounts.
-        @user.family.auto_share_existing_accounts_with(@user) if invitation.present?
 
         # Create the OIDC (or other SSO) identity
         identity = OidcIdentity.create_from_omniauth(
@@ -200,11 +183,8 @@ class OidcAccountsController < ApplicationController
       # Clear pending auth from session
       session.delete(:pending_oidc_auth)
 
-      notice = if invitation.present?
-        t("invitations.accept_choice.joined_household")
-      else
-        t(".account_created")
-      end
+      session[:pending_invitation_token] = invitation.token if invitation
+      notice = t(".account_created")
       redirect_to accept_pending_invitation_for(@user) || root_path, notice: notice
     else
       render :new_user, status: :unprocessable_entity

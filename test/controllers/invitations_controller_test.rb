@@ -240,6 +240,21 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "confirmation rejects a pending invitation addressed to another email" do
+    invitation = @admin.family.invitations.create!(
+      email: "someone-else@example.com",
+      role: "member",
+      inviter: @admin
+    )
+
+    get new_session_path(invitation: invitation.token)
+    sign_in users(:empty)
+    get confirm_invitation_path(invitation.token)
+
+    assert_response :not_found
+    assert_nil invitation.reload.accepted_at
+  end
+
   test "should not accept invalid invitation token" do
     get accept_invitation_url("invalid-token")
     assert_response :not_found

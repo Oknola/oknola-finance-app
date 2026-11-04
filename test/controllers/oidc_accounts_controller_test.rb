@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class OidcAccountsControllerTest < ActionController::TestCase
@@ -378,10 +379,10 @@ class OidcAccountsControllerTest < ActionController::TestCase
     ), "SSO-only user should not authenticate with password"
   end
 
-  test "create_user via invitation shares existing family accounts when family shares by default" do
+  test "create_user via invitation requires confirmation before joining shared family" do
     family = families(:dylan_family)
     family.update!(default_account_sharing: "shared")
-    family.invitations.create!(email: "invitee@example.com", role: "member", inviter: users(:family_admin))
+    invitation = family.invitations.create!(email: "invitee@example.com", role: "member", inviter: users(:family_admin))
 
     session[:pending_oidc_auth] = {
       "provider" => "openid_connect", "uid" => "invite-uid-1",
@@ -389,19 +390,20 @@ class OidcAccountsControllerTest < ActionController::TestCase
     }
 
     post :create_user
-    assert_redirected_to root_path
+    assert_redirected_to confirm_invitation_path(invitation.token)
 
     invitee = User.find_by(email: "invitee@example.com")
     assert_not_nil invitee
-    assert_equal family.id, invitee.family_id
-    assert_equal family.accounts.pluck(:id).sort,
-      AccountShare.where(user: invitee).pluck(:account_id).sort
+    assert_not_equal family.id, invitee.family_id
+    assert_nil invitation.reload.accepted_at
+    assert_equal invitation.token, session[:pending_invitation_token]
+    assert_empty AccountShare.where(user: invitee)
   end
 
-  test "create_user via invitation shares nothing when family sharing is private" do
+  test "create_user via invitation stays in its own family when family sharing is private" do
     family = families(:dylan_family)
     family.update!(default_account_sharing: "private")
-    family.invitations.create!(email: "invitee2@example.com", role: "member", inviter: users(:family_admin))
+    invitation = family.invitations.create!(email: "invitee2@example.com", role: "member", inviter: users(:family_admin))
 
     session[:pending_oidc_auth] = {
       "provider" => "openid_connect", "uid" => "invite-uid-2",
@@ -409,10 +411,11 @@ class OidcAccountsControllerTest < ActionController::TestCase
     }
 
     post :create_user
-    assert_redirected_to root_path
+    assert_redirected_to confirm_invitation_path(invitation.token)
 
     invitee = User.find_by(email: "invitee2@example.com")
-    assert_equal family.id, invitee.family_id
+    assert_not_equal family.id, invitee.family_id
+    assert_nil invitation.reload.accepted_at
     assert_equal 0, AccountShare.where(user: invitee).count
   end
 
