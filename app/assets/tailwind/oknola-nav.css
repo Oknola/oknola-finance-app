@@ -1,0 +1,84 @@
+/* Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 */
+html[data-embedded="true"] {
+  --oknola-mobile-top-nav-height: calc(env(safe-area-inset-top) + 60px);
+}
+
+html[data-embedded="true"] nav[data-oknola-nav] {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-container) 68%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-container) 44%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-container) 35%, transparent),
+    0 18px 40px -22px color-mix(in srgb, var(--utility-text-secondary) 42%, transparent),
+    0 2px 6px color-mix(in srgb, var(--utility-text-primary) 8%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--utility-border-solid) 24%, transparent);
+  -webkit-backdrop-filter: blur(7px) saturate(175%);
+  backdrop-filter: blur(7px) saturate(175%);
+}
+
+html[data-embedded="true"] nav[data-oknola-nav] a {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--utility-text-secondary);
+  transition: background-color 0.14s, border-color 0.14s;
+}
+
+html[data-embedded="true"] nav[data-oknola-nav] a:hover,
+html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--color-nav-indicator) 35%, transparent);
+  background: color-mix(in srgb, var(--color-nav-indicator) 12%, transparent);
+  color: var(--utility-text-primary);
+}
+
+@media (pointer: coarse) {
+  html[data-embedded="true"] {
+    --oknola-mobile-top-nav-height: calc(env(safe-area-inset-top) + 68px);
+  }
+
+  html[data-embedded="true"] nav[data-oknola-nav] a {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 1023px) {
+  html[data-embedded="true"] nav[data-oknola-nav] {
+    top: calc(var(--oknola-mobile-top-nav-height) + 8px);
+    left: calc(env(safe-area-inset-left) + 8px);
+    flex-direction: column;
+  }
+
+  html[data-embedded="true"] main#main {
+    padding-left: calc(78px + env(safe-area-inset-left));
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  html[data-embedded="true"] nav[data-oknola-nav] a {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html[data-embedded="true"] nav[data-oknola-nav] {
+    right: 24px;
+    bottom: calc(env(safe-area-inset-bottom) + 24px);
+  }
+
+  html[data-embedded="true"] main#main {
+    padding-bottom: 96px;
+  }
+}

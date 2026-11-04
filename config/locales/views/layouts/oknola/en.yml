@@ -1,6 +1,7 @@
-# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 en:
   layouts:
     oknola:
       nav:
+        finance: "Finance"
         settings: "Settings"
