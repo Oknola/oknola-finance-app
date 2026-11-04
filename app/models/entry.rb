@@ -740,7 +740,7 @@ class Entry < ApplicationRecord
     end
 
     def set_transaction_validation_family
-      return unless entryable_type == "Transaction" && association(:entryable).loaded?
+      return unless entryable_type == "Transaction" && association(:entryable).loaded? && entryable
 
       entryable.validation_family_id = account&.family_id
     end
@@ -748,7 +748,7 @@ class Entry < ApplicationRecord
     def transaction_tags_loaded?
       entryable_type == "Transaction" &&
         association(:entryable).loaded? &&
-        entryable.association(:tags).loaded?
+        entryable&.association(:tags)&.loaded?
     end
 
     def transaction_tags_belong_to_family
