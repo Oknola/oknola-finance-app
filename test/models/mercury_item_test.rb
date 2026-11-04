@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class MercuryItemTest < ActiveSupport::TestCase
@@ -34,6 +35,51 @@ class MercuryItemTest < ActiveSupport::TestCase
   test "effective_base_url returns default when base_url blank" do
     @mercury_item.base_url = nil
     assert_equal "https://api.mercury.com/api/v1", @mercury_item.effective_base_url
+  end
+
+  test "base_url accepts only Mercury production and sandbox origins" do
+    {
+      "https://api.mercury.com" => "https://api.mercury.com/api/v1",
+      "https://api-sandbox.mercury.com/api/v1/" => "https://api-sandbox.mercury.com/api/v1"
+    }.each do |base_url, expected|
+      item = MercuryItem.new(family: families(:empty), name: "Allowed Mercury", token: "token", base_url: base_url)
+
+      assert item.valid?, "#{base_url.inspect} should be valid"
+      assert_equal expected, item.effective_base_url
+    end
+  end
+
+  test "base_url rejects non-Mercury origins and unsafe URL components" do
+    [
+      "http://api.mercury.com/api/v1",
+      "https://169.254.169.254",
+      "https://127.0.0.1",
+      "https://localhost",
+      "https://10.0.0.1",
+      "https://api.mercury.com.evil.example",
+      "https://evil.example/api.mercury.com",
+      "https://user@api.mercury.com",
+      "https://api.mercury.com:444",
+      "https://api.mercury.com/api/v1?query=1",
+      "https://api.mercury.com/api/v1#fragment"
+    ].each do |base_url|
+      item = MercuryItem.new(family: families(:empty), name: "Invalid Mercury", token: "token", base_url: base_url)
+
+      refute item.valid?, "Expected #{base_url.inspect} to be invalid"
+      assert_includes item.errors.details[:base_url].map { |error| error[:error] }, :invalid
+    end
+  end
+
+  test "legacy disallowed base_url is never requested" do
+    bad_url = "https://169.254.169.254"
+    @mercury_item.update_column(:base_url, bad_url)
+    stub_request(:get, "https://api.mercury.com/api/v1/account/account-1/transactions")
+      .to_return(status: 200, body: { transactions: [] }.to_json)
+
+    @mercury_item.reload.mercury_provider.get_account_transactions("account-1")
+
+    assert_requested(:get, "https://api.mercury.com/api/v1/account/account-1/transactions")
+    assert_not_requested(:get, bad_url)
   end
 
   test "mercury_provider returns Provider::Mercury instance" do

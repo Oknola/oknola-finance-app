@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class MercuryItem < ApplicationRecord
   include Syncable, Provided, Unlinking, DestroyableLater
 
@@ -19,6 +20,8 @@ class MercuryItem < ApplicationRecord
 
   validates :name, presence: true
   validates :token, presence: true, on: :create
+  validate :base_url_must_be_allowed
+  before_validation :normalize_base_url
 
   belongs_to :family
   has_one_attached :logo, dependent: :purge_later
@@ -167,6 +170,24 @@ class MercuryItem < ApplicationRecord
   end
 
   def effective_base_url
-    base_url.presence || "https://api.mercury.com/api/v1"
+    Provider::Mercury.normalize_base_url(base_url) || Provider::Mercury::DEFAULT_BASE_URL
+  end
+
+  private
+    def normalize_base_url
+      stripped = base_url.to_s.strip
+      if stripped.blank?
+        self.base_url = nil
+        return
+      end
+
+      normalized = Provider::Mercury.normalize_base_url(stripped)
+      self.base_url = normalized if normalized.present?
+    end
+
+    def base_url_must_be_allowed
+      return if base_url.blank? || Provider::Mercury.allowed_base_url?(base_url)
+
+      errors.add(:base_url, :invalid)
   end
 end

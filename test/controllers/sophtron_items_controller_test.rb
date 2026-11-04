@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class SophtronItemsControllerTest < ActionDispatch::IntegrationTest
@@ -243,6 +244,15 @@ class SophtronItemsControllerTest < ActionDispatch::IntegrationTest
     assert_turbo_stream action: "replace", target: "sophtron-providers-panel"
     assert_includes response.body, %(id="sophtron-providers-panel")
     assert_equal "Renamed Sophtron", @item.reload.name
+  end
+
+  test "rejects a disallowed base URL from a family admin" do
+    patch sophtron_item_url(@item),
+          params: { sophtron_item: { base_url: "https://evil.example" } },
+          as: :turbo_stream
+
+    assert_turbo_stream status: :unprocessable_entity, action: "replace", target: "sophtron-providers-panel"
+    assert_nil @item.reload.base_url
   end
 
   test "connection_status renders MFA challenge when Sophtron asks for security answers" do

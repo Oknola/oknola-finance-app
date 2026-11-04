@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Provider::Simplefin
   # Pending: some institutions do not return pending transactions even with `pending=1`.
   # This is provider variability (not a bug). The importer resolves pending inclusion
@@ -30,14 +31,13 @@ class Provider::Simplefin
   # Address ranges for the SimpleFIN URL check (see ensure_allowed_url!).
   # Always blocked besides link-local: unspecified, multicast and reserved
   # addresses, and cloud metadata endpoints outside the link-local range
-  # (AWS IPv6 in fc00::/7, Alibaba Cloud in the CGNAT range).
+  # (AWS and Google Cloud IPv6, Alibaba Cloud in the CGNAT range).
   ALWAYS_BLOCKED_NETWORKS = %w[
     0.0.0.0/8 224.0.0.0/4 240.0.0.0/4 ::/128 ff00::/8
-    fd00:ec2::254/128 100.100.100.200/32
+    fd00:ec2::254/128 fd20:ce::254/128 100.100.100.200/32
   ].map { |range| IPAddr.new(range) }.freeze
-  # Blocked on managed instances besides loopback and private ranges:
-  # carrier-grade NAT, IETF protocol assignments and benchmarking ranges.
-  MANAGED_BLOCKED_NETWORKS = %w[100.64.0.0/10 192.0.0.0/24 198.18.0.0/15].map { |range| IPAddr.new(range) }.freeze
+  # Less-routable networks are blocked with private and loopback addresses unless explicitly allowed.
+  ADDITIONAL_BLOCKED_NETWORKS = %w[100.64.0.0/10 192.0.0.0/24 198.18.0.0/15].map { |range| IPAddr.new(range) }.freeze
 
   # Connects to the address that ensure_allowed_url! checked instead of
   # resolving the host a second time, so DNS rebinding cannot swap in an
@@ -188,9 +188,8 @@ class Provider::Simplefin
     end
 
     # Link-local covers cloud metadata endpoints (169.254.169.254) and is
-    # never a valid bridge address. Managed instances additionally block
-    # loopback and private networks; self-hosters may run a bridge on their
-    # own network, so those stay allowed there.
+    # never a valid bridge address. Private and loopback networks require an
+    # explicit opt-in, regardless of the hosting mode.
     #
     # Returns the checked addresses, IPv4 first. With resolve: false only an
     # IP literal host is checked. A failed lookup raises SocketError, so
@@ -235,9 +234,9 @@ class Provider::Simplefin
     def disallowed_address?(address)
       ip = embedded_ipv4(IPAddr.new(address))
       return true if ip.link_local? || ALWAYS_BLOCKED_NETWORKS.any? { |network| network.include?(ip) }
-      return false unless managed_mode?
+      return false if ENV["SIMPLEFIN_ALLOW_PRIVATE_HOSTS"] == "true"
 
-      ip.loopback? || ip.private? || MANAGED_BLOCKED_NETWORKS.any? { |network| network.include?(ip) }
+      ip.loopback? || ip.private? || ADDITIONAL_BLOCKED_NETWORKS.any? { |network| network.include?(ip) }
     rescue IPAddr::InvalidAddressError
       true
     end

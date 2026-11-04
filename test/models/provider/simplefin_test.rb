@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Provider::SimplefinTest < ActiveSupport::TestCase
@@ -231,13 +232,68 @@ class Provider::SimplefinTest < ActiveSupport::TestCase
     assert_equal :invalid_url, error.error_type
   end
 
-  test "claim_access_url allows private bridge addresses when self-hosted" do
+  test "claim_access_url allows private bridge addresses only with the explicit opt-in" do
     @provider.stubs(:resolve_addresses).with("bridge.lan").returns([ "192.168.1.20" ])
     Provider::Simplefin.expects(:post).returns(OpenStruct.new(code: 200, body: "http://user:pass@bridge.lan/simplefin"))
 
     with_self_hosting do
       assert_equal "http://user:pass@bridge.lan/simplefin",
-        @provider.claim_access_url(Base64.strict_encode64("http://bridge.lan/simplefin/claim/abc"))
+        with_env_overrides("SIMPLEFIN_ALLOW_PRIVATE_HOSTS" => "true") {
+          @provider.claim_access_url(Base64.strict_encode64("http://bridge.lan/simplefin/claim/abc"))
+        }
+    end
+  end
+
+  test "private and loopback access URLs are blocked on self-hosted unless explicitly allowed" do
+    address_by_host = {
+      "bridge.lan" => "192.168.1.20",
+      "loopback.lan" => "127.0.0.1"
+    }
+
+    with_self_hosting do
+      with_env_overrides("SIMPLEFIN_ALLOW_PRIVATE_HOSTS" => nil) do
+        Provider::Simplefin.expects(:get).never
+
+        address_by_host.each do |host, address|
+          @provider.stubs(:resolve_addresses).with(host).returns([ address ])
+          error = assert_raises(Provider::Simplefin::SimplefinError) do
+            @provider.get_accounts("https://#{host}/simplefin")
+          end
+
+          assert_equal :invalid_url, error.error_type
+        end
+      end
+
+      with_env_overrides("SIMPLEFIN_ALLOW_PRIVATE_HOSTS" => "true") do
+        Provider::Simplefin.expects(:get).times(address_by_host.size)
+          .returns(OpenStruct.new(code: 200, body: '{"accounts": []}'))
+
+        address_by_host.each do |host, address|
+          @provider.stubs(:resolve_addresses).with(host).returns([ address ])
+          assert_equal({ accounts: [] }, @provider.get_accounts("https://#{host}/simplefin"))
+        end
+      end
+    end
+  end
+
+  test "metadata access URLs stay blocked even with the private-host opt-in" do
+    address_by_host = {
+      "metadata.lan" => "169.254.169.254",
+      "metadata6.lan" => "fd20:ce::254"
+    }
+    Provider::Simplefin.expects(:get).never
+
+    with_self_hosting do
+      with_env_overrides("SIMPLEFIN_ALLOW_PRIVATE_HOSTS" => "true") do
+        address_by_host.each do |host, address|
+          @provider.stubs(:resolve_addresses).with(host).returns([ address ])
+          error = assert_raises(Provider::Simplefin::SimplefinError) do
+            @provider.get_accounts("https://#{host}/simplefin")
+          end
+
+          assert_equal :invalid_url, error.error_type
+        end
+      end
     end
   end
 
@@ -451,7 +507,7 @@ class Provider::SimplefinTest < ActiveSupport::TestCase
   end
 
   test "plain http requests bypass a proxy so the pinned address is used" do
-    @provider.stubs(:resolve_addresses).with("bridge.lan").returns([ "192.168.1.20" ])
+    @provider.stubs(:resolve_addresses).with("bridge.lan").returns([ "93.184.216.34" ])
     Provider::Simplefin.expects(:get).with(anything, has_entry(http_proxyaddr: nil))
       .returns(OpenStruct.new(code: 200, body: '{"accounts": []}'))
 
