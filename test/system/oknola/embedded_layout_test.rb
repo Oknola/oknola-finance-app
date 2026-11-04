@@ -57,20 +57,21 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     assert_no_selector "nav.relative img[src*='logomark-color']", visible: :visible
     assert_no_selector "nav[data-viewport-target='bottomNav']"
     nav = find("nav[data-oknola-nav]", visible: :visible)
-    top_nav = find("nav[data-oknola-mobile-top-nav]", visible: :visible)
-    nav_rect = nav.evaluate_script("(() => { const { left, top, right } = this.getBoundingClientRect(); return { left, top, right }; })()")
-    top_nav_bottom = top_nav.evaluate_script("this.getBoundingClientRect().bottom")
+    nav_rect = nav.evaluate_script("(() => { const { left, right, top, bottom, height } = this.getBoundingClientRect(); return { left, right, top, bottom, height }; })()")
+    viewport = page.evaluate_script("({ width: window.innerWidth, height: window.innerHeight })")
+    # A row along the bottom edge, inset 8px from both sides
+    assert_includes 0..24, viewport.fetch("height") - nav_rect.fetch("bottom")
     assert_operator nav_rect.fetch("left"), :<=, 16
-    assert_operator nav_rect.fetch("top"), :>=, top_nav_bottom
-    main_left_padding = page.evaluate_script("parseFloat(getComputedStyle(document.querySelector('#main')).paddingLeft)")
-    assert_operator main_left_padding, :>=, nav_rect.fetch("right") + 8
+    assert_operator nav_rect.fetch("right"), :>=, viewport.fetch("width") - 16
+    main_bottom_padding = page.evaluate_script("parseFloat(getComputedStyle(document.querySelector('#main')).paddingBottom)")
+    assert_operator main_bottom_padding, :>=, viewport.fetch("height") - nav_rect.fetch("top") + 8
 
     links = all("nav[data-oknola-nav] a[aria-label]", visible: :visible)
     link_rects = links.map do |link|
       link.evaluate_script("(() => { const { left, top, width, height } = this.getBoundingClientRect(); return { left, top, width, height }; })()")
     end
-    assert_equal link_rects.map { |rect| rect.fetch("top") }.sort, link_rects.map { |rect| rect.fetch("top") }
-    assert_equal 1, link_rects.map { |rect| rect.fetch("left") }.uniq.size
+    assert_equal 1, link_rects.map { |rect| rect.fetch("top") }.uniq.size
+    assert_equal link_rects.map { |rect| rect.fetch("left") }.sort, link_rects.map { |rect| rect.fetch("left") }
     assert link_rects.all? { |rect| rect.fetch("width") >= 44 && rect.fetch("height") >= 44 }
     assert_nav_labels_fit
 
@@ -148,30 +149,29 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     assert_nav_center_outside_nav
   end
 
-  test "mobile navigation scrolls when the viewport is too short" do
-    page.current_window.resize_to(390, 320)
+  test "mobile navigation scrolls sideways on a narrow phone instead of cutting labels" do
+    page.current_window.resize_to(320, 640)
 
     metrics = find("nav[data-oknola-nav]").evaluate_script(<<~JS)
       (() => {
         const nav = this;
-        const style = getComputedStyle(nav);
         const rect = nav.getBoundingClientRect();
         return {
-          bottom: rect.bottom,
-          height: rect.height,
-          maxHeight: parseFloat(style.maxHeight),
-          overflowY: style.overflowY,
-          scrollHeight: nav.scrollHeight,
-          clientHeight: nav.clientHeight,
-          viewportHeight: window.innerHeight
+          left: rect.left,
+          right: rect.right,
+          overflowX: getComputedStyle(nav).overflowX,
+          scrollWidth: nav.scrollWidth,
+          clientWidth: nav.clientWidth,
+          viewportWidth: window.innerWidth
         };
       })()
     JS
 
-    assert_equal "auto", metrics.fetch("overflowY")
-    assert_operator metrics.fetch("scrollHeight"), :>, metrics.fetch("clientHeight")
-    assert_operator metrics.fetch("height"), :<=, metrics.fetch("maxHeight")
-    assert_operator metrics.fetch("bottom"), :<=, metrics.fetch("viewportHeight")
+    assert_equal "auto", metrics.fetch("overflowX")
+    assert_operator metrics.fetch("left"), :>=, 0
+    assert_operator metrics.fetch("right"), :<=, metrics.fetch("viewportWidth")
+    # Labels keep their full width; any excess is reached by scrolling the row, never by clipping
+    assert_nav_labels_fit
   end
 
   test "desktop navigation stays clear of the AI sidebar chat input" do

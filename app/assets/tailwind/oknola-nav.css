@@ -1,8 +1,4 @@
 /* Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 */
-html[data-embedded="true"] {
-  --oknola-mobile-top-nav-height: calc(env(safe-area-inset-top) + 60px);
-}
-
 html[data-embedded="true"] nav[data-oknola-nav] {
   position: fixed;
   z-index: 30;
@@ -52,10 +48,6 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
 }
 
 @media (pointer: coarse) {
-  html[data-embedded="true"] {
-    --oknola-mobile-top-nav-height: calc(env(safe-area-inset-top) + 68px);
-  }
-
   html[data-embedded="true"] nav[data-oknola-nav] a {
     min-width: 64px;
     height: 52px;
@@ -63,14 +55,21 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
 }
 
 @media (max-width: 1023px) {
+  /* Phones: one row along the bottom. Buttons share the width but never shrink below their
+     label; if they still don't fit (seven items on a narrow phone) the row scrolls sideways. */
   html[data-embedded="true"] nav[data-oknola-nav] {
-    top: calc(var(--oknola-mobile-top-nav-height) + 8px);
     left: calc(env(safe-area-inset-left) + 8px);
-    flex-direction: column;
+    right: calc(env(safe-area-inset-right) + 8px);
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+    gap: 2px;
     padding: 6px 4px;
-    max-height: calc(100dvh - var(--oknola-mobile-top-nav-height) - env(safe-area-inset-bottom) - 16px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  html[data-embedded="true"] nav[data-oknola-nav]::-webkit-scrollbar {
+    display: none;
   }
 
   html[data-embedded="true"] [data-controller~="app-layout"]:has(> [data-app-layout-target="mobileSidebar"]:not(.hidden)) > nav[data-oknola-nav] {
@@ -78,17 +77,16 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
     pointer-events: none;
   }
 
-  html[data-embedded="true"] main#main {
-    padding-left: calc(100px + env(safe-area-inset-left));
-    padding-bottom: 0;
+  html[data-embedded="true"] nav[data-oknola-nav] a {
+    flex: 1 0 auto;
+    min-width: 48px;
+    height: 52px;
+    padding: 0 4px;
   }
 
-  /* One column of equal-width buttons: the widest label ("Transactions") sets the width */
-  html[data-embedded="true"] nav[data-oknola-nav] a {
-    width: 72px;
-    min-width: 72px;
-    height: 52px;
-    padding: 0 3px;
+  /* Scroll room under the page so its last rows clear the bar: 8 + 66 (bar) + 8 */
+  html[data-embedded="true"] main#main {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 82px);
   }
 }
 
