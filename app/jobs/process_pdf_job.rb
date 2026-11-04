@@ -43,7 +43,7 @@ class ProcessPdfJob < ApplicationJob
       pdf_import.update!(status: final_status)
     rescue Oknola::AiBudget::Exceeded => e
       Rails.logger.info("Skipping PDF processing for import #{pdf_import.id}: #{e.message}")
-      pdf_import.update!(status: :pending, error: nil)
+      pdf_import.update!(status: :failed, error: Oknola::AiBudget.user_message)
     rescue StandardError => e
       sanitized_error = sanitize_error_message(e)
       Rails.logger.error("PDF processing failed for import #{pdf_import.id}: #{e.class.name} - #{sanitized_error}")

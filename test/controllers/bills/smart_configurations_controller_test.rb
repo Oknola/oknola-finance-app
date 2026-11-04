@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Bills::SmartConfigurationsControllerTest < ActionDispatch::IntegrationTest
@@ -44,6 +45,19 @@ class Bills::SmartConfigurationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match I18n.t("bills.smart_configurations.show.no_changes"), response.body
     assert_select "input[type=checkbox]", count: 0
+  end
+
+  test "budget exhaustion shows the localized allowance message" do
+    provider = Object.new
+    provider.define_singleton_method(:suggest_bill_setup) do |**|
+      raise Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded"
+    end
+    Provider::Registry.stubs(:preferred_llm_provider).returns(provider)
+
+    get smart_configuration_bill_url(@series), headers: { "Turbo-Frame" => "modal" }
+
+    assert_response :success
+    assert_select "p.text-sm.text-secondary", text: Oknola::AiBudget.user_message
   end
 
   test "checked proposals apply through the ordinary update path" do

@@ -6,14 +6,27 @@ class OknolaAiBudgetTest < ActiveSupport::TestCase
     @family = families(:dylan_family)
   end
 
-  test "remaining subtracts current UTC month costs and ignores nil and previous month costs" do
+  test "remaining subtracts current UTC month costs and prices nil-cost rows conservatively" do
     travel_to Time.utc(2026, 11, 4, 12) do
       usage(created_at: Time.utc(2026, 10, 31, 23, 59, 59), estimated_cost: 10)
       usage(created_at: Time.utc(2026, 11, 1), estimated_cost: 1.25)
       usage(created_at: Time.utc(2026, 11, 2), estimated_cost: nil)
 
-      assert_equal BigDecimal("1.75"), Oknola::AiBudget.remaining(@family)
+      assert_equal BigDecimal("1.74994"), Oknola::AiBudget.remaining(@family)
     end
+  end
+
+  test "unpriced token usage uses the most expensive Anthropic rates" do
+    usage(
+      created_at: Time.current.utc,
+      estimated_cost: nil,
+      model: "claude-unpriced-model",
+      prompt_tokens: 200_000,
+      completion_tokens: 20_000
+    )
+
+    assert_equal BigDecimal("0"), Oknola::AiBudget.remaining(@family)
+    assert_raises(Oknola::AiBudget::Exceeded) { Oknola::AiBudget.check!(@family) }
   end
 
   test "check! passes while under budget and raises at or above the limit" do
@@ -45,14 +58,14 @@ class OknolaAiBudgetTest < ActiveSupport::TestCase
 
   private
 
-    def usage(created_at:, estimated_cost:)
+    def usage(created_at:, estimated_cost:, model: "claude-sonnet-4-6", prompt_tokens: 1, completion_tokens: 1)
       @family.llm_usages.create!(
         provider: "anthropic",
-        model: "claude-sonnet-4-6",
+        model: model,
         operation: "chat",
-        prompt_tokens: 1,
-        completion_tokens: 1,
-        total_tokens: 2,
+        prompt_tokens: prompt_tokens,
+        completion_tokens: completion_tokens,
+        total_tokens: prompt_tokens + completion_tokens,
         estimated_cost: estimated_cost,
         created_at: created_at
       )

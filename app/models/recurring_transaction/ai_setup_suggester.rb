@@ -14,6 +14,7 @@ class RecurringTransaction
   # the shape without re-validating LLM output.
   class AiSetupSuggester
     Error = Class.new(StandardError)
+    BudgetExceeded = Class.new(Error)
     MAX_CHARGES = 40
 
     Suggestion = Data.define(
@@ -60,8 +61,8 @@ class RecurringTransaction
         raise Error, "Provider failed: #{result.error&.message}" unless result.success?
 
         normalize(result.data)
-      rescue Oknola::AiBudget::Exceeded => e
-        raise Error, "Provider failed: #{e.message}"
+      rescue Oknola::AiBudget::Exceeded
+        raise BudgetExceeded, Oknola::AiBudget.user_message
       end
 
       def llm_provider

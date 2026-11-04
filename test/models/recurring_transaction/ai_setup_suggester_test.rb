@@ -20,18 +20,18 @@ class RecurringTransaction::AiSetupSuggesterTest < ActiveSupport::TestCase
     end
   end
 
-  test "converts AI budget exhaustion into a handled suggestion error" do
+  test "converts AI budget exhaustion into a localized suggestion error" do
     provider = Object.new
     provider.define_singleton_method(:suggest_bill_setup) do |**|
       raise Oknola::AiBudget::Exceeded, "Monthly AI allowance reached"
     end
     Provider::Registry.stubs(:preferred_llm_provider).returns(provider)
 
-    error = assert_raises(Suggester::Error) do
+    error = assert_raises(Suggester::BudgetExceeded) do
       Suggester.new(@family, user: @user).suggest_from_entries(@entries)
     end
 
-    assert_equal "Provider failed: Monthly AI allowance reached", error.message
+    assert_equal Oknola::AiBudget.user_message, error.message
   end
 
   test "raises on empty charge history instead of asking the model to guess" do

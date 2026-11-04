@@ -52,7 +52,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     assert_includes throttles, "ai/chat", "chat posts should have rate limiting"
   end
 
-  test "chat posts share a per-user limit across web and API routes, with IP fallback" do
+  test "chat throttle uses user keys for web, token digests for API, and IP fallback" do
     block = Rack::Attack.throttles["ai/chat"].block
     user = users(:family_admin)
     session = user.sessions.create!
@@ -60,12 +60,31 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     web_request = throttle_request("/chats/#{chats(:one).id}/messages", method: "POST", session_cookie: session.id)
     api_request = throttle_request("/api/v1/chats", method: "POST", session_cookie: session.id)
     anonymous_request = throttle_request("/api/v1/chats", method: "POST")
+    api_retry_request = throttle_request("/api/v1/chats/#{chats(:one).id}/messages/retry", method: "POST", bearer_token: SecureRandom.hex(32))
 
     assert_equal "user:#{user.id}", block.call(web_request)
-    assert_equal "user:#{user.id}", block.call(api_request)
+    assert_equal "ip:203.0.113.5", block.call(api_request)
     assert_equal "ip:203.0.113.5", block.call(anonymous_request)
+    assert_match(/\Aapi_token:[0-9a-f]{64}\z/, block.call(api_retry_request))
     assert_nil block.call(throttle_request("/chats", method: "GET", session_cookie: session.id))
-    assert_nil block.call(throttle_request("/chats/#{chats(:one).id}/messages/retry", method: "POST", session_cookie: session.id))
+  end
+
+  test "chat throttle covers retries and bills AI review, and hashes API bearer tokens" do
+    block = Rack::Attack.throttles["ai/chat"].block
+    session = users(:family_admin).sessions.create!
+    retry_paths = [ "/chats/#{chats(:one).id}/retry", "/bills/ai_review" ]
+
+    retry_paths.each do |path|
+      request = throttle_request(path, method: "POST", session_cookie: session.id)
+      assert_equal "user:#{users(:family_admin).id}", block.call(request), path
+    end
+
+    token = SecureRandom.hex(32)
+    api_request = throttle_request("/api/v1/chats/#{chats(:one).id}/messages/retry", method: "POST", bearer_token: token)
+    throttle_key = block.call(api_request)
+
+    assert_equal "api_token:#{Digest::SHA256.hexdigest(token)}", throttle_key
+    assert_not_includes throttle_key, token
   end
 
   test "the eleventh chat post within a minute returns 429" do
@@ -368,7 +387,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       def read(*args) = io.read(*args)
     end
 
-    def throttle_request(path, method: "GET", params: {}, session: {}, json_body: nil, json_body_raw: nil, non_rewindable_json_body: nil, session_cookie: nil, raw_cookie: nil)
+    def throttle_request(path, method: "GET", params: {}, session: {}, json_body: nil, json_body_raw: nil, non_rewindable_json_body: nil, session_cookie: nil, raw_cookie: nil, bearer_token: nil)
       # Rack::MockRequest.env_for doesn't set REMOTE_ADDR, so #ip is nil
       # unless set explicitly — asserting against a real value here (rather
       # than comparing to request.ip, which could trivially be nil on both
@@ -385,6 +404,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       end
 
       opts["HTTP_COOKIE"] = raw_cookie || signed_session_cookie(session_cookie) if raw_cookie || session_cookie
+      opts["HTTP_AUTHORIZATION"] = [ "Bearer", bearer_token ].join(" ") if bearer_token
 
       # Rails merges env_config (the cookie key generator, among others) into
       # every request env before the middleware stack runs, Rack::Attack

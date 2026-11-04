@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Bills::SmartConfigurationsController < ApplicationController
   include BillsHelper
   include RecurringFeatureGuardable
@@ -22,6 +23,9 @@ class Bills::SmartConfigurationsController < ApplicationController
                       .new(Current.family, user: Current.user)
                       .suggest_configuration(@series)
       @detection = RecurringTransaction::FrequencyPreset.detect(@series)
+    rescue RecurringTransaction::AiSetupSuggester::BudgetExceeded => e
+      Rails.logger.warn("Smart configure failed for series #{@series.id}: #{e.class}: #{e.message}")
+      @error = e.message
     rescue RecurringTransaction::AiSetupSuggester::Error => e
       Rails.logger.warn("Smart configure failed for series #{@series.id}: #{e.class}: #{e.message}")
       @error = t(".failed")

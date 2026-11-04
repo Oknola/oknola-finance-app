@@ -171,13 +171,20 @@ class Rack::Attack
   end
 
   chat_post_path = ->(request) do
-    request.path.match?(%r{\A/(?:api/v1/)?chats(?:/[^/]+/messages)?(?:\.[^./?]+)?\z})
+    request.path.match?(%r{\A/(?:api/v1/)?chats(?:/[^/]+/(?:messages(?:/retry)?|retry))?(?:\.[^./?]+)?\z}) ||
+      request.path.match?(%r{\A/bills/ai_review(?:\.[^./?]+)?\z})
   end
 
   throttle("ai/chat", limit: 10, period: 1.minute) do |request|
     next unless request.post? && chat_post_path.call(request)
 
-    password_change_user.call(request) || "ip:#{request.ip}"
+    if request.path.start_with?("/api/")
+      auth_header = request.get_header("HTTP_AUTHORIZATION")
+      token = auth_header.delete_prefix("Bearer ").strip if auth_header&.start_with?("Bearer ")
+      token.present? ? "api_token:#{Digest::SHA256.hexdigest(token)}" : "ip:#{request.ip}"
+    else
+      password_change_user.call(request) || "ip:#{request.ip}"
+    end
   end
 
   # Rack::MethodOverride runs earlier in the stack, so the form's

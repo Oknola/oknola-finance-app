@@ -266,8 +266,7 @@ class Chat < ApplicationRecord
       technical_message = error_message_for(error)
       message =
         if error.is_a?(Oknola::AiBudget::Exceeded)
-          next_reset_date = Time.current.utc.next_month.beginning_of_month.to_date
-          I18n.t("chats.ai_budget_exceeded", reset_date: I18n.l(next_reset_date, format: :long))
+          Oknola::AiBudget.user_message
         else
           classify_error_message(technical_message)
         end

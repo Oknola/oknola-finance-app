@@ -132,7 +132,7 @@ class ProcessPdfJobTest < ActiveJob::TestCase
     assert @import.error.present?
   end
 
-  test "returns an over-budget PDF import to pending without raising" do
+  test "marks an over-budget PDF import failed with the localized allowance message" do
     attach_pdf!(@import)
     @import.expects(:process_with_ai).once
       .raises(Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded")
@@ -140,8 +140,24 @@ class ProcessPdfJobTest < ActiveJob::TestCase
 
     assert_nothing_raised { ProcessPdfJob.perform_now(@import) }
 
-    assert_equal "pending", @import.reload.status
-    assert_nil @import.error
+    assert_equal "failed", @import.reload.status
+    assert_equal Oknola::AiBudget.user_message, @import.error
+  end
+
+  test "budget exhaustion during statement extraction keeps the failed import retryable" do
+    attach_pdf!(@import)
+    @import.update!(ai_summary: "Statement summary", document_type: "bank_statement")
+    @import.stubs(:process_with_ai).returns(OpenStruct.new(document_type: "bank_statement"))
+    @import.expects(:extract_transactions)
+      .raises(Oknola::AiBudget::Exceeded, "Monthly AI allowance exceeded")
+    @family.stubs(:upload_document).returns(nil)
+    Rails.logger.stubs(:info)
+
+    ProcessPdfJob.perform_now(@import)
+
+    assert_equal "failed", @import.reload.status
+    assert_equal Oknola::AiBudget.user_message, @import.error
+    assert @import.ai_processed?
   end
 
   test "skips already failed import" do
