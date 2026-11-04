@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "application_system_test_case"
 
 class SplitsTest < ApplicationSystemTestCase
@@ -6,7 +7,7 @@ class SplitsTest < ApplicationSystemTestCase
   setup do
     sign_in @user = users(:family_admin)
     @entry = create_transaction(amount: 100, name: "Split layout", account: accounts(:depository))
-    @entry.split!([ { name: "Groceries", amount: 70 }, { name: "Household", amount: 30 } ])
+    @entry.split!([ { name: "Household", amount: 30 }, { name: "Groceries", amount: 70 } ])
   end
 
   test "edit dialog keeps each split row's category, merchant and tag pickers inside the row" do
@@ -28,11 +29,17 @@ class SplitsTest < ApplicationSystemTestCase
     visit edit_transaction_split_path(@entry)
 
     within "dialog" do
-      within all("[data-split-transaction-target='row']", minimum: 2).first do
+      within find_field(with: "Groceries").ancestor("[data-split-transaction-target='row']") do
         find("[data-merchant-select-target='button']").click
         find("[role='option'][data-merchant-name='#{merchant.name}']").click
+        assert_selector "[data-merchant-select-target='button'][aria-expanded='false']", text: merchant.name
+
         find("[data-tag-select-target='button']").click
         find("[role='option'][data-tag-name='#{tags(:one).name}']").click
+        assert_selector "[data-tag-select-target='selectionContainer']", text: tags(:one).name
+        find("[data-tag-select-target='button']").click
+        assert_selector "[data-tag-select-target='button'][aria-expanded='false']"
+        assert_selector "[data-merchant-select-target='button']", text: merchant.name
       end
 
       click_button I18n.t("splits.edit.submit")
@@ -43,6 +50,10 @@ class SplitsTest < ApplicationSystemTestCase
     child = @entry.reload.child_entries.find_by!(name: "Groceries")
     assert_equal merchant.id, child.entryable.merchant_id
     assert_equal [ tags(:one).id ], child.entryable.tag_ids
+
+    other_child = @entry.child_entries.find_by!(name: "Household")
+    assert_nil other_child.entryable.merchant_id
+    assert_empty other_child.entryable.tag_ids
   end
 
   test "tag picker in a split row stays as tall as the other pickers" do
