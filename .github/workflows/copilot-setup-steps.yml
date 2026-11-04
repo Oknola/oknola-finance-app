@@ -17,13 +17,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 59
 
-    env:
-      PLAID_CLIENT_ID: foo
-      PLAID_SECRET: bar
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432 # pipelock:ignore
-      REDIS_URL: redis://localhost:6379
-      RAILS_ENV: test
-
     services:
       postgres:
         image: postgres
@@ -53,10 +46,20 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: DB setup
+      # The agent's environment does not get a job-level `env:` (db:create failed with "no password supplied"), so the
+      # test settings go in .env.test.local (git-ignored), which dotenv-rails loads for every test-env command the agent
+      # runs later too.
+      - name: Write test env
         run: |
-          bin/rails db:create
-          bin/rails db:schema:load
+          cat > .env.test.local <<'EOF'
+          PLAID_CLIENT_ID=foo
+          PLAID_SECRET=bar
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432
+          REDIS_URL=redis://localhost:6379
+          EOF
+
+      - name: DB setup
+        run: RAILS_ENV=test bin/rails db:create db:schema:load
 
       - name: Smoke test
         run: bin/rails test test/models/tag_test.rb
