@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ActiveStorageAuthorizationTest < ActionDispatch::IntegrationTest
@@ -247,16 +248,100 @@ class ActiveStorageAuthorizationTest < ActionDispatch::IntegrationTest
   end
 
   test "direct uploads require authentication" do
-    post rails_direct_uploads_path, params: {
-      blob: {
-        filename: "statement.csv",
-        byte_size: 1,
-        checksum: Digest::MD5.base64digest("1"),
-        content_type: "text/csv"
-      }
-    }, as: :json
+    assert_no_difference "ActiveStorage::Blob.count" do
+      post rails_direct_uploads_path, params: {
+        blob: {
+          filename: "statement.csv",
+          byte_size: 1,
+          checksum: Digest::MD5.base64digest("1"),
+          content_type: "text/csv"
+        }
+      }, as: :json
+    end
 
     assert_redirected_to new_session_url
+  end
+
+  test "direct uploads reject files above the configured per-file limit" do
+    sign_in @user_a
+
+    with_storage_quota_limits(file_mb: "0.000001") do
+      assert_no_difference "ActiveStorage::Blob.count" do
+        post rails_direct_uploads_path, params: {
+          blob: {
+            filename: "large.csv",
+            byte_size: 2,
+            checksum: Digest::MD5.base64digest("12"),
+            content_type: "text/csv"
+          }
+        }, as: :json
+      end
+    end
+
+    assert_response :content_too_large
+    assert_equal I18n.t("active_storage.uploads.file_too_large"), response.parsed_body.fetch("error")
+  end
+
+  test "direct uploads reject files that exceed the remaining family quota" do
+    sign_in @user_a
+    current_bytes = Oknola::StorageQuota.total_bytes(@user_a.family)
+    assert_operator current_bytes, :>, 1
+    family_bytes = current_bytes + 1
+
+    with_storage_quota_limits(file_mb: "1", family_bytes: family_bytes) do
+      assert_no_difference "ActiveStorage::Blob.count" do
+        post rails_direct_uploads_path, params: {
+          blob: {
+            filename: "over-quota.csv",
+            byte_size: 2,
+            checksum: Digest::MD5.base64digest("12"),
+            content_type: "text/csv"
+          }
+        }, as: :json
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal I18n.t("active_storage.uploads.family_quota_exceeded"), response.parsed_body.fetch("error")
+  end
+
+  test "attachments cannot push a family over its configured storage quota" do
+    sign_in @user_a
+    @transaction_a.reload
+    family_bytes = Oknola::StorageQuota.total_bytes(@user_a.family) + 1
+
+    with_storage_quota_limits(file_mb: "1", family_bytes: family_bytes) do
+      assert_equal :family_quota_exceeded,
+        Oknola::StorageQuota.exceeded_reason(@user_a.family, 2)
+
+      attachment_count = ActiveStorage::Attachment.where(record: @transaction_a).count
+      assert_no_difference "ActiveStorage::Attachment.count" do
+        @transaction_a.attachments.attach(
+          io: StringIO.new("12"),
+          filename: "over-quota.pdf",
+          content_type: "application/pdf"
+        )
+      end
+
+      assert_equal attachment_count, ActiveStorage::Attachment.where(record: @transaction_a).count
+      assert_includes @transaction_a.errors[:base], I18n.t("active_storage.uploads.family_quota_exceeded")
+    end
+  end
+
+  test "pdf import attachments respect the family storage quota" do
+    import = imports(:pdf)
+    family_bytes = Oknola::StorageQuota.total_bytes(import.family) + 1
+
+    with_storage_quota_limits(file_mb: "1", family_bytes: family_bytes) do
+      import.pdf_file.attach(
+        io: StringIO.new("12"),
+        filename: "over-quota.pdf",
+        content_type: "application/pdf"
+      )
+    end
+
+    assert_includes import.errors[:base], I18n.t("active_storage.uploads.family_quota_exceeded")
+    assert_nil import.reload.pdf_file.attachment
   end
 
   test "authenticated direct uploads can create unattached blobs" do
@@ -467,6 +552,18 @@ class ActiveStorageAuthorizationTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+    def with_storage_quota_limits(file_mb:, family_bytes: nil)
+      previous_file_limit = ENV["OKNOLA_UPLOAD_MAX_MB"]
+      previous_family_limit = ENV["OKNOLA_FAMILY_STORAGE_GB"]
+      ENV["OKNOLA_UPLOAD_MAX_MB"] = file_mb
+      ENV["OKNOLA_FAMILY_STORAGE_GB"] = (family_bytes.to_f / 1.gigabyte).to_s if family_bytes
+
+      yield
+    ensure
+      ENV["OKNOLA_UPLOAD_MAX_MB"] = previous_file_limit
+      ENV["OKNOLA_FAMILY_STORAGE_GB"] = previous_family_limit
+    end
 
     def attach_family_export(family)
       export = family.family_exports.create!(status: :completed)

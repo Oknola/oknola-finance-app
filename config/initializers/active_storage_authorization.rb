@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # Override Active Storage blob serving to enforce authorization
 Rails.application.config.to_prepare do
   module ActiveStorageAttachmentAuthorization
@@ -13,8 +14,10 @@ Rails.application.config.to_prepare do
     private
 
       def authorize_protected_attachment
-        # Direct uploads create unattached blobs; model/controller code authorizes the later attachment.
-        return if is_a?(ActiveStorage::DirectUploadsController)
+        if is_a?(ActiveStorage::DirectUploadsController)
+          authorize_direct_upload
+          return
+        end
         return unless authorized_blob
 
         attachments = authorized_attachments
@@ -29,6 +32,19 @@ Rails.application.config.to_prepare do
         return if protected_attachments.all? { |attachment| protected_attachment_authorized?(attachment) }
 
         raise ActiveRecord::RecordNotFound
+      end
+
+      def authorize_direct_upload
+        unless Current.user
+          render json: { error: t("active_storage.uploads.authentication_required") }, status: :unprocessable_entity
+          return
+        end
+
+        reason = Oknola::StorageQuota.exceeded_reason(Current.family, params.dig(:blob, :byte_size))
+        return unless reason
+
+        status = reason == :file_too_large ? :content_too_large : :unprocessable_entity
+        render json: { error: t("active_storage.uploads.#{reason}") }, status: status
       end
 
       def protected_attachment_authorized?(attachment)
@@ -185,4 +201,7 @@ Rails.application.config.to_prepare do
   ].compact.each do |controller|
     controller.include ActiveStorageAttachmentAuthorization
   end
+
+  ActiveStorage::Attachment.include Oknola::StorageQuota::AttachmentValidation
+  ActiveRecord::Base.include Oknola::StorageQuota::RecordValidation
 end

@@ -200,6 +200,46 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_session_path(invitation: @invitation.token), text: /already have an account/i
   end
 
+  test "joining from the confirmation page changes family only after the POST" do
+    invitee = users(:empty)
+    original_family_id = invitee.family_id
+    invitation = @admin.family.invitations.create!(email: invitee.email, role: "member", inviter: @admin)
+    sign_in invitee
+
+    get new_session_path(invitation: invitation.token)
+    get confirm_invitation_path(invitation.token)
+
+    assert_response :success
+    assert_select "p", text: /#{@admin.family.name}/
+    assert_equal original_family_id, invitee.reload.family_id
+    assert_nil invitation.reload.accepted_at
+
+    post confirm_invitation_path(invitation.token), params: { decision: "join" }
+
+    assert_redirected_to root_path
+    assert_equal @admin.family_id, invitee.reload.family_id
+    assert_equal "member", invitee.role
+    assert invitation.reload.accepted_at.present?
+    assert_equal I18n.t("invitations.accept_choice.joined_household"), flash[:notice]
+  end
+
+  test "not now clears a pending invitation without changing the family" do
+    invitee = users(:empty)
+    original_family_id = invitee.family_id
+    invitation = @admin.family.invitations.create!(email: invitee.email, role: "member", inviter: @admin)
+    sign_in invitee
+
+    get new_session_path(invitation: invitation.token)
+    post confirm_invitation_path(invitation.token), params: { decision: "not_now" }
+
+    assert_redirected_to root_path
+    assert_equal original_family_id, invitee.reload.family_id
+    assert_nil invitation.reload.accepted_at
+    assert_equal I18n.t("invitations.confirm.not_now"), flash[:notice]
+    get confirm_invitation_path(invitation.token)
+    assert_response :not_found
+  end
+
   test "should not accept invalid invitation token" do
     get accept_invitation_url("invalid-token")
     assert_response :not_found

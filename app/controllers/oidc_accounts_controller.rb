@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class OidcAccountsController < ApplicationController
   skip_authentication only: [ :link, :create_link, :new_user, :create_user ]
   before_action :reject_removed_identity, only: [ :link, :create_link, :new_user, :create_user ]
@@ -68,12 +69,9 @@ class OidcAccountsController < ApplicationController
         session[:mfa_user_id] = user.id
         redirect_to verify_mfa_path
       else
-        notice = if accept_pending_invitation_for(user)
-          t("invitations.accept_choice.joined_household")
-        else
-          t("sessions.openid_connect.account_linked", provider: @pending_auth["provider"])
-        end
-        redirect_to root_path, notice: notice
+        destination = accept_pending_invitation_for(user)
+        notice = t("sessions.openid_connect.account_linked", provider: @pending_auth["provider"])
+        redirect_to destination || root_path, notice: notice
       end
     else
       @email = params[:email]
@@ -204,12 +202,10 @@ class OidcAccountsController < ApplicationController
 
       notice = if invitation.present?
         t("invitations.accept_choice.joined_household")
-      elsif accept_pending_invitation_for(@user)
-        t("invitations.accept_choice.joined_household")
       else
         t(".account_created")
       end
-      redirect_to root_path, notice: notice
+      redirect_to accept_pending_invitation_for(@user) || root_path, notice: notice
     else
       render :new_user, status: :unprocessable_entity
     end

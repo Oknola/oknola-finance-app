@@ -25,17 +25,16 @@ class ApplicationController < ActionController::Base
 
   private
     def accept_pending_invitation_for(user)
-      return false if user.blank?
+      return if user.blank? || user.super_admin?
 
       token = session[:pending_invitation_token]
-      return false if token.blank?
+      return if token.blank?
 
       invitation = Invitation.pending.find_by(token: token.to_s)
-      return false unless invitation
-      return false unless invitation.accept_for(user)
+      return unless invitation
+      return unless invitation.email.to_s.strip.casecmp?(user.email.to_s.strip)
 
-      session.delete(:pending_invitation_token)
-      true
+      confirm_invitation_path(token)
     end
 
     def store_pending_invitation_if_valid
