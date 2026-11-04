@@ -2,6 +2,8 @@
 require "application_system_test_case"
 
 class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
+  include EntriesTestHelper
+
   setup do
     @original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
@@ -92,7 +94,7 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     end
     assert_equal 1, link_rects.map { |rect| rect.fetch("top") }.uniq.size
     assert_equal link_rects.map { |rect| rect.fetch("left") }.sort, link_rects.map { |rect| rect.fetch("left") }
-    assert_equal "page", find("nav[data-oknola-nav] a[aria-current='page']")[:aria_current]
+    assert_selector "nav[data-oknola-nav] a[aria-current='page']"
   end
 
   test "embedded desktop content scrolls clear of the floating navigation" do
