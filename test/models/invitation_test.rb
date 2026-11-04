@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class InvitationTest < ActiveSupport::TestCase
@@ -22,6 +23,18 @@ class InvitationTest < ActiveSupport::TestCase
     assert_equal "member", user.role
     invitation.reload
     assert invitation.accepted_at.present?
+  end
+
+  test "accept_for never moves or demotes the instance super admin" do
+    admin = users(:sure_support_staff)
+    family_id = admin.family_id
+    invitation = @family.invitations.create!(email: admin.email, role: "member", inviter: @inviter)
+
+    assert_not invitation.accept_for(admin)
+    admin.reload
+    assert admin.super_admin?
+    assert_equal family_id, admin.family_id
+    assert_nil invitation.reload.accepted_at
   end
 
   test "accept_for returns false when user email does not match" do

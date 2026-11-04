@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Invitation < ApplicationRecord
   include Encryptable
 
@@ -31,6 +32,9 @@ class Invitation < ApplicationRecord
 
   def accept_for(user)
     return false if user.blank?
+    # Oknola: the instance super admin never joins another family through an invitation
+    # (a planted invitation link plus their next sign-in would otherwise demote and move them).
+    return false if user.super_admin?
     return false unless pending?
     return false unless emails_match?(user)
     return false if would_orphan_owned_accounts?(user)

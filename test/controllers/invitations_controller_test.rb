@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class InvitationsControllerTest < ActionDispatch::IntegrationTest
@@ -35,28 +36,29 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("invitations.create.success"), flash[:notice]
   end
 
-  test "should add existing user to household when inviting their email" do
+  test "inviting an existing user's email leaves them where they are until they accept" do
     existing_user = users(:empty)
-    assert existing_user.family_id != @admin.family_id
+    family_id = existing_user.family_id
+    role = existing_user.role
+    assert family_id != @admin.family_id
 
     assert_difference("Invitation.count") do
-      assert_no_enqueued_jobs only: ActionMailer::MailDeliveryJob do
-        post invitations_url, params: {
-          invitation: {
-            email: existing_user.email,
-            role: "member"
-          }
+      post invitations_url, params: {
+        invitation: {
+          email: existing_user.email,
+          role: "admin"
         }
-      end
+      }
     end
 
     invitation = Invitation.order(created_at: :desc).first
-    assert invitation.accepted_at.present?, "Invitation should be accepted"
+    assert_nil invitation.accepted_at, "Invitation must stay pending"
     existing_user.reload
-    assert_equal @admin.family_id, existing_user.family_id
-    assert_equal "member", existing_user.role
+    assert_equal family_id, existing_user.family_id
+    assert_equal role, existing_user.role
     assert_redirected_to settings_profile_path
-    assert_equal I18n.t("invitations.create.existing_user_added"), flash[:notice]
+    # Same answer as for an email with no account, so an invite does not reveal who has one
+    assert_equal I18n.t("invitations.create.success"), flash[:notice]
   end
 
   test "non-admin cannot create invitations" do
@@ -107,7 +109,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @admin, invitation.inviter
   end
 
-  test "inviting an existing user as guest applies intro defaults" do
+  test "an existing user who accepts a guest invitation gets intro defaults" do
     existing_user = users(:empty)
     existing_user.update!(
       role: :member,
@@ -126,6 +128,10 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
+    existing_user.reload
+    assert_equal "member", existing_user.role, "Inviting must not change the user before they accept"
+
+    assert Invitation.order(created_at: :desc).first.accept_for(existing_user)
     existing_user.reload
     assert_equal "guest", existing_user.role
     assert existing_user.ui_layout_intro?
