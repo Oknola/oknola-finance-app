@@ -35,6 +35,7 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     link_hrefs = expected_links.map do |name|
       link = find("nav[data-oknola-nav] a[aria-label='#{name}']", visible: :visible)
       assert_equal name, link[:title]
+      assert_equal name, link.find(".oknola-nav-label").text
       link[:href]
     end
 
@@ -71,6 +72,7 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     assert_equal link_rects.map { |rect| rect.fetch("top") }.sort, link_rects.map { |rect| rect.fetch("top") }
     assert_equal 1, link_rects.map { |rect| rect.fetch("left") }.uniq.size
     assert link_rects.all? { |rect| rect.fetch("width") >= 44 && rect.fetch("height") >= 44 }
+    assert_nav_labels_fit
 
     expected_links.each do |name|
       assert_selector "nav[data-oknola-nav] a[aria-label='#{name}']", visible: :visible
@@ -96,6 +98,7 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     end
     assert_equal 1, link_rects.map { |rect| rect.fetch("top") }.uniq.size
     assert_equal link_rects.map { |rect| rect.fetch("left") }.sort, link_rects.map { |rect| rect.fetch("left") }
+    assert_nav_labels_fit
     assert_selector "nav[data-oknola-nav] a[aria-current='page']"
   end
 
@@ -185,6 +188,25 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
   end
 
   private
+    # Every button shows its name under the icon, whole: not clipped, not wrapped
+    def assert_nav_labels_fit
+      labels = page.evaluate_script(<<~JS)
+        Array.from(document.querySelectorAll("nav[data-oknola-nav] a .oknola-nav-label")).map((label) => {
+          const link = label.closest("a").getBoundingClientRect();
+          const text = label.getBoundingClientRect();
+          return { text: label.textContent, visible: text.width > 0 && text.height > 0,
+                   inside: text.left >= link.left - 0.5 && text.right <= link.right + 0.5,
+                   oneLine: text.height < 16 };
+        })
+      JS
+      assert labels.any?, "the nav shows no labels"
+      labels.each do |label|
+        assert label.fetch("visible"), "#{label.fetch("text")} label is not visible"
+        assert label.fetch("inside"), "#{label.fetch("text")} label overflows its button"
+        assert label.fetch("oneLine"), "#{label.fetch("text")} label wraps"
+      end
+    end
+
 
     def assert_nav_center_outside_nav
       covered = page.evaluate_script(<<~JS)
