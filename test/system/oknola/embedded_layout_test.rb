@@ -78,6 +78,8 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
   end
 
   test "embedded desktop navigation floats at the bottom right" do
+    @user.update!(show_ai_sidebar: false)
+    visit root_path
     page.current_window.resize_to(1280, 800)
 
     nav = find("nav[data-oknola-nav]", visible: :visible)
@@ -122,16 +124,7 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     click_on "New transaction"
     assert_selector "dialog[open]"
 
-    covered = page.evaluate_script(<<~JS)
-      (() => {
-        const dialog = document.querySelector("dialog[open]");
-        const rect = dialog.getBoundingClientRect();
-        return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
-          .closest("nav[data-oknola-nav]") === null;
-      })()
-    JS
-
-    assert covered
+    assert_nav_center_outside_nav
   end
 
   test "embedded transaction drawer covers the floating navigation" do
@@ -141,16 +134,69 @@ class Oknola::EmbeddedLayoutTest < ApplicationSystemTestCase
     click_on "Embedded drawer transaction"
     assert_selector "dialog[open]"
 
-    covered = page.evaluate_script(<<~JS)
+    assert_nav_center_outside_nav
+  end
+
+  test "mobile account sidebar covers the floating navigation" do
+    page.current_window.resize_to(390, 844)
+    find("[data-action~='app-layout#openMobileSidebar']").click
+
+    assert_selector "[data-app-layout-target='mobileSidebar']:not(.hidden)", visible: :visible
+    assert_nav_center_outside_nav
+  end
+
+  test "mobile navigation scrolls when the viewport is too short" do
+    page.current_window.resize_to(390, 320)
+
+    metrics = find("nav[data-oknola-nav]").evaluate_script(<<~JS)
       (() => {
-        const dialog = document.querySelector("dialog[open]");
-        const rect = dialog.getBoundingClientRect();
-        return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
-          .closest("nav[data-oknola-nav]") === null;
+        const nav = this;
+        const style = getComputedStyle(nav);
+        const rect = nav.getBoundingClientRect();
+        return {
+          bottom: rect.bottom,
+          height: rect.height,
+          maxHeight: parseFloat(style.maxHeight),
+          overflowY: style.overflowY,
+          scrollHeight: nav.scrollHeight,
+          clientHeight: nav.clientHeight,
+          viewportHeight: window.innerHeight
+        };
       })()
     JS
 
-    assert covered
+    assert_equal "auto", metrics.fetch("overflowY")
+    assert_operator metrics.fetch("scrollHeight"), :>, metrics.fetch("clientHeight")
+    assert_operator metrics.fetch("height"), :<=, metrics.fetch("maxHeight")
+    assert_operator metrics.fetch("bottom"), :<=, metrics.fetch("viewportHeight")
+  end
+
+  test "desktop navigation stays clear of the AI sidebar chat input" do
+    @user.update!(show_ai_sidebar: true)
+    page.current_window.resize_to(1280, 800)
+    visit transactions_path
+
+    nav = find("nav[data-oknola-nav]", visible: :visible)
+    sidebar = find("[data-app-layout-target='rightSidebar']", visible: :visible)
+    nav_rect = nav.evaluate_script("(() => { const { left, top, right, bottom } = this.getBoundingClientRect(); return { left, top, right, bottom }; })()")
+    sidebar_left = sidebar.evaluate_script("this.getBoundingClientRect().left")
+
+    assert_operator nav_rect.fetch("right"), :<=, sidebar_left - 8
+  end
+
+  private
+
+    def assert_nav_center_outside_nav
+      covered = page.evaluate_script(<<~JS)
+        (() => {
+          const nav = document.querySelector("nav[data-oknola-nav]");
+          const rect = nav.getBoundingClientRect();
+          const element = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          return element && element.closest("nav[data-oknola-nav]") === null;
+        })()
+      JS
+
+      assert covered
   end
 end
 

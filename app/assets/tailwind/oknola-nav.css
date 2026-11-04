@@ -57,6 +57,14 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
     top: calc(var(--oknola-mobile-top-nav-height) + 8px);
     left: calc(env(safe-area-inset-left) + 8px);
     flex-direction: column;
+    max-height: calc(100dvh - var(--oknola-mobile-top-nav-height) - env(safe-area-inset-bottom) - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  html[data-embedded="true"] [data-controller~="app-layout"]:has(> [data-app-layout-target="mobileSidebar"]:not(.hidden)) > nav[data-oknola-nav] {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   html[data-embedded="true"] main#main {
@@ -76,6 +84,10 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
   html[data-embedded="true"] nav[data-oknola-nav] {
     right: 24px;
     bottom: calc(env(safe-area-inset-bottom) + 24px);
+  }
+
+  html[data-embedded="true"] [data-controller~="app-layout"]:has(> [data-app-layout-target="rightSidebar"].w-full) > nav[data-oknola-nav] {
+    right: calc(var(--right-sidebar-width, 400px) + 24px);
   }
 
   html[data-embedded="true"] main#main {

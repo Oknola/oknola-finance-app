@@ -84,14 +84,14 @@ end %>
     </nav>
 
     <% unless session[:oknola_embedded] %>
-      <%# DESKTOP - Left navbar %>
-      <div class="hidden lg:block border-r border-divider">
-        <nav class="h-full flex flex-col shrink-0 w-[84px] py-4">
-          <div class="pl-2 mb-3">
-            <%= link_to home_path, class: "block" do %>
-              <%= image_tag "logomark-color.svg", class: "w-9 h-9 mx-auto" %>
-            <% end %>
-          </div>
+    <%# DESKTOP - Left navbar %>
+    <div class="hidden lg:block border-r border-divider">
+      <nav class="h-full flex flex-col shrink-0 w-[84px] py-4">
+        <div class="pl-2 mb-3">
+          <%= link_to home_path, class: "block" do %>
+            <%= image_tag "logomark-color.svg", class: "w-9 h-9 mx-auto" %>
+          <% end %>
+        </div>
 
           <ul class="space-y-0.5">
             <% desktop_nav_items.reject { |item| item[:mobile_only] }.each do |nav_item| %>
@@ -101,18 +101,18 @@ end %>
             <% end %>
           </ul>
 
-          <div class="pl-2 mt-auto mx-auto flex flex-col gap-2">
-            <%= render DS::Link.new(
-              variant: "icon",
-              icon: "message-circle-question",
-              href: "https://discord.gg/36ZGBsxYEK",
-              target: "_blank"
-            ) %>
+        <div class="pl-2 mt-auto mx-auto flex flex-col gap-2">
+          <%= render DS::Link.new(
+            variant: "icon",
+            icon: "message-circle-question",
+            href: "https://discord.gg/36ZGBsxYEK",
+            target: "_blank"
+          ) %>
 
-            <%= render "users/user_menu", user: Current.user, intro_mode: intro_mode %>
-          </div>
-        </nav>
-      </div>
+          <%= render "users/user_menu", user: Current.user, intro_mode: intro_mode %>
+        </div>
+      </nav>
+    </div>
     <% end %>
 
     <%# DESKTOP - Left sidebar %>
@@ -229,13 +229,13 @@ end %>
     <% end %>
 
     <% unless session[:oknola_embedded] %>
-      <%# MOBILE - Bottom Nav %>
-      <%= tag.nav class: "lg:hidden fixed bottom-0 left-0 right-0 bg-surface z-10 border-t border-tertiary flex justify-around pb-[env(safe-area-inset-bottom)]",
-        data: { viewport_target: "bottomNav" } do %>
-        <% mobile_nav_items.each do |nav_item| %>
-          <%= render "layouts/shared/nav_item", **nav_item %>
-        <% end %>
+    <%# MOBILE - Bottom Nav %>
+    <%= tag.nav class: "lg:hidden fixed bottom-0 left-0 right-0 bg-surface z-10 border-t border-tertiary flex justify-around pb-[env(safe-area-inset-bottom)]",
+      data: { viewport_target: "bottomNav" } do %>
+      <% mobile_nav_items.each do |nav_item| %>
+        <%= render "layouts/shared/nav_item", **nav_item %>
       <% end %>
+    <% end %>
     <% end %>
     <%# "What's new" release highlight: one dialog per deployed release,
         shown on first interaction and tracked per account. %>

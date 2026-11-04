@@ -1,8 +1,13 @@
-<%# locals: (name:, path:, icon:, icon_custom:, active:, **_options) %>
+<%# locals: (name:, path:, icon:, icon_custom:, active:, preview: false, **_options) %>
 <%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
 <%= link_to path,
-    class: "focus-ring",
+    class: "focus-ring relative",
     aria: { label: name, current: ("page" if active) },
     title: name do %>
   <%= icon(icon, size: "sm", color: "current", custom: icon_custom) %>
+  <% if preview %>
+    <span class="absolute -top-0.5 -right-0.5">
+      <%= render DS::Pill.new(tone: :violet, dot_only: true, title: t("shared.preview")) %>
+    </span>
+  <% end %>
 <% end %>
