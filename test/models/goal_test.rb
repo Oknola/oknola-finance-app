@@ -748,7 +748,7 @@ class GoalTest < ActiveSupport::TestCase
     goal = reserve_goal(balance: 100, target: 1)
     statement = stub(median_expense: BigDecimal("500"))
     IncomeStatement.expects(:new).with do |family, **options|
-      family == @family && options[:side].nil?
+      family == @family && options.key?(:side) && options[:side].nil?
     end.returns(statement)
 
     goal.update!(target_mode: "months_of_expenses", target_months: 6)

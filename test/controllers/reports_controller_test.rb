@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class ReportsControllerTest < ActionDispatch::IntegrationTest
@@ -413,6 +414,29 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_includes response.body, "Business Export Side"
     assert_includes response.body, "Personal Export Side"
+  end
+
+  test "session CSV export filters to the saved browser side" do
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
+    business_account = accounts(:depository)
+    personal_account = accounts(:credit_card)
+    business_account.update!(oknola_side: "business")
+    personal_account.update!(oknola_side: "personal")
+    business_category = @family.categories.create!(name: "Business Session Export Side")
+    personal_category = @family.categories.create!(name: "Personal Session Export Side")
+    create_transaction(account: business_account, amount: 20, category: business_category, date: Date.current)
+    create_transaction(account: personal_account, amount: 30, category: personal_category, date: Date.current)
+
+    get export_transactions_reports_path(
+      format: :csv,
+      period_type: :monthly,
+      start_date: Date.current.beginning_of_month,
+      end_date: Date.current.end_of_month
+    )
+
+    assert_response :ok
+    assert_includes response.body, "Business Session Export Side"
+    assert_not_includes response.body, "Personal Session Export Side"
   end
 
   test "export transactions with API key does not inherit web session impersonation" do

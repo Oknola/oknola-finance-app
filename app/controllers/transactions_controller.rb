@@ -91,14 +91,14 @@ class TransactionsController < ApplicationController
         .where("next_expected_date <= ? AND next_expected_date >= ?",
                10.days.from_now.to_date,
                Date.current)
-      scope = scope.joins(:account).where(accounts: { oknola_side: Current.side }) if Current.side.present?
+      scope = recurring_transactions_for_current_side(scope)
       scope.pluck(:id)
     end
     @projected_recurring = if projected_recurring_ids.empty?
       []
     else
       scope = Current.family.recurring_transactions.accessible_by(Current.user)
-      scope = scope.joins(:account).where(accounts: { oknola_side: Current.side }) if Current.side.present?
+      scope = recurring_transactions_for_current_side(scope)
       scope.where(id: projected_recurring_ids).includes(:merchant).to_a
     end
 
@@ -560,6 +560,12 @@ class TransactionsController < ApplicationController
       "transactions_projected_recurring/v6/#{Current.family.id}/#{Current.user.id}/#{Date.current}/" \
         "#{Current.side}/#{Current.family.recurring_transactions_version}/#{Current.family.accounts_status_version}/" \
         "#{Current.family.recurring_transaction_merchants_version}/#{Current.account_share_version}"
+    end
+
+    def recurring_transactions_for_current_side(scope)
+      return scope if Current.side.blank?
+
+      scope.left_joins(:account).where("accounts.id IS NULL OR accounts.oknola_side = ?", Current.side)
     end
 
     def covering_series_for(entry)

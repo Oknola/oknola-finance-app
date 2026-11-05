@@ -95,7 +95,10 @@ class InvestmentStatement::Totals
           AND entries.date BETWEEN :start_date AND :end_date
           AND entries.excluded = false
           AND (
-            entries.entryable_type = 'Trade'
+            (
+              entries.entryable_type = 'Trade'
+              #{trade_side_filter_sql}
+            )
             OR (
               entries.entryable_type = 'Transaction'
               AND #{income_transaction_sql}
@@ -118,6 +121,12 @@ class InvestmentStatement::Totals
       return "" if @side.blank?
 
       "AND COALESCE(transactions.oknola_side, accounts.oknola_side) = :side"
+    end
+
+    def trade_side_filter_sql
+      return "" if @side.blank?
+
+      "AND accounts.oknola_side = :side"
     end
 
     def accounts_join_sql

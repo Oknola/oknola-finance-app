@@ -520,9 +520,11 @@ class InvestmentStatementTest < ActiveSupport::TestCase
     override = create_income_transaction(account: account, label: "Dividend", amount: 7.5, date: Date.current)
     override.transaction.update!(oknola_side: "business")
 
+    business = InvestmentStatement.new(@family, side: "business").totals(period: period)
     personal = InvestmentStatement.new(@family, side: "personal").totals(period: period)
     unfiltered = InvestmentStatement.new(@family, side: nil).totals(period: period)
 
+    assert_equal 7.5, business.dividends.amount
     assert_equal 12.5, personal.dividends.amount
     assert_equal 20, unfiltered.dividends.amount
   end

@@ -16,7 +16,7 @@ class InvestmentStatement
 
   # Get totals for a specific period
   def totals(period: Period.current_month)
-    account_ids = investment_account_ids
+    account_ids = investment_accounts_scope.pluck(:id)
 
     result = totals_query(account_ids: account_ids, date_range: period.date_range)
 
@@ -263,15 +263,16 @@ class InvestmentStatement
 
   # Investment accounts
   def investment_accounts
-    @investment_accounts ||= begin
-      scope = family.accounts.visible.included_in_reports.where(accountable_type: %w[Investment Crypto])
-      scope = scope.included_in_finances_for(user) if user
-      scope = scope.where(oknola_side: side) if side.present?
-      scope
-    end
+    @investment_accounts ||= side.present? ? investment_accounts_scope.where(oknola_side: side) : investment_accounts_scope
   end
 
   private
+    def investment_accounts_scope
+      scope = family.accounts.visible.included_in_reports.where(accountable_type: %w[Investment Crypto])
+      scope = scope.included_in_finances_for(user) if user
+      scope
+    end
+
     # Today's rates for every currency present on the family's investment
     # accounts and their holdings. Mirrors BalanceSheet::AccountTotals#exchange_rates.
     def exchange_rates

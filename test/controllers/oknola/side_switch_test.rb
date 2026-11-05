@@ -151,8 +151,10 @@ class Oknola::SideSwitchTest < ActionDispatch::IntegrationTest
 
   test "cached account sidebar changes with the selected side on the next request" do
     original_cache = Rails.cache
+    original_cache_store = ActionController::Base.cache_store
     original_perform_caching = ActionController::Base.perform_caching
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    ActionController::Base.cache_store = ActiveSupport::Cache::MemoryStore.new
     ActionController::Base.perform_caching = true
     @business_account.update!(oknola_side: "business")
     @personal_account.update!(oknola_side: "personal")
@@ -170,6 +172,7 @@ class Oknola::SideSwitchTest < ActionDispatch::IntegrationTest
     assert_select "#account-sidebar-tabs a[href=?]", account_path(@personal_account), count: 0
   ensure
     Rails.cache = original_cache
+    ActionController::Base.cache_store = original_cache_store
     ActionController::Base.perform_caching = original_perform_caching
   end
 
