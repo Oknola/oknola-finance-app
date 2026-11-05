@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class TransactionsController < ApplicationController
   include EntryableResource
 
@@ -786,6 +787,17 @@ class TransactionsController < ApplicationController
       # sent for the inflow leg would look saved but never reach a budget.
       if permitted[:entryable_attributes]&.key?(:category_id) && @entry.transaction.category_set_on_transfer_outflow?
         permitted[:entryable_attributes] = permitted[:entryable_attributes].except(:category_id)
+      end
+
+      if (attributes = permitted[:entryable_attributes])&.key?(:tag_ids)
+        submitted_tag_ids = Array(attributes[:tag_ids]).reject(&:blank?)
+        allowed_tag_ids = Current.family.tags.where(id: submitted_tag_ids).pluck(:id)
+
+        if submitted_tag_ids.map(&:to_s).uniq.sort == allowed_tag_ids.map(&:to_s).uniq.sort
+          attributes[:tag_ids] = allowed_tag_ids
+        else
+          permitted[:entryable_attributes] = attributes.except(:tag_ids)
+        end
       end
 
       permitted

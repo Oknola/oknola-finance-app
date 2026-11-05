@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 ---
 en:
   users:
@@ -7,6 +8,7 @@ en:
       email_change_failed: Failed to change email address.
       email_change_initiated: Please check your new email address for confirmation
         instructions.
+      email_managed_by_oknola: Change your email in Oknola
       success: Your profile has been updated.
     resend_confirmation_email:
       success: A new confirmation email is queued to be sent.
