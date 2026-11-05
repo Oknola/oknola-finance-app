@@ -1836,22 +1836,22 @@ class Family::DataImporterTest < ActiveSupport::TestCase
       {
         type: "Budget",
         data: {
-          id: "personal-budget",
-          start_date: "2024-01-01",
-          end_date: "2024-01-31",
-          budgeted_spending: "2000.00",
-          currency: "USD"
-        }
-      },
-      {
-        type: "Budget",
-        data: {
           id: "business-budget",
           start_date: "2024-01-01",
           end_date: "2024-01-31",
           budgeted_spending: "3000.00",
           currency: "USD",
           oknola_side: "business"
+        }
+      },
+      {
+        type: "Budget",
+        data: {
+          id: "personal-budget",
+          start_date: "2024-01-01",
+          end_date: "2024-01-31",
+          budgeted_spending: "2000.00",
+          currency: "USD"
         }
       }
     ])
