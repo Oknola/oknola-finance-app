@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class PersonalBudgetTest < ActiveSupport::TestCase
@@ -29,6 +30,23 @@ class PersonalBudgetTest < ActiveSupport::TestCase
     assert_not_equal budget1.id, budget2.id
     assert_equal @user1.id, budget1.user_id
     assert_equal @user2.id, budget2.user_id
+  end
+
+  test "one owner can have separate personal and business budgets for one month" do
+    @family.update!(personal_budgets: true)
+
+    personal = Budget.find_or_bootstrap(@family, start_date: @date, user: @user1, side: "personal")
+    business = Budget.find_or_bootstrap(@family, start_date: @date, user: @user1, side: "business")
+    personal.update!(budgeted_spending: 1200)
+    business.update!(budgeted_spending: 3400)
+
+    assert_not_equal personal.id, business.id
+    assert_equal @user1.id, personal.user_id
+    assert_equal @user1.id, business.user_id
+    assert_equal "personal", personal.oknola_side
+    assert_equal "business", business.oknola_side
+    assert_equal 1200, personal.budgeted_spending.to_i
+    assert_equal 3400, business.budgeted_spending.to_i
   end
 
   test "find_or_bootstrap handles transition from shared to personal" do

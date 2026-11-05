@@ -1,8 +1,7 @@
 # Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
-# Materializes BudgetCategory#rolled_over_amount for a single budget chain:
+# Materializes BudgetCategory#rolled_over_amount for a single owner and side:
 # either a family's household budgets (user nil) or one member's personal
-# budgets. Chains never mix — a personal budget only ever inherits from the
-# same user's earlier personal budgets.
+# budgets. Chains never mix owners or sides.
 #
 # The amount rolled into month n depends on month n-1, which depends on
 # n-2. Computed lazily it would walk the whole chain on every budget render,

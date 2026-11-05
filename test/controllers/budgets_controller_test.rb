@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class BudgetsControllerTest < ActionDispatch::IntegrationTest
@@ -17,6 +18,31 @@ class BudgetsControllerTest < ActionDispatch::IntegrationTest
     get budget_url(Budget.date_to_param(Date.current))
 
     assert_response :success
+  end
+
+  test "budgets page follows the selected side" do
+    @user.family.update!(personal_budgets: true)
+    date = Date.current.beginning_of_month
+    personal = Budget.find_or_bootstrap(@user.family, start_date: date, user: @user, side: "personal")
+    business = Budget.find_or_bootstrap(@user.family, start_date: date, user: @user, side: "business")
+    personal.update!(budgeted_spending: 111, expected_income: 0)
+    business.update!(budgeted_spending: 222, expected_income: 0)
+
+    @user.with_locked_preferences { |preferences| preferences["oknola_side"] = "personal" }
+    get budget_url(Budget.date_to_param(date))
+
+    assert_response :success
+    assert_includes response.body, Money.new(111, @user.family.currency).format
+    assert_not_includes response.body, Money.new(222, @user.family.currency).format
+    assert_includes response.body, I18n.t("oknola.side_switch.business")
+
+    @user.with_locked_preferences { |preferences| preferences["oknola_side"] = "business" }
+    get budget_url(Budget.date_to_param(date))
+
+    assert_response :success
+    assert_includes response.body, Money.new(222, @user.family.currency).format
+    assert_not_includes response.body, Money.new(111, @user.family.currency).format
+    assert_includes response.body, I18n.t("oknola.side_switch.personal")
   end
 
   test "show renders when the budget has spending but no expected income" do

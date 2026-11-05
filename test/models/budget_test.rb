@@ -44,15 +44,19 @@ class BudgetTest < ActiveSupport::TestCase
     assert_equal "personal", previous_personal.oknola_side
     assert_equal "business", previous_business.oknola_side
 
-    create_transaction(account: personal_account, amount: 20, category: category, date: previous_start + 1.day)
-    create_transaction(account: business_account, amount: 30, category: category, date: previous_start + 2.days)
-    create_transaction(account: personal_account, amount: 7, category: category, date: Date.current)
-    create_transaction(account: business_account, amount: 8, category: category, date: Date.current)
+    personal_previous_entry = create_transaction(account: personal_account, amount: 20, category: category, date: previous_start + 1.day)
+    business_previous_entry = create_transaction(account: business_account, amount: 30, category: category, date: previous_start + 2.days)
+    personal_current_entry = create_transaction(account: personal_account, amount: 7, category: category, date: Date.current)
+    business_current_entry = create_transaction(account: business_account, amount: 8, category: category, date: Date.current)
 
     assert_equal 20, previous_personal.actual_spending.to_d
     assert_equal 30, previous_business.actual_spending.to_d
     assert_equal 7, current_personal.actual_spending.to_d
     assert_equal 8, current_business.actual_spending.to_d
+    assert_includes current_personal.transactions, personal_current_entry.entryable
+    assert_not_includes current_personal.transactions, business_current_entry.entryable
+    assert_includes current_business.transactions, business_current_entry.entryable
+    assert_not_includes current_business.transactions, personal_current_entry.entryable
     assert_equal 20, previous_personal.budget_category_actual_spending(previous_personal.budget_categories.find_by!(category: category)).to_d
     assert_equal 30, previous_business.budget_category_actual_spending(previous_business.budget_categories.find_by!(category: category)).to_d
 
@@ -490,6 +494,14 @@ class BudgetTest < ActiveSupport::TestCase
 
     target_bc = target_budget.budget_categories.find_by(category: categories(:food_and_drink))
     assert_equal 500, target_bc.budgeted_spending
+  end
+
+  test "copy_from rejects a source budget from another side" do
+    family = families(:empty)
+    source_budget = Budget.find_or_bootstrap(family, start_date: 2.months.ago, side: "business")
+    target_budget = Budget.find_or_bootstrap(family, start_date: 1.month.ago, side: "personal")
+
+    assert_raises(ArgumentError) { target_budget.copy_from!(source_budget) }
   end
 
   test "copy_from copies the rollover toggle but not the rolled over amount" do

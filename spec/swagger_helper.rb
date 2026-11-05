@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+
 require 'rails_helper'
 
 RSpec.configure do |config|
@@ -412,13 +414,14 @@ RSpec.configure do |config|
           },
           BudgetSummary: {
             type: :object,
-            required: %w[id start_date end_date name currency initialized current created_at updated_at],
+            required: %w[id start_date end_date name currency oknola_side initialized current created_at updated_at],
             properties: {
               id: { type: :string, format: :uuid },
               start_date: { type: :string, format: :date },
               end_date: { type: :string, format: :date },
               name: { type: :string },
               currency: { type: :string },
+              oknola_side: { type: :string, enum: Oknola::AccountSide::SIDES },
               initialized: { type: :boolean },
               current: { type: :boolean },
               budgeted_spending: { type: :string, nullable: true },
@@ -433,13 +436,14 @@ RSpec.configure do |config|
           },
           Budget: {
             type: :object,
-            required: %w[id start_date end_date name currency initialized current created_at updated_at],
+            required: %w[id start_date end_date name currency oknola_side initialized current created_at updated_at],
             properties: {
               id: { type: :string, format: :uuid },
               start_date: { type: :string, format: :date },
               end_date: { type: :string, format: :date },
               name: { type: :string },
               currency: { type: :string },
+              oknola_side: { type: :string, enum: Oknola::AccountSide::SIDES },
               initialized: { type: :boolean },
               current: { type: :boolean },
               budgeted_spending: { type: :string, nullable: true },

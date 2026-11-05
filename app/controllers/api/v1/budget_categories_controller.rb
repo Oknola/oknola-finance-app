@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Api::V1::BudgetCategoriesController < Api::V1::BaseController
   include Pagy::Backend
 
@@ -53,7 +54,8 @@ class Api::V1::BudgetCategoriesController < Api::V1::BaseController
       visible_owner_ids.each do |owner_id|
         Budget::RolloverCalculator.new(
           family: current_resource_owner.family,
-          user: owner_id && User.find_by(id: owner_id)
+          user: owner_id && User.find_by(id: owner_id),
+          side: requested_side
         ).recompute!
       end
     end
@@ -61,13 +63,22 @@ class Api::V1::BudgetCategoriesController < Api::V1::BaseController
     def budget_categories_scope
       BudgetCategory
         .joins(:budget, :category)
-        .where(budgets: { family_id: current_resource_owner.family_id, user_id: visible_owner_ids })
+        .where(budgets: { family_id: current_resource_owner.family_id, user_id: visible_owner_ids, oknola_side: requested_side })
         .includes({ budget: { budget_categories: { category: :parent } } }, category: :parent)
     end
 
     def visible_owner_ids
       shared_with_me = BudgetShare.where(viewer_id: current_resource_owner.id).pluck(:owner_id)
       [ nil, current_resource_owner.id, *shared_with_me ]
+    end
+
+    def requested_side
+      @requested_side ||= begin
+        side = params[:side].presence || "personal"
+        raise InvalidFilterError, "side must be one of: #{Oknola::AccountSide::SIDES.join(', ')}" unless Oknola::AccountSide::SIDES.include?(side)
+
+        side
+      end
     end
 
     def apply_filters(query)

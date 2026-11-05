@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Budget Categories', type: :request do
@@ -84,6 +85,9 @@ RSpec.describe 'API V1 Budget Categories', type: :request do
       parameter name: :end_date, in: :query, required: false,
                 schema: { type: :string, format: :date },
                 description: 'Filter budget categories whose budget ends on or before this date'
+      parameter name: :side, in: :query, required: false,
+                schema: { type: :string, enum: %w[business personal] },
+                description: 'Filter by budget side (default: personal)'
 
       response '200', 'budget categories listed' do
         schema '$ref' => '#/components/schemas/BudgetCategoryCollection'
@@ -125,6 +129,9 @@ RSpec.describe 'API V1 Budget Categories', type: :request do
       tags 'Budget Categories'
       security [ { apiKeyAuth: [] } ]
       produces 'application/json'
+      parameter name: :side, in: :query, required: false,
+                schema: { type: :string, enum: %w[business personal] },
+                description: 'Filter by budget side (default: personal)'
 
       let(:id) { budget_category.id }
 

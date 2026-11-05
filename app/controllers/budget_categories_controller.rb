@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BudgetCategoriesController < ApplicationController
   include BudgetOwnership
 
@@ -48,7 +49,7 @@ class BudgetCategoriesController < ApplicationController
     # it here rather than on every transaction change: the budget page is
     # the only place the amount is read, and it always comes through here or
     # through Budget.find_or_bootstrap.
-    Budget::RolloverCalculator.new(family: @budget.family, user: @budget.user).recompute!
+    Budget::RolloverCalculator.new(family: @budget.family, user: @budget.user, side: @budget.oknola_side).recompute!
     @budget_category.reload
 
     respond_to do |format|
@@ -70,7 +71,7 @@ class BudgetCategoriesController < ApplicationController
     @to = @budget.budget_categories.find(params[:to_id])
 
     BudgetCategory.move_allocation!(from: @from, to: @to, amount: move_amount_param)
-    Budget::RolloverCalculator.new(family: @budget.family, user: @budget.user).recompute!
+    Budget::RolloverCalculator.new(family: @budget.family, user: @budget.user, side: @budget.oknola_side).recompute!
 
     @budget.reload
     flash.now[:notice] = t(".success")

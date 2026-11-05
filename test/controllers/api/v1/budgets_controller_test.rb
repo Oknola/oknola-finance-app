@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Api::V1::BudgetsControllerTest < ActionDispatch::IntegrationTest
@@ -106,6 +107,42 @@ class Api::V1::BudgetsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     response_data = JSON.parse(response.body)
     assert_includes response_data["budgets"].map { |budget| budget["id"] }, @budget.id
+  end
+
+  test "defaults to personal budgets and supports filtering by side" do
+    business_budget = @family.budgets.create!(
+      start_date: @budget.start_date,
+      end_date: @budget.end_date,
+      budgeted_spending: 4000,
+      currency: "USD",
+      oknola_side: "business"
+    )
+
+    get api_v1_budgets_url, headers: api_headers(@api_key)
+
+    assert_response :success
+    response_data = JSON.parse(response.body)
+    assert_includes response_data["budgets"].map { |budget| budget["id"] }, @budget.id
+    assert_not_includes response_data["budgets"].map { |budget| budget["id"] }, business_budget.id
+    assert_equal "personal", response_data["budgets"].find { |budget| budget["id"] == @budget.id }["oknola_side"]
+
+    get api_v1_budgets_url, params: { side: "business" }, headers: api_headers(@api_key)
+
+    assert_response :success
+    response_data = JSON.parse(response.body)
+    assert_includes response_data["budgets"].map { |budget| budget["id"] }, business_budget.id
+    assert_not_includes response_data["budgets"].map { |budget| budget["id"] }, @budget.id
+
+    get api_v1_budget_url(business_budget.id), params: { side: "business" }, headers: api_headers(@api_key)
+    assert_response :success
+    assert_equal "business", JSON.parse(response.body)["oknola_side"]
+  end
+
+  test "rejects an invalid budget side" do
+    get api_v1_budgets_url, params: { side: "other" }, headers: api_headers(@api_key)
+
+    assert_response :unprocessable_entity
+    assert_equal "validation_failed", JSON.parse(response.body)["error"]
   end
 
   test "rejects invalid date filters" do

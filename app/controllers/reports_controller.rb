@@ -326,7 +326,12 @@ class ReportsController < ApplicationController
       # Only calculate if we're looking at current month
       return nil unless @period_type == :monthly && @start_date.beginning_of_month.to_date == Date.current.beginning_of_month.to_date
 
-      budget = Budget.find_or_bootstrap(Current.family, start_date: @start_date.beginning_of_month.to_date, user: Current.user)
+      budget = Budget.find_or_bootstrap(
+        Current.family,
+        start_date: @start_date.beginning_of_month.to_date,
+        user: Current.user,
+        side: Current.side
+      )
       return 0 if budget.nil? || budget.allocated_spending.zero?
 
       (budget.actual_spending / budget.allocated_spending * 100).round(1)

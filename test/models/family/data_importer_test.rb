@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Family::DataImporterTest < ActiveSupport::TestCase
@@ -1820,8 +1821,37 @@ class Family::DataImporterTest < ActiveSupport::TestCase
     assert_not_nil budget
     assert_equal Date.parse("2024-01-01"), budget.start_date
     assert_equal Date.parse("2024-01-31"), budget.end_date
+    assert_equal "personal", budget.oknola_side
     assert_equal 3000.0, budget.budgeted_spending.to_f
     assert_equal 5000.0, budget.expected_income.to_f
+  end
+
+  test "imports each budget side separately and defaults missing side to personal" do
+    personal = @family.budgets.create!(
+      start_date: Date.parse("2024-01-01"),
+      end_date: Date.parse("2024-01-31"),
+      currency: "USD"
+    )
+    ndjson = build_ndjson([
+      {
+        type: "Budget",
+        data: {
+          id: "business-budget",
+          start_date: "2024-01-01",
+          end_date: "2024-01-31",
+          budgeted_spending: "3000.00",
+          currency: "USD",
+          oknola_side: "business"
+        }
+      }
+    ])
+
+    Family::DataImporter.new(@family, ndjson).import!
+
+    business = @family.budgets.find_by!(start_date: personal.start_date, oknola_side: "business")
+    assert_equal 2, @family.budgets.where(start_date: personal.start_date).count
+    assert_nil personal.reload.budgeted_spending
+    assert_equal 3000, business.budgeted_spending.to_i
   end
 
   test "imports budget_categories" do

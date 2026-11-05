@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Assistant::Function::GetBudget < Assistant::Function
   include ActiveSupport::NumberHelper
   include Assistant::Function::MonthResolvable
@@ -23,6 +24,7 @@ class Assistant::Function::GetBudget < Assistant::Function
         - `month` (optional): "YYYY-MM" or "MMM-YYYY". Defaults to the current month.
         - `prior_months` (optional): integer 0..#{MAX_PRIOR_MONTHS}. Number of months
           preceding the target month to include for trend comparison. Default 0.
+        - `side` (optional): "business" or "personal". Defaults to "personal".
 
         Example (current month only):
 
@@ -55,12 +57,20 @@ class Assistant::Function::GetBudget < Assistant::Function
           description: "Number of months before the target month to also return for trend comparison.",
           minimum: 0,
           maximum: MAX_PRIOR_MONTHS
+        },
+        side: {
+          type: "string",
+          enum: Oknola::AccountSide::SIDES,
+          description: "Budget side to read. Defaults to personal."
         }
       }
     )
   end
 
   def call(params = {})
+    side = params["side"].presence || "personal"
+    return error("invalid_side", "Side must be one of: #{Oknola::AccountSide::SIDES.join(', ')}.") unless Oknola::AccountSide::SIDES.include?(side)
+
     target_start = resolve_month_start(params["month"])
     prior = [ params["prior_months"].to_i, 0 ].max
     prior = [ prior, MAX_PRIOR_MONTHS ].min
@@ -70,7 +80,7 @@ class Assistant::Function::GetBudget < Assistant::Function
 
     months = month_starts.filter_map do |start_date|
       next unless Budget.budget_date_valid?(start_date, family: family)
-      build_month_payload(start_date, bootstrap: start_date == target_start)
+      build_month_payload(start_date, bootstrap: start_date == target_start, side: side)
     end
 
     result = {
@@ -83,15 +93,16 @@ class Assistant::Function::GetBudget < Assistant::Function
   end
 
   private
-    def build_month_payload(start_date, bootstrap:)
+    def build_month_payload(start_date, bootstrap:, side:)
       budget = if bootstrap
-        Budget.find_or_bootstrap(family, start_date: start_date, user: user)
+        Budget.find_or_bootstrap(family, start_date: start_date, user: user, side: side)
       else
         budget_start, budget_end = Budget.period_for(start_date, family: family)
         family.budgets.find_by(
           start_date: budget_start,
           end_date: budget_end,
-          user: family.personal_budgets? ? user : nil
+          user: family.personal_budgets? ? user : nil,
+          oknola_side: side
         )
       end
       return nil unless budget
@@ -100,6 +111,7 @@ class Assistant::Function::GetBudget < Assistant::Function
 
       {
         month: budget.to_param,
+        side: budget.oknola_side,
         period: {
           start_date: budget.start_date,
           end_date: budget.end_date

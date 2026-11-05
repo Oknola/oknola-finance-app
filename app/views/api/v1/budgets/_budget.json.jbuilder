@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 money_to_minor_units = lambda do |money|
   (money.amount * money.currency.minor_unit_conversion).round(0).to_i if money
 end
@@ -9,6 +10,7 @@ include_derived_amounts = local_assigns.fetch(:include_derived_amounts, true)
 json.id budget.id
 json.start_date budget.start_date
 json.end_date budget.end_date
+json.oknola_side budget.oknola_side
 json.name budget.name
 json.currency budget.currency
 json.initialized budget.initialized?
