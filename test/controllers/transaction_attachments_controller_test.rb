@@ -58,6 +58,24 @@ class TransactionAttachmentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "transaction_attachments_#{@transaction.id}"
   end
 
+  test "shows quota error when turbo stream uploads fit individually but exceed the quota together" do
+    file1 = fixture_file_upload("test.txt", "application/pdf")
+    file2 = fixture_file_upload("test.txt", "image/jpeg")
+    Oknola::StorageQuota.stubs(:family_limit_bytes).returns(
+      Oknola::StorageQuota.total_bytes(@user.family) + file1.size
+    )
+
+    assert_no_difference "@transaction.attachments.count" do
+      post transaction_attachments_path(@transaction),
+           params: { attachments: [ file1, file2 ] },
+           as: :turbo_stream
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes CGI.unescapeHTML(response.body), I18n.t("active_storage.uploads.family_quota_exceeded")
+    assert_includes response.body, "transaction_attachments_#{@transaction.id}"
+  end
+
   test "should ignore blank attachments in array" do
     file = fixture_file_upload("test.txt", "application/pdf")
 

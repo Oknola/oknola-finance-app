@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class TransactionCategoriesControllerTest < ActionDispatch::IntegrationTest
@@ -5,6 +6,20 @@ class TransactionCategoriesControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:family_admin)
     @entry = entries(:transaction)
     @transaction = transactions(:one)
+  end
+
+  test "refuses a category from another family without changing the category" do
+    foreign_category = families(:empty).categories.create!(name: "Foreign category")
+    original_category_id = @transaction.category_id
+
+    patch transaction_category_url(@entry),
+      params: { entry: { entryable_type: "Transaction", entryable_attributes: { id: @transaction.id, category_id: foreign_category.id } } },
+      as: :turbo_stream
+
+    assert_response :unprocessable_entity
+    assert_equal original_category_id, @transaction.reload.category_id
+    assert_nil foreign_category.reload.last_used_at
+    assert_nil flash[:cta]
   end
 
   test "assigning a category touches its last_used_at" do

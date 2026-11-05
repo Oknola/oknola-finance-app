@@ -100,6 +100,17 @@ class TransactionTest < ActiveSupport::TestCase
     assert_not_includes transaction.reload.tags, foreign_tag
   end
 
+  test "does not save a foreign tag through nested attributes on a persisted entry" do
+    foreign_tag = families(:empty).tags.create!(name: "Foreign nested tag")
+    entry = create_transaction(account: accounts(:depository))
+    transaction = entry.entryable
+    transaction.update!(tags: [ tags(:one) ])
+    original_tag_ids = transaction.tag_ids
+
+    assert_not entry.update(entryable_attributes: { id: transaction.id, tag_ids: [ foreign_tag.id ] })
+    assert_equal original_tag_ids, transaction.reload.tag_ids
+  end
+
   test "does not run family reference checks when transaction references are unchanged" do
     transaction = create_transaction(account: accounts(:depository)).entryable.reload
     transaction.expects(:references_belong_to_entry_family).never

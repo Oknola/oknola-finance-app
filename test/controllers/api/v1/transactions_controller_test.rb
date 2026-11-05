@@ -329,6 +329,29 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @account.id, response_data["account"]["id"]
   end
 
+  test "should return 422 when creating a transaction with a foreign tag" do
+    foreign_tag = families(:empty).tags.create!(name: "Foreign API tag")
+
+    assert_no_difference [ "Entry.count", "Transaction.count", "Tagging.count" ] do
+      post api_v1_transactions_url,
+           params: { transaction: {
+             account_id: @account.id,
+             name: "Foreign tag transaction",
+             amount: 25.00,
+             date: Date.current,
+             currency: "USD",
+             nature: "expense",
+             tag_ids: [ foreign_tag.id ]
+           } },
+           headers: api_headers(@api_key)
+    end
+
+    assert_response :unprocessable_entity
+    response_data = JSON.parse(response.body)
+    assert_equal "validation_failed", response_data["error"]
+    assert_equal [ "One or more tags are invalid" ], response_data["errors"]
+  end
+
   test "should create transaction with external idempotency key" do
     transaction_params = {
       transaction: {
