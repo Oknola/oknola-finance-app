@@ -2,7 +2,9 @@
 # Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 
 require "aws-sdk-s3"
+require "open3"
 require "tempfile"
+require "uri"
 
 class OknolaOffsiteBackup
   REQUIRED_ENV = %w[DATABASE_URL R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET].freeze
@@ -22,13 +24,29 @@ class OknolaOffsiteBackup
     dump = Tempfile.new([ "finance-db-", ".dump" ])
     dump.close
 
-    # Suppress tool output: connection errors can contain the database URL.
-    unless system("pg_dump", "--format=custom", "--no-owner", "--no-privileges",
-      "--dbname=#{@env.fetch('DATABASE_URL')}", "--file=#{dump.path}", out: File::NULL, err: File::NULL)
+    database_url = URI.parse(@env.fetch("DATABASE_URL"))
+    encoded_password = database_url.password
+    password = URI::DEFAULT_PARSER.unescape(encoded_password) if encoded_password
+    database_url.password = nil
+    query_passwords, query = (database_url.query || "").split("&").partition do |entry|
+      URI::DEFAULT_PARSER.unescape(entry.split("=", 2).first) == "password"
+    end
+    encoded_query_passwords = query_passwords.map { |entry| entry.split("=", 2).last.to_s }
+    password = URI::DEFAULT_PARSER.unescape(encoded_query_passwords.last) unless encoded_query_passwords.empty?
+    database_url.query = query.empty? ? nil : query.join("&")
+    @redactions = [ @env.fetch("DATABASE_URL"), database_url.to_s, encoded_password, password,
+      (URI::DEFAULT_PARSER.unescape(encoded_password) if encoded_password),
+      (URI.encode_www_form_component(password) if password),
+      *encoded_query_passwords, *encoded_query_passwords.map { |value| URI::DEFAULT_PARSER.unescape(value) }
+    ].compact.reject(&:empty?).sort_by { |value| -value.length }
+
+    # Keep credentials out of process arguments and redact them from diagnostics.
+    unless run_command({ "PGPASSWORD" => password }, "pg_dump", "--format=custom", "--no-owner", "--no-privileges",
+      "--dbname=#{database_url}", "--file=#{dump.path}")
       @stderr.puts "pg_dump failed; backup not uploaded."
       return 1
     end
-    unless system("pg_restore", "--list", dump.path, out: File::NULL, err: File::NULL)
+    unless run_command({}, "pg_restore", "--list", dump.path)
       @stderr.puts "pg_restore validation failed; backup not uploaded."
       return 1
     end
@@ -54,6 +72,16 @@ class OknolaOffsiteBackup
     dump&.close!
     File.umask(old_umask) if old_umask
   end
+
+  private
+    def run_command(env, *command)
+      _, stderr, status = Open3.capture3(env, *command)
+      unless status.success?
+        @redactions.each { |value| stderr = stderr.gsub(value, "[REDACTED]") }
+        @stderr.puts stderr unless stderr.empty?
+      end
+      status.success?
+    end
 end
 
 exit OknolaOffsiteBackup.new.run if $PROGRAM_NAME == __FILE__

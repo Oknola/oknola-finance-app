@@ -130,7 +130,7 @@ services:
     image:
       url: ghcr.io/oknola/oknola-finance-app:oknola
     region: ohio
-    plan: starter
+    plan: 0.5c-512mb
     schedule: "17 6 * * 0"
     dockerCommand: bundle exec ruby bin/oknola-offsite-backup
     envVars:

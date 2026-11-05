@@ -13,7 +13,7 @@ class OknolaBackupBlueprintTest < Minitest::Test
     assert_equal "image", backup.fetch("runtime")
     assert_equal web.fetch("image"), backup.fetch("image")
     assert_equal "ohio", backup.fetch("region")
-    assert_equal "starter", backup.fetch("plan")
+    assert_equal "0.5c-512mb", backup.fetch("plan")
     assert_equal "17 6 * * 0", backup.fetch("schedule")
     assert_equal "bundle exec ruby bin/oknola-offsite-backup", backup.fetch("dockerCommand")
     assert_equal [], database.fetch("ipAllowList")

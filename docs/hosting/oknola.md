@@ -63,6 +63,9 @@ Owner steps for the migration:
 3. Add a lifecycle rule to delete objects after 29 days (R2 object storage → the bucket → Settings → Object Lifecycle Rules → Add rule: name `expire-dumps`, prefix `finance-db/`, delete objects after 29 days → Save changes). Oknola's Finance terms promise deleted data leaves backups within 30 days, and R2 may take up to a day to act on a rule; never lengthen it.
 4. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET` on **Render → finance-backup → Environment**, not GitHub or the web/worker services. `DATABASE_URL` comes from the Blueprint's internal `finance-db` connection; no app encryption keys or `SECRET_KEY_BASE` are needed.
 5. Run **Render → finance-backup → Trigger Run**, wait for success, and confirm the new `finance-db/` object in R2. Remove any obsolete GitHub backup secrets (`DATABASE_URL` and the four `R2_*` keys); keep the deploy-hook secrets.
+6. Check **Render → Integrations → Notifications**: configure a monitored email or Slack destination for failed cron runs and verify a failure notification reaches the responsible owner. A failed run in the dashboard alone is not an alert.
+
+With `finance-db` set to `ipAllowList: []`, laptop `psql` sessions and all other external database tools stop connecting, even with the correct password. Temporarily add only the tool's source IP under `finance-db` → Access Control when external access is necessary, and remove it afterwards; Render's internal services and backup cron remain connected.
 
 The image's `postgresql-client` is PostgreSQL 17 (Ruby 3.4.9 slim uses Debian 13), which can dump the Postgres 16 server. Use `pg_restore` 17 or newer and a PostgreSQL 17 or newer destination for these archives; dumps are not guaranteed to restore into a server older than the dump client.
 
@@ -113,7 +116,9 @@ Two sources, newest first:
   pg_restore --no-owner --no-privileges --dbname="$NEW_DATABASE_URL" finance.dump
   ```
 
-For a restore from a laptop to a Render database, temporarily add only the laptop's current public IP (`/32` for IPv4 or `/128` for IPv6) under the target database's Access Control (`finance-db` → Access Control when restoring there). Use that target's External Database URL for `NEW_DATABASE_URL` only during the restore, then remove the temporary IP immediately afterwards, including on failure. Services continue to use the internal connection; never allow `0.0.0.0/0`.
+For a restore from a laptop to a Render database, create an empty PostgreSQL 17-or-newer target and temporarily add only the laptop's current public IP (`/32` for IPv4 or `/128` for IPv6) under that target's Access Control. Use that target's External Database URL for `NEW_DATABASE_URL` only during the restore, then remove the temporary IP immediately afterwards, including on failure. Services continue to use the internal connection; never allow `0.0.0.0/0`.
+
+Do not use the existing `finance-db` (PostgreSQL 16) as the destination for this procedure. `pg_restore` 17 into a PostgreSQL 16 server reports an error for `SET transaction_timeout = 0` and exits 1, **while continuing to restore rows by default**. A nonzero exit does not mean nothing changed. If this has happened, read the complete restore stderr and final error count, distinguish that unsupported-setting error from any other errors, and verify schema objects, constraints, indexes and row counts against the source plus application/encrypted-column smoke checks before trusting the result. Do not simply ignore exit 1 or blindly rerun into the partially restored database; prefer a fresh PostgreSQL 17+ target and a clean restore.
 
 A restore is only readable with the same three `ACTIVE_RECORD_ENCRYPTION_*` values that wrote it (bank tokens and API keys are encrypted columns) and the same `SECRET_KEY_BASE` (instance-wide API keys in Settings are encrypted with it). Losing those values loses those columns; keep them in the password manager next to the backup notes.
 
