@@ -1,11 +1,9 @@
 module Oknola
-  class CspReportsController < ActionController::Base
+  class CspReportsController < ActionController::API
     MAX_BODY_BYTES = 8 * 1024
 
-    skip_forgery_protection
-
     def create
-      body = request.body.read(MAX_BODY_BYTES)
+      body = request.body.read(MAX_BODY_BYTES) || ""
       return head :no_content if body.bytesize >= MAX_BODY_BYTES
 
       payload = JSON.parse(body)

@@ -53,6 +53,9 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
     log_messages = []
 
     Rails.logger.stub(:info, ->(message = nil, &block) { log_messages << (message || block&.call) }) do
+      post oknola_csp_reports_path, params: "", headers: { "CONTENT_TYPE" => "application/json" }
+      assert_response :no_content
+
       post oknola_csp_reports_path, params: "{", headers: { "CONTENT_TYPE" => "application/json" }
       assert_response :no_content
 
