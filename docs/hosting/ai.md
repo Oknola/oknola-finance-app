@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+<!-- Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 -->
 # LLM Configuration Guide
 
 This document explains how Sure uses Large Language Models (LLMs) for AI features and how to configure them for your deployment.
