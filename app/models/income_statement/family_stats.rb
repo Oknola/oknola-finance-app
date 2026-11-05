@@ -1,10 +1,12 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class IncomeStatement::FamilyStats
   include IncomeStatement::ScopedTransactionsQuery
 
-  def initialize(family, interval: "month", account_ids: nil)
+  def initialize(family, interval: "month", account_ids: nil, side: nil)
     @family = family
     @interval = interval
     @account_ids = account_ids
+    @side = side
   end
 
   def call
@@ -51,6 +53,7 @@ class IncomeStatement::FamilyStats
             #{pending_providers_sql}
             #{exclude_tax_advantaged_sql}
             #{scope_to_account_ids_sql}
+            #{side_filter_sql}
           GROUP BY period, #{classification_sql("t")}
         )
         SELECT

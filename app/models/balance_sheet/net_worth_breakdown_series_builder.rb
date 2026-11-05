@@ -1,12 +1,14 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BalanceSheet::NetWorthBreakdownSeriesBuilder
   # Monthly interval regardless of period length so the reports chart always
   # shows one point per month in the selected range.
   INTERVAL = "1 month"
   CACHE_VERSION = "v2"
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, side: Current.side)
     @family = family
     @user = user
+    @side = side
   end
 
   # Returns a chart payload where each monthly point carries the net worth
@@ -30,7 +32,7 @@ class BalanceSheet::NetWorthBreakdownSeriesBuilder
   end
 
   private
-    attr_reader :family, :user
+    attr_reader :family, :user, :side
 
     def breakdown_value(value, previous, groups)
       point_groups = groups.map do |group|
@@ -118,7 +120,7 @@ class BalanceSheet::NetWorthBreakdownSeriesBuilder
     end
 
     def historical_accounts
-      @historical_accounts ||= BalanceSheet::HistoricalAccountScope.new(family, user: user).relation.to_a
+      @historical_accounts ||= BalanceSheet::HistoricalAccountScope.new(family, user: user, side: side).relation.to_a
     end
 
     def disabled_account_active_until_dates(accounts)
@@ -137,6 +139,7 @@ class BalanceSheet::NetWorthBreakdownSeriesBuilder
         CACHE_VERSION,
         user&.id,
         shares_version,
+        side,
         period.start_date,
         period.end_date
       ].compact.join("_")

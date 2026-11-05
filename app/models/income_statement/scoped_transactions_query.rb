@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # SQL building blocks shared by the IncomeStatement query classes
 # (Totals, DailyExpenseTotals, FamilyStats, CategoryStats). Each class keeps
 # its own SELECT/FROM/GROUP BY, but the scoping fragments - which rows count
@@ -78,6 +79,12 @@ module IncomeStatement::ScopedTransactionsQuery
       "AND a.id IN (:included_account_ids)"
     end
 
+    def side_filter_sql(t = "t")
+      return "" if @side.blank?
+
+      "AND COALESCE(#{t}.oknola_side, a.oknola_side) = :side"
+    end
+
     # Inlined account scoping, for queries built with sanitize_sql.
     def scope_to_account_ids_sql
       return "" if @account_ids.nil?
@@ -87,7 +94,7 @@ module IncomeStatement::ScopedTransactionsQuery
     # Bind params every income statement query needs; classes merge their
     # extras (date range, interval, account ids) on top.
     def base_sql_params(extra = {})
-      { target_currency: @family.currency, family_id: @family.id }.merge(extra).tap do |params|
+      { target_currency: @family.currency, family_id: @family.id, side: @side }.merge(extra).tap do |params|
         ids = @family.tax_advantaged_account_ids
         params[:tax_advantaged_account_ids] = ids if ids.present?
       end

@@ -1,0 +1,11 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<%= render DS::SegmentedControl.new(aria_label: t("oknola.side_switch.aria")) do |control| %>
+  <% Oknola::AccountSide::SIDES.each do |side| %>
+    <% control.with_segment(
+         t("oknola.side_switch.#{side}"),
+         active: Current.side == side,
+         form_action: oknola_side_path,
+         form_params: { side: side }
+       ) %>
+  <% end %>
+<% end %>

@@ -1,4 +1,6 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Current < ActiveSupport::CurrentAttributes
+  attribute :side
   attribute :user_agent, :ip_address
 
   attribute :session

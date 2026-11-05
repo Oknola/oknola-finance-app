@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Transaction::SearchTest < ActiveSupport::TestCase
@@ -11,6 +12,22 @@ class Transaction::SearchTest < ActiveSupport::TestCase
 
     # Clean up existing entries/transactions from fixtures to ensure test isolation
     @family.accounts.each { |account| account.entries.delete_all }
+  end
+
+  test "side filter defaults to Current.side and is included in totals cache keys" do
+    @checking_account.update!(oknola_side: "business")
+    business_account = @checking_account
+    personal_account = @credit_card_account
+    business_transaction = create_transaction(account: business_account, amount: 10).transaction
+    personal_transaction = create_transaction(account: personal_account, amount: 20).transaction
+    Current.side = "business"
+
+    search = Transaction::Search.new(@family)
+    personal_search = Transaction::Search.new(@family, filters: { side: "personal" })
+
+    assert_equal [ business_transaction.id ], search.transactions_scope.pluck(:id)
+    assert_equal [ personal_transaction.id ], personal_search.transactions_scope.pluck(:id)
+    refute_equal search.cache_key_base, personal_search.cache_key_base
   end
 
   test "search filters by transaction types using kind enum" do

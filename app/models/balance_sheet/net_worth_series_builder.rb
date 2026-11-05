@@ -1,7 +1,9 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BalanceSheet::NetWorthSeriesBuilder
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, side: Current.side)
     @family = family
     @user = user
+    @side = side
   end
 
   def net_worth_series(period: Period.last_30_days)
@@ -19,7 +21,7 @@ class BalanceSheet::NetWorthSeriesBuilder
   end
 
   private
-    attr_reader :family, :user
+    attr_reader :family, :user, :side
 
     def historical_accounts
       @historical_accounts ||= historical_account_scope.relation.to_a
@@ -39,7 +41,7 @@ class BalanceSheet::NetWorthSeriesBuilder
     end
 
     def historical_account_scope
-      @historical_account_scope ||= BalanceSheet::HistoricalAccountScope.new(family, user: user)
+      @historical_account_scope ||= BalanceSheet::HistoricalAccountScope.new(family, user: user, side: side)
     end
 
     def cache_key(period)
@@ -48,6 +50,7 @@ class BalanceSheet::NetWorthSeriesBuilder
         "balance_sheet_net_worth_series_historical",
         user&.id,
         shares_version,
+        side,
         period.start_date,
         period.end_date
       ].compact.join("_")

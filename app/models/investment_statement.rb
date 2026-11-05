@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "digest/md5"
 
 class InvestmentStatement
@@ -5,11 +6,12 @@ class InvestmentStatement
 
   monetize :total_contributions, :total_dividends, :total_interest, :unrealized_gains
 
-  attr_reader :family, :user
+  attr_reader :family, :user, :side
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, side: Current.side)
     @family = family
     @user = user || Current.user
+    @side = side
   end
 
   # Get totals for a specific period
@@ -264,6 +266,7 @@ class InvestmentStatement
     @investment_accounts ||= begin
       scope = family.accounts.visible.included_in_reports.where(accountable_type: %w[Investment Crypto])
       scope = scope.included_in_finances_for(user) if user
+      scope = scope.where(oknola_side: side) if side.present?
       scope
     end
   end
@@ -387,7 +390,7 @@ class InvestmentStatement
       account_ids_hash = Digest::MD5.hexdigest(account_ids.sort.join(","))
 
       Rails.cache.fetch([
-        "investment_statement", "totals_query/v2", family.id, user&.id, family.currency,
+        "investment_statement", "totals_query/v2", family.id, user&.id, side, family.currency,
         account_ids_hash, date_range.begin, date_range.end, family.entries_cache_version
       ]) { Totals.new(family, account_ids: account_ids, date_range: date_range).call }
     end

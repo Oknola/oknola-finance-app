@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Per-day expense totals (in the family's currency) for a period, used by the
 # dashboard's cumulative spending chart. Shares its scoping SQL with the
 # other IncomeStatement query classes via
@@ -11,12 +12,13 @@ class IncomeStatement::DailyExpenseTotals
   # `by_category: true` splits each day's total by the transactions'
   # category_id (nil for uncategorized), so callers can narrow the series to
   # some categories without another query.
-  def initialize(family, transactions_scope:, date_range:, included_account_ids: nil, by_category: false)
+  def initialize(family, transactions_scope:, date_range:, included_account_ids: nil, by_category: false, side: nil)
     @family = family
     @transactions_scope = transactions_scope
     @date_range = date_range
     @included_account_ids = included_account_ids
     @by_category = by_category
+    @side = side
 
     validate_date_range!
   end
@@ -67,6 +69,7 @@ class IncomeStatement::DailyExpenseTotals
             AND a.exclude_from_reports = false
             #{exclude_tax_advantaged_sql}
             #{include_finance_accounts_sql}
+            #{side_filter_sql("at")}
           GROUP BY ae.date, #{category_column_sql("at.category_id")}#{classification_sql("at")}
         ) daily
         WHERE classification = 'expense'

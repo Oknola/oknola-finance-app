@@ -1,7 +1,9 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BalanceSheet::AccountTotals
-  def initialize(family, user: nil, sync_status_monitor:)
+  def initialize(family, user: nil, side: Current.side, sync_status_monitor:)
     @family = family
     @user = user
+    @side = side
     @sync_status_monitor = sync_status_monitor
   end
 
@@ -14,7 +16,7 @@ class BalanceSheet::AccountTotals
   end
 
   private
-    attr_reader :family, :user, :sync_status_monitor
+    attr_reader :family, :user, :side, :sync_status_monitor
 
     AccountRow = Data.define(:account, :converted_balance, :is_syncing, :included_in_finances, :exclude_from_reports) do
       def syncing? = is_syncing
@@ -39,6 +41,7 @@ class BalanceSheet::AccountTotals
                     account_providers: :provider
                   )
         scope = scope.accessible_by(user) if user
+        scope = scope.where(oknola_side: side) if side.present?
         scope
       end
     end
@@ -68,7 +71,7 @@ class BalanceSheet::AccountTotals
     def cache_key
       shares_version = user ? AccountShare.where(user: user).maximum(:updated_at)&.to_i : nil
       family.build_cache_key(
-        [ "balance_sheet_account_ids", user&.id, shares_version ].compact.join("_"),
+        [ "balance_sheet_account_ids", user&.id, shares_version, side ].compact.join("_"),
         invalidate_on_data_updates: true
       )
     end

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Api::V1::CashFlowsControllerTest < ActionDispatch::IntegrationTest
@@ -52,6 +53,37 @@ class Api::V1::CashFlowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "12.0", response.parsed_body.dig("sankey", "spending")
     assert_equal "12.0", response.parsed_body["spending"]
     assert_equal "12.0", response.parsed_body.dig("spending_comparison", "current_total")
+  end
+
+  test "API cash-flow totals ignore the saved browser side" do
+    family = @user.family
+    Entry.where(account_id: family.accounts.select(:id)).delete_all
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
+    business = family.accounts.create!(
+      name: "Business",
+      owner: @user,
+      currency: "USD",
+      balance: 0,
+      accountable: Depository.new,
+      oknola_side: "business"
+    )
+    personal = family.accounts.create!(
+      name: "Personal",
+      owner: @user,
+      currency: "USD",
+      balance: 0,
+      accountable: Depository.new,
+      oknola_side: "personal"
+    )
+    month = Date.current.beginning_of_month
+    create_transaction(account: business, amount: 12, date: month)
+    create_transaction(account: personal, amount: 34, date: month)
+
+    get "/api/v1/cash_flow", params: { month: month.iso8601, include: "sankey" }, headers: api_headers(@auth)
+
+    assert_response :success
+    assert_equal "46.0", response.parsed_body["spending"]
+    assert_equal "46.0", response.parsed_body.dig("spending_comparison", "current_total")
   end
 
   test "graph is opt-in and date ranges do not calculate daily series" do

@@ -2,11 +2,6 @@
 ---
 en:
   transactions:
-    side_toggle:
-      all: All
-      business: Business
-      personal: Personal
-      aria: Show transactions by side
     bulk_updates:
       new:
         cancel: Cancel

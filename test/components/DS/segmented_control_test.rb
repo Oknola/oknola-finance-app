@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class DS::SegmentedControlTest < ViewComponent::TestCase
@@ -21,6 +22,19 @@ class DS::SegmentedControlTest < ViewComponent::TestCase
 
     assert_selector "a.segmented-control__segment--active[href='/login']", text: "Sign in"
     assert_selector "a.segmented-control__segment[href='/join']", text: "Sign up"
+  end
+
+  test "form_action renders a PATCH button segment with current state" do
+    render_inline(DS::SegmentedControl.new(aria_label: "Side")) do |sc|
+      sc.with_segment("Business", active: true, form_action: "/side", form_params: { side: "business" })
+      sc.with_segment("Personal", form_action: "/side", form_params: { side: "personal" })
+    end
+
+    assert_selector "form.contents[action='/side'] input[name='_method'][value='patch']", count: 2, visible: false
+    assert_selector "form.contents button.segmented-control__segment[aria-current='true']", text: "Business"
+    assert_selector "form.contents button.segmented-control__segment:not([aria-current])", text: "Personal"
+    assert_selector "form.contents input[name='side'][value='business']", visible: false
+    assert_selector "form.contents input[name='side'][value='personal']", visible: false
   end
 
   test "full_width stretches the track and each segment" do

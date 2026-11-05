@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class InvestmentStatementTest < ActiveSupport::TestCase
@@ -5,6 +6,21 @@ class InvestmentStatementTest < ActiveSupport::TestCase
     @family = families(:empty)
     # families(:empty) defaults to currency "USD"
     @statement = InvestmentStatement.new(@family, user: nil)
+  end
+
+  test "investment accounts and portfolio totals follow the selected side" do
+    business = create_investment_account(balance: 1000, cash_balance: 100)
+    personal = create_investment_account(balance: 2000, cash_balance: 200)
+    business.update!(oknola_side: "business")
+    personal.update!(oknola_side: "personal")
+
+    business_statement = InvestmentStatement.new(@family, side: "business")
+    personal_statement = InvestmentStatement.new(@family, side: "personal")
+
+    assert_equal [ business.id ], business_statement.investment_accounts.pluck(:id)
+    assert_equal [ personal.id ], personal_statement.investment_accounts.pluck(:id)
+    assert_equal 1000, business_statement.portfolio_value
+    assert_equal 2000, personal_statement.portfolio_value
   end
 
   test "portfolio_value and cash_balance with a single-currency family" do

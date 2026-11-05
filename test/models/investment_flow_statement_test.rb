@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class InvestmentFlowStatementTest < ActiveSupport::TestCase
@@ -39,6 +40,57 @@ class InvestmentFlowStatementTest < ActiveSupport::TestCase
     assert_includes aggregate_queries.first, "transactions.investment_activity_label = 'Withdrawal'"
     assert_empty queries.grep(/"transactions"\."investment_activity_label" = \$\d/)
     assert_includes aggregate_queries.first, '"entries"."account_id" IN (SELECT DISTINCT "accounts"."id"'
+  end
+
+  test "contribution flows use the effective transaction side" do
+    business = @family.accounts.create!(
+      owner: @user,
+      name: "Business Investment",
+      balance: 0,
+      currency: "USD",
+      accountable: Investment.new,
+      oknola_side: "business"
+    )
+    personal = @family.accounts.create!(
+      owner: @user,
+      name: "Personal Investment",
+      balance: 0,
+      currency: "USD",
+      accountable: Investment.new,
+      oknola_side: "personal"
+    )
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    business.entries.create!(
+      name: "Business contribution",
+      amount: -100,
+      date: Date.current,
+      currency: "USD",
+      entryable: Transaction.new(kind: "standard", investment_activity_label: "Contribution")
+    )
+    personal.entries.create!(
+      name: "Personal contribution",
+      amount: -50,
+      date: Date.current,
+      currency: "USD",
+      entryable: Transaction.new(kind: "standard", investment_activity_label: "Contribution")
+    )
+    override = personal.entries.create!(
+      name: "Business override",
+      amount: -5,
+      date: Date.current,
+      currency: "USD",
+      entryable: Transaction.new(kind: "standard", investment_activity_label: "Contribution", oknola_side: "business")
+    )
+
+    business_totals = InvestmentFlowStatement.new(@family, user: @user, side: "business").period_totals(period: period)
+    personal_totals = InvestmentFlowStatement.new(@family, user: @user, side: "personal").period_totals(period: period)
+
+    assert_equal Money.new(105, "USD"), business_totals.contributions
+    assert_equal Money.new(50, "USD"), personal_totals.contributions
+
+    override.transaction.update!(oknola_side: "personal")
+    personal_totals = InvestmentFlowStatement.new(@family, user: @user, side: "personal").period_totals(period: period)
+    assert_equal Money.new(55, "USD"), personal_totals.contributions
   end
 
   test "a matched provider contribution still counts once after resync" do

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class IncomeStatementTest < ActiveSupport::TestCase
@@ -18,6 +19,59 @@ class IncomeStatementTest < ActiveSupport::TestCase
     create_transaction(account: @checking_account, amount: 200, category: @groceries_category)
     create_transaction(account: @credit_card_account, amount: 300, category: @groceries_category)
     create_transaction(account: @credit_card_account, amount: 400, category: @groceries_category)
+  end
+
+  test "income statement totals and analytics use the effective transaction side" do
+    Entry.where(account_id: @family.accounts.select(:id)).delete_all
+    business_account = @family.accounts.create!(
+      name: "Business",
+      currency: @family.currency,
+      balance: 0,
+      accountable: Depository.new,
+      oknola_side: "business"
+    )
+    personal_account = @family.accounts.create!(
+      name: "Personal",
+      currency: @family.currency,
+      balance: 0,
+      accountable: Depository.new,
+      oknola_side: "personal"
+    )
+    personal_date = Date.current.beginning_of_month
+    business_date = personal_date + 1.day
+
+    create_transaction(account: business_account, amount: -100, category: @income_category, date: business_date)
+    create_transaction(account: business_account, amount: 30, category: @food_category, date: business_date)
+    create_transaction(account: personal_account, amount: -50, category: @income_category, date: personal_date)
+    create_transaction(account: personal_account, amount: 20, category: @food_category, date: personal_date)
+    create_transaction(account: personal_account, amount: 5, category: @food_category, date: business_date)
+      .transaction.update!(oknola_side: "business")
+
+    period = Period.current_month
+    business = IncomeStatement.new(@family, side: "business")
+    personal = IncomeStatement.new(@family, side: "personal")
+
+    assert_equal 100, business.income_totals(period: period).total
+    assert_equal 35, business.expense_totals(period: period).total
+    assert_equal 50, personal.income_totals(period: period).total
+    assert_equal 20, personal.expense_totals(period: period).total
+    assert_equal 35, business.daily_expense_series(period: period).sum(&:total)
+    assert_equal 20, personal.daily_expense_series(period: period).sum(&:total)
+    assert_equal 100, business.send(:family_stats).find { |stat| stat.classification == "income" }.avg
+    assert_equal 20, personal.send(:category_stats).find { |stat| stat.classification == "expense" }.avg
+    assert_equal business_date, IncomeStatement::SpendingComparison.history_start(business)
+    assert_equal personal_date, IncomeStatement::SpendingComparison.history_start(personal)
+    transactions_only = IncomeStatement::Totals.new(
+      @family,
+      transactions_scope: @family.transactions.visible.excluding_pending.in_period(period),
+      date_range: period.date_range,
+      include_trades: false,
+      side: "business"
+    ).call
+    assert_equal 35, transactions_only.select { |row| row.classification == "expense" }.sum(&:total)
+    unfiltered_totals = IncomeStatement.new(@family, side: nil).totals(date_range: period.date_range)
+    assert_equal 150, unfiltered_totals.income_money.amount
+    assert_equal 55, unfiltered_totals.expense_money.amount
   end
 
   test "a new statement invalidates daily series when the family currency changes" do

@@ -7,6 +7,7 @@ class Oknola::RowDensityTest < ActionDispatch::IntegrationTest
 
   setup do
     sign_in @user = users(:family_admin)
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
     Entry.delete_all
 
     accounts(:depository).update!(oknola_side: "business")

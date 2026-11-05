@@ -1,13 +1,15 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BalanceSheet
   include Monetizable
 
   monetize :net_worth
 
-  attr_reader :family, :user
+  attr_reader :family, :user, :side
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, side: Current.side)
     @family = family
     @user = user || Current.user
+    @side = side
   end
 
   def assets
@@ -56,11 +58,11 @@ class BalanceSheet
     end
 
     def account_totals
-      @account_totals ||= AccountTotals.new(family, user: user, sync_status_monitor: sync_status_monitor)
+      @account_totals ||= AccountTotals.new(family, user: user, side: side, sync_status_monitor: sync_status_monitor)
     end
 
     def net_worth_series_builder
-      @net_worth_series_builder ||= NetWorthSeriesBuilder.new(family, user: user)
+      @net_worth_series_builder ||= NetWorthSeriesBuilder.new(family, user: user, side: side)
     end
 
     def sorted(accounts)

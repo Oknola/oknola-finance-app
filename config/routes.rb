@@ -1013,6 +1013,7 @@ Rails.application.routes.draw do
   # Oknola embedding: server-to-server handoff and account purge, and the
   # one-time code sign-in the Oknola client opens.
   namespace :oknola do
+    patch :side, to: "sides#update"
     post :csp_reports, to: "csp_reports#create", format: false
     get "new/:kind", to: "quick_entries#new", as: :quick_entry, constraints: { kind: /expense|income/ }
     post :handoff, to: "handoff#create"
