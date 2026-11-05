@@ -512,6 +512,21 @@ class InvestmentStatementTest < ActiveSupport::TestCase
     assert_no_match(/JOIN accounts/, aggregate_queries.first)
   end
 
+  test "dividend transactions use their effective side while API-style totals stay unfiltered" do
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    account = create_investment_account(balance: 1000)
+    account.update!(oknola_side: "personal")
+    create_income_transaction(account: account, label: "Dividend", amount: 12.5, date: Date.current)
+    override = create_income_transaction(account: account, label: "Dividend", amount: 7.5, date: Date.current)
+    override.transaction.update!(oknola_side: "business")
+
+    personal = InvestmentStatement.new(@family, side: "personal").totals(period: period)
+    unfiltered = InvestmentStatement.new(@family, side: nil).totals(period: period)
+
+    assert_equal 12.5, personal.dividends.amount
+    assert_equal 20, unfiltered.dividends.amount
+  end
+
   test "totals aggregate dividend and interest income from income trades" do
     period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
     account = create_investment_account(balance: 500)

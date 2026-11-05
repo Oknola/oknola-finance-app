@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class IncomeStatement::AccountSankeyTest < ActiveSupport::TestCase
@@ -74,6 +75,23 @@ class IncomeStatement::AccountSankeyTest < ActiveSupport::TestCase
 
     assert_equal by_category[:spending], result[:spending]
     assert_equal node(by_category, "expense_#{@shopping.id}")[:value], node(result, "expense_#{@shopping.id}")[:value]
+  end
+
+  test "account flows preserve the statement side when Current.side differs" do
+    @checking.update!(oknola_side: "business")
+    @card.update!(oknola_side: "personal")
+    transaction(@checking, -1000, @salary)
+    transaction(@card, 200, @shopping)
+    Current.side = "personal"
+
+    statement = IncomeStatement.new(@family, side: "business")
+    result = IncomeStatement::AccountSankey.new(statement, period: period).as_json
+
+    assert_equal "1000.0", result[:income]
+    assert_equal "0.0", result[:spending]
+    assert_nil node(result, "account_#{@card.id}")
+  ensure
+    Current.side = nil
   end
 
   private

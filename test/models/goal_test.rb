@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class GoalTest < ActiveSupport::TestCase
@@ -740,6 +741,21 @@ class GoalTest < ActiveSupport::TestCase
     ) { |g| g.goal_accounts.build(account: account) }
 
     assert_equal BigDecimal("3000"), goal.reload.target_amount.to_d
+  end
+
+  test "months-mode reserve target is derived from both sides with a selected side" do
+    Current.side = "business"
+    goal = reserve_goal(balance: 100, target: 1)
+    statement = stub(median_expense: BigDecimal("500"))
+    IncomeStatement.expects(:new).with do |family, **options|
+      family == @family && options[:side].nil?
+    end.returns(statement)
+
+    goal.update!(target_mode: "months_of_expenses", target_months: 6)
+
+    assert_equal BigDecimal("3000"), goal.reload.target_amount.to_d
+  ensure
+    Current.side = nil
   end
 
   test "changing the number of months recomputes the floor at once" do

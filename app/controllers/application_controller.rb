@@ -37,7 +37,7 @@ class ApplicationController < ActionController::Base
       controller_path.start_with?("api/v1/") ||
         controller_path.start_with?("doorkeeper/") ||
         request.path.start_with?("/oauth") ||
-        %w[chats messages mcp].include?(controller_name)
+        controller_name == "mcp"
     end
 
     def accept_pending_invitation_for(user)

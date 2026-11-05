@@ -34,12 +34,17 @@ class Oknola::SideSwitchTest < ActionDispatch::IntegrationTest
     assert_rows @personal_entries
     assert_rows @business_entries, present: false
     assert_switch_active("Personal")
+    get transactions_path, params: { q: { side: "business" } }
+    assert_summary(count: "2", income: "$50.00", expense: "$20.00")
+    assert_rows @personal_entries
+    assert_rows @business_entries, present: false
     assert_dashboard_totals(income: "$50.00", expense: "$20.00")
     assert_report_totals(income: "$50.00", expense: "$20.00")
 
     patch oknola_side_path, params: { side: "business" }, headers: { "HTTP_REFERER" => transactions_path }
 
     assert_redirected_to transactions_path
+    assert_equal 303, response.status
     assert_equal "business", @user.reload.preferences["oknola_side"]
 
     get transactions_path
@@ -142,6 +147,30 @@ class Oknola::SideSwitchTest < ActionDispatch::IntegrationTest
         assert_select "button", text: "All", count: 0
       end
     end
+  end
+
+  test "cached account sidebar changes with the selected side on the next request" do
+    original_cache = Rails.cache
+    original_perform_caching = ActionController::Base.perform_caching
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    ActionController::Base.perform_caching = true
+    @business_account.update!(oknola_side: "business")
+    @personal_account.update!(oknola_side: "personal")
+
+    get root_path
+    assert_response :success
+    assert_select "#account-sidebar-tabs a[href=?]", account_path(@personal_account), minimum: 1
+    assert_select "#account-sidebar-tabs a[href=?]", account_path(@business_account), count: 0
+
+    @user.update!(preferences: @user.preferences.merge("oknola_side" => "business"))
+    get root_path
+
+    assert_response :success
+    assert_select "#account-sidebar-tabs a[href=?]", account_path(@business_account), minimum: 1
+    assert_select "#account-sidebar-tabs a[href=?]", account_path(@personal_account), count: 0
+  ensure
+    Rails.cache = original_cache
+    ActionController::Base.perform_caching = original_perform_caching
   end
 
   private

@@ -16,6 +16,18 @@ class ChatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "chats page applies the user's selected side to the sidebar" do
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
+    accounts(:depository).update!(oknola_side: "business")
+    accounts(:credit_card).update!(oknola_side: "personal")
+
+    get chats_url
+
+    assert_response :success
+    assert_select "#account-sidebar-tabs a[href=?]", account_path(accounts(:depository)), minimum: 1
+    assert_select "#account-sidebar-tabs a[href=?]", account_path(accounts(:credit_card)), count: 0
+  end
+
   test "gets new chat with a localized German default title" do
     @user.update!(locale: "de")
 

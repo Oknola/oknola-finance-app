@@ -9,7 +9,7 @@ module Oknola
         preferences["oknola_side"] = side
       end
 
-      redirect_back fallback_location: root_path
+      redirect_back fallback_location: root_path, status: :see_other
     end
   end
 end

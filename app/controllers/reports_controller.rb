@@ -5,6 +5,7 @@ class ReportsController < ApplicationController
   # Allow API key authentication for exports (for Google Sheets integration)
   # Note: We run authentication_for_export which handles both session and API key auth
   skip_authentication only: :export_transactions
+  skip_before_action :set_current_side, only: :export_transactions
   before_action :authenticate_for_export, only: :export_transactions
 
   def index
@@ -1140,6 +1141,7 @@ class ReportsController < ApplicationController
       else
         # Use normal session authentication
         authenticate_user!
+        set_current_side unless performed?
       end
     end
 

@@ -1,8 +1,10 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class InvestmentStatement::Totals
-  def initialize(family, account_ids:, date_range:)
+  def initialize(family, account_ids:, date_range:, side: Current.side)
     @family = family
     @account_ids = account_ids
     @date_range = date_range
+    @side = side
   end
 
   def call
@@ -83,6 +85,7 @@ class InvestmentStatement::Totals
         FROM entries
         LEFT JOIN trades ON trades.id = entries.entryable_id AND entries.entryable_type = 'Trade'
         LEFT JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'
+        #{accounts_join_sql}
         LEFT JOIN exchange_rates er ON (
           er.date = entries.date AND
           er.from_currency = entries.currency AND
@@ -96,6 +99,7 @@ class InvestmentStatement::Totals
             OR (
               entries.entryable_type = 'Transaction'
               AND #{income_transaction_sql}
+              #{side_filter_sql}
               #{Transaction.pending_providers_sql("transactions")}
             )
           )
@@ -110,12 +114,24 @@ class InvestmentStatement::Totals
       "transactions.investment_activity_label IN ('Dividend', 'Interest')"
     end
 
+    def side_filter_sql
+      return "" if @side.blank?
+
+      "AND COALESCE(transactions.oknola_side, accounts.oknola_side) = :side"
+    end
+
+    def accounts_join_sql
+      "LEFT JOIN accounts ON accounts.id = entries.account_id" if @side.present?
+    end
+
     def sql_params
-      {
+      params = {
         target_currency: @family.currency,
         account_ids: @account_ids,
         start_date: @date_range.begin,
         end_date: @date_range.end
       }
+      params[:side] = @side if @side.present?
+      params
     end
 end

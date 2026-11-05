@@ -384,7 +384,7 @@ class InvestmentStatement
 
     def totals_query(account_ids:, date_range:)
       if account_ids.empty?
-        return Totals.new(family, account_ids: account_ids, date_range: date_range).call
+        return Totals.new(family, account_ids: account_ids, date_range: date_range, side: side).call
       end
 
       account_ids_hash = Digest::MD5.hexdigest(account_ids.sort.join(","))
@@ -392,7 +392,7 @@ class InvestmentStatement
       Rails.cache.fetch([
         "investment_statement", "totals_query/v2", family.id, user&.id, side, family.currency,
         account_ids_hash, date_range.begin, date_range.end, family.entries_cache_version
-      ]) { Totals.new(family, account_ids: account_ids, date_range: date_range).call }
+      ]) { Totals.new(family, account_ids: account_ids, date_range: date_range, side: side).call }
     end
 
     def monetizable_currency

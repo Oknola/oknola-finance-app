@@ -389,6 +389,32 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_match /Category/, @response.body
   end
 
+  test "API-key CSV export remains unfiltered by the saved browser side" do
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
+    business_account = accounts(:depository)
+    personal_account = accounts(:credit_card)
+    business_account.update!(oknola_side: "business")
+    personal_account.update!(oknola_side: "personal")
+    business_category = @family.categories.create!(name: "Business Export Side")
+    personal_category = @family.categories.create!(name: "Personal Export Side")
+    create_transaction(account: business_account, amount: 20, category: business_category, date: Date.current)
+    create_transaction(account: personal_account, amount: 30, category: personal_category, date: Date.current)
+
+    api_key = api_keys(:active_key)
+    api_key.update!(source: "web") unless api_key.source == "web"
+    get export_transactions_reports_path(
+      format: :csv,
+      period_type: :monthly,
+      start_date: Date.current.beginning_of_month,
+      end_date: Date.current.end_of_month,
+      api_key: api_key.plain_key
+    )
+
+    assert_response :ok
+    assert_includes response.body, "Business Export Side"
+    assert_includes response.body, "Personal Export Side"
+  end
+
   test "export transactions with API key does not inherit web session impersonation" do
     support_user = users(:sure_support_staff)
     support_user.api_keys.active.destroy_all

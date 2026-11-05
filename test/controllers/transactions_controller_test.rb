@@ -2059,6 +2059,30 @@ end
     Rails.cache = original_cache
   end
 
+  test "index projected recurring rows follow the selected account side" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    business = recurring_transactions(:netflix_subscription)
+    personal = recurring_transactions(:inactive_subscription)
+    business.update!(status: "active", next_expected_date: Date.current)
+    personal.update!(status: "active", next_expected_date: Date.current)
+    business.account.update!(oknola_side: "business")
+    personal.account.update!(oknola_side: "personal")
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
+
+    get transactions_url
+    assert_response :success
+    assert_equal [ business.id ], @controller.instance_variable_get(:@projected_recurring).map(&:id)
+
+    @user.update!(preferences: @user.preferences.merge("oknola_side" => "personal"))
+    get transactions_url
+
+    assert_response :success
+    assert_equal [ personal.id ], @controller.instance_variable_get(:@projected_recurring).map(&:id)
+  ensure
+    Rails.cache = original_cache
+  end
+
   test "index projected_recurring cache reflects a merchant rename immediately" do
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new

@@ -1,5 +1,5 @@
 # Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
-require "digest/md5"
+require "digest"
 
 class IncomeStatement
   include Monetizable
@@ -339,7 +339,7 @@ class IncomeStatement
     end
 
     def included_account_ids_hash
-      @included_account_ids_hash ||= included_account_ids ? Digest::MD5.hexdigest(included_account_ids.sort.join(",")) : nil
+      @included_account_ids_hash ||= included_account_ids ? Digest::SHA256.hexdigest(included_account_ids.sort.join(",")) : nil
     end
 
     # An IncomeStatement is a request-scoped reporting snapshot, like its memoized
@@ -358,7 +358,7 @@ class IncomeStatement
     end
 
     def totals_query(transactions_scope:, date_range:)
-      sql_hash = Digest::MD5.hexdigest(transactions_scope.to_sql)
+      sql_hash = Digest::SHA256.hexdigest(transactions_scope.to_sql)
 
       Rails.cache.fetch([
         "income_statement", "totals_query", "v2", family.id, user&.id, included_account_ids_hash, sql_hash, date_range.begin, date_range.end, side, *cache_freshness_key

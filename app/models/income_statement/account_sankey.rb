@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Cash-flow Sankey grouped by account: income categories -> accounts -> expense
 # categories. Each account's categories are netted with IncomeStatement::
 # CategoryNetting, scoped to that account. What an account takes in beyond what
@@ -36,7 +37,11 @@ class IncomeStatement::AccountSankey
     # statement per account keeps the netting identical to the category view.
     def account_flows
       @statement.eligible_accounts.order(:name).filter_map do |account|
-        statement = @statement.family.income_statement(user: @statement.user, accounts: Account.where(id: account.id))
+        statement = @statement.family.income_statement(
+          user: @statement.user,
+          accounts: Account.where(id: account.id),
+          side: @statement.side
+        )
         groups = IncomeStatement::CategoryNetting.new(statement, period: @period).groups
         income = groups.sum { |group| side_total(group, :income) }.to_d
         spending = groups.sum { |group| side_total(group, :expense) }.to_d
