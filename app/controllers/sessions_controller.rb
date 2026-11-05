@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class SessionsController < ApplicationController
   extend SslConfigurable
 
@@ -49,16 +49,11 @@ class SessionsController < ApplicationController
     if AuthConfig.local_login_enabled?
       user = User.authenticate_by(email: params[:email], password: params[:password])
     else
-      # Local login is disabled. Only allow attempts when an emergency super-admin
-      # override is enabled and the email belongs to a super-admin.
+      # Local login is disabled. The emergency override only admits authenticated
+      # super-admins, without revealing their emails through failed-login responses.
       if AuthConfig.local_admin_override_enabled?
-        candidate = User.find_by(email: params[:email])
-        unless candidate&.super_admin?
-          redirect_to new_session_path, alert: t("sessions.create.local_login_disabled")
-          return
-        end
-
         user = User.authenticate_by(email: params[:email], password: params[:password])
+        user = nil unless user&.super_admin?
       else
         redirect_to new_session_path, alert: t("sessions.create.local_login_disabled")
         return

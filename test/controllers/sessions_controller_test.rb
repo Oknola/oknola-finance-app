@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
@@ -259,32 +259,55 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     AuthConfig.stubs(:local_login_enabled?).returns(false)
     AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
 
-    post sessions_url, params: { email: super_admin.email, password: user_password_test }
+    assert_difference("Session.count", 1) do
+      post sessions_url, params: { email: super_admin.email, password: user_password_test }
+    end
 
     assert_redirected_to root_path
     assert Session.exists?(user_id: super_admin.id)
+    assert cookies[:session_token].present?
   end
 
-  test "shows invalid credentials for super admin when override enabled but password is wrong" do
+  test "allows super admin MFA challenge when override enabled" do
     super_admin = users(:sure_support_staff)
+    super_admin.setup_mfa!
+    super_admin.enable_mfa!
 
     AuthConfig.stubs(:local_login_enabled?).returns(false)
     AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
 
-    post sessions_url, params: { email: super_admin.email, password: "bad" }
+    assert_no_difference("Session.count") do
+      post sessions_url, params: { email: super_admin.email, password: user_password_test }
+    end
 
-    assert_response :unprocessable_entity
-    assert_equal "Invalid email or password.", flash[:alert]
+    assert_redirected_to verify_mfa_path
+    assert_equal super_admin.id, session[:mfa_user_id]
+    assert cookies[:session_token].blank?
   end
 
-  test "blocks non-super-admin local login when override enabled" do
-    AuthConfig.stubs(:local_login_enabled?).returns(false)
-    AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
+  {
+    "unknown email" => [ "unknown@example.com", "bad" ],
+    "non-super-admin with wrong password" => [ :family_admin, "bad" ],
+    "non-super-admin with correct password" => [ :family_admin, :correct ],
+    "super admin with wrong password" => [ :sure_support_staff, "bad" ]
+  }.each do |scenario, (identity, password)|
+    test "shows identical invalid credentials for #{scenario} when override enabled" do
+      AuthConfig.stubs(:local_login_enabled?).returns(false)
+      AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
 
-    post sessions_url, params: { email: @user.email, password: user_password_test }
+      email = identity.is_a?(Symbol) ? users(identity).email : identity
+      password = user_password_test if password == :correct
 
-    assert_redirected_to new_session_path
-    assert_equal "Local password login is disabled. Please use single sign-on.", flash[:alert]
+      assert_no_difference("Session.count") do
+        post sessions_url, params: { email: email, password: password }
+      end
+
+      assert_response :unprocessable_entity
+      assert_nil response.headers["Location"]
+      assert_equal I18n.t("sessions.create.invalid_credentials"), flash[:alert]
+      assert_nil session[:mfa_user_id]
+      assert cookies[:session_token].blank?
+    end
   end
 
   test "renders multiple SSO provider buttons" do

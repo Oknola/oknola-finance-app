@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 module Api
   module V1
     class AuthController < BaseController
@@ -83,14 +83,16 @@ module Api
       end
 
       def login
-        user = User.find_by(email: params[:email])
-
-        unless local_login_permitted_for?(user)
+        local_login_enabled = AuthConfig.local_login_enabled?
+        unless local_login_enabled || AuthConfig.local_admin_override_enabled?
           render json: { error: "Local login is disabled. Please use SSO." }, status: :forbidden
           return
         end
 
-        if user&.authenticate(params[:password])
+        user = User.authenticate_by(email: params[:email], password: params[:password])
+        user = nil unless local_login_enabled || user&.super_admin?
+
+        if user
           unless user.active?
             render json: { error: "This account has been deactivated. Please contact an administrator." }, status: :unauthorized
             return
@@ -414,14 +416,6 @@ module Api
       end
 
       private
-
-        # Mirrors SessionsController#create: with SSO-only mode on, the only
-        # local sign-in allowed is a super admin using the emergency override.
-        def local_login_permitted_for?(user)
-          return true if AuthConfig.local_login_enabled?
-
-          AuthConfig.local_admin_override_enabled? && user&.super_admin?
-        end
 
         def user_signup_params
           params.require(:user).permit(:email, :password, :first_name, :last_name)

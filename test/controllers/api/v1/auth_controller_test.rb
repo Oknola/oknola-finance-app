@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
@@ -289,9 +289,6 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     assert device.active?
   end
 
-  # SessionsController refuses local sign-in when SSO-only mode is on, with a
-  # single exception for a super-admin when the emergency override is enabled.
-  # The API mints the same credentials and enforced neither.
   test "login is refused when local login is disabled" do
     AuthConfig.stubs(:local_login_enabled?).returns(false)
     AuthConfig.stubs(:local_admin_override_enabled?).returns(false)
@@ -304,34 +301,76 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :forbidden
+    assert_equal({ "error" => "Local login is disabled. Please use SSO." }, JSON.parse(response.body))
   end
 
   test "login allows a super admin through the emergency override" do
     AuthConfig.stubs(:local_login_enabled?).returns(false)
     AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
-    user = users(:family_admin)
-    user.update!(role: :super_admin)
+    user = users(:sure_support_staff)
     user.mobile_devices.destroy_all
 
-    post "/api/v1/auth/login", params: {
-      email: user.email, password: user_password_test, device: @device_info
-    }
-
-    assert_response :success
-  end
-
-  test "login refuses a non super admin even with the emergency override on" do
-    AuthConfig.stubs(:local_login_enabled?).returns(false)
-    AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
-    user = users(:family_member)
-
-    assert_no_difference("Doorkeeper::AccessToken.count") do
+    assert_difference([ "MobileDevice.count", "Doorkeeper::AccessToken.count" ], 1) do
       post "/api/v1/auth/login", params: {
         email: user.email, password: user_password_test, device: @device_info
       }
     end
 
-    assert_response :forbidden
+    assert_response :success
+    response_data = JSON.parse(response.body)
+    assert_equal user.id, response_data["user"]["id"]
+    assert response_data["access_token"].present?
+    assert response_data["refresh_token"].present?
+  end
+
+  {
+    "unknown email" => [ "unknown@example.com", "bad" ],
+    "non-super-admin with wrong password" => [ :family_member, "bad" ],
+    "non-super-admin with correct password" => [ :family_member, :correct ],
+    "super admin with wrong password" => [ :sure_support_staff, "bad" ]
+  }.each do |scenario, (identity, password)|
+    test "login returns identical invalid credentials for #{scenario} with emergency override on" do
+      AuthConfig.stubs(:local_login_enabled?).returns(false)
+      AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
+      email = identity.is_a?(Symbol) ? users(identity).email : identity
+      password = user_password_test if password == :correct
+
+      assert_no_difference([ "MobileDevice.count", "Doorkeeper::AccessToken.count" ]) do
+        post "/api/v1/auth/login", params: {
+          email: email, password: password, device: @device_info
+        }
+      end
+
+      assert_response :unauthorized
+      assert_equal({ "error" => "Invalid email or password" }, JSON.parse(response.body))
+    end
+  end
+
+  test "login still requires MFA for a super admin with emergency override on" do
+    AuthConfig.stubs(:local_login_enabled?).returns(false)
+    AuthConfig.stubs(:local_admin_override_enabled?).returns(true)
+    user = users(:sure_support_staff)
+    user.setup_mfa!
+    user.enable_mfa!
+
+    assert_no_difference([ "MobileDevice.count", "Doorkeeper::AccessToken.count" ]) do
+      post "/api/v1/auth/login", params: {
+        email: user.email, password: user_password_test, device: @device_info
+      }
+    end
+
+    assert_response :unauthorized
+    assert_equal({ "error" => "Two-factor authentication required", "mfa_required" => true }, JSON.parse(response.body))
+
+    assert_difference("Doorkeeper::AccessToken.count", 1) do
+      post "/api/v1/auth/login", params: {
+        email: user.email, password: user_password_test, device: @device_info,
+        otp_code: ROTP::TOTP.new(user.otp_secret).now
+      }
+    end
+
+    assert_response :success
+    assert JSON.parse(response.body)["access_token"].present?
   end
 
   test "login refuses a deactivated user" do
