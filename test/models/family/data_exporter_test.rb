@@ -245,8 +245,9 @@ class Family::DataExporterTest < ActiveSupport::TestCase
       date: Date.current,
       name: "Side Round Trip Parent"
     )
+    parent.transaction.update!(oknola_side: "personal")
     child = parent.split!([ { name: "Side Round Trip Child", amount: 25 } ]).first
-    child.transaction.update!(oknola_side: "personal")
+    child.transaction.update!(oknola_side: nil)
     ndjson = nil
     Zip::File.open_buffer(Family::DataExporter.new(@other_family).generate_export) do |zip|
       ndjson = zip.read("all.ndjson")
@@ -257,9 +258,11 @@ class Family::DataExporterTest < ActiveSupport::TestCase
 
     assert_includes result[:accounts].map(&:name), source_account.name, result[:summary].inspect
     imported_account = @family.accounts.find_by!(name: source_account.name)
+    imported_parent = @family.entries.find_by!(name: "Side Round Trip Parent").transaction
     imported_child = @family.entries.find_by!(name: "Side Round Trip Child").transaction
     assert_equal "business", imported_account.oknola_side
-    assert_equal "personal", imported_child.oknola_side
+    assert_equal "personal", imported_parent.oknola_side
+    assert_nil imported_child.oknola_side
   end
 
   test "exports merchants in CSV format scoped to the family" do

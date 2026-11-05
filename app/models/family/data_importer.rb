@@ -1001,6 +1001,7 @@ class Family::DataImporter
           tag_ids: mapped_tag_ids(row["tag_ids"], record_type: "Transaction"),
           tag_ids_provided: row.key?("tag_ids"),
           kind: row["kind"],
+          oknola_side_provided: row.key?("oknola_side"),
           oknola_side: row["oknola_side"].presence_in(Oknola::AccountSide::SIDES)
         }
       end
@@ -1014,7 +1015,7 @@ class Family::DataImporter
             amount: row[:amount],
             category_id: row[:category_id],
             excluded: row[:excluded],
-            oknola_side: row[:oknola_side]
+            **(row[:oknola_side_provided] ? { oknola_side: row[:oknola_side] } : {})
           }
         end
       )

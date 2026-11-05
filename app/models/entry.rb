@@ -571,7 +571,7 @@ class Entry < ApplicationRecord
         child_transaction = Transaction.new(
           category_id: split_attrs[:category_id],
           merchant_id: split_attrs[:merchant_id].presence || entryable.try(:merchant_id),
-          oknola_side: split_attrs[:oknola_side].presence_in(Oknola::AccountSide::SIDES) || entryable.try(:oknola_side),
+          oknola_side: split_attrs.key?(:oknola_side) ? split_attrs[:oknola_side].presence_in(Oknola::AccountSide::SIDES) : entryable.try(:oknola_side),
           tag_ids: split_attrs[:tag_ids] || [],
           kind: entryable.try(:kind)
         )

@@ -1,4 +1,3 @@
-# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Render Blueprint for finance.oknola.com (Oknola Finance App, a fork of Sure).
 # Runbook: docs/hosting/oknola.md. Spec: https://render.com/docs/blueprint-spec
 #
@@ -86,7 +85,7 @@ services:
       url: ghcr.io/oknola/oknola-finance-app:oknola
     region: ohio
     plan: 1c-2g
-    dockerCommand: sh -c "bin/rails db:abort_if_pending_migrations && exec bundle exec sidekiq"
+    dockerCommand: bundle exec sidekiq
     envVars:
       - fromGroup: finance-prod
       - key: DATABASE_URL
