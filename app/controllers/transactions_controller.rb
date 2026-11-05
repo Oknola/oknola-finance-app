@@ -532,6 +532,10 @@ class TransactionsController < ApplicationController
   end
 
   def name_suggestions
+    # A late autocomplete response must not overwrite the cookie carrying a
+    # successful submission's flash. Authentication still reads the session.
+    request.session_options[:skip] = true
+
     unknown_names = LanguagesHelper::SUPPORTED_LOCALES.map { |locale| I18n.t("transactions.unknown_name", locale: locale) }
     transactions = Current.family.transactions.merge(Account.accessible_by(Current.user)).where.not(entries: { name: unknown_names })
     query = params[:q].to_s.strip
