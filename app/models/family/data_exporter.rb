@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "zip"
 require "csv"
 
@@ -577,6 +578,7 @@ class Family::DataExporter
           name: child_entry.name,
           notes: child_entry.notes,
           excluded: child_entry.excluded,
+          oknola_side: transaction.oknola_side,
           category_id: transaction.category_id,
           merchant_id: transaction.merchant_id,
           tag_ids: transaction.tag_ids,

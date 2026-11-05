@@ -89,7 +89,8 @@ class RenderYamlTest < ActiveSupport::TestCase
     assert_equal "web", service("finance-web")["type"]
     assert_equal "/up", service("finance-web")["healthCheckPath"]
     assert_equal "worker", service("finance-worker")["type"]
-    assert_equal "bundle exec sidekiq", service("finance-worker")["dockerCommand"]
+    assert_equal "sh -c \"bin/rails db:abort_if_pending_migrations && exec bundle exec sidekiq\"",
+      service("finance-worker")["dockerCommand"]
 
     kv = service("finance-kv")
     assert_equal "keyvalue", kv["type"]

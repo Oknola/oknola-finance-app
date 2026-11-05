@@ -78,6 +78,9 @@ class Oknola::SideToggleTest < ActionDispatch::IntegrationTest
   end
 
   test "side summary cache updates when an account default changes" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
     get transactions_path(q: { side: "business" }, page: 1)
     assert_select "#total-transactions", text: "3"
     prior_version = @family.accounts_status_version
@@ -87,6 +90,8 @@ class Oknola::SideToggleTest < ActionDispatch::IntegrationTest
     assert_not_equal prior_version, @family.accounts_status_version
     get transactions_path(q: { side: "business" }, page: 1)
     assert_select "#total-transactions", text: "0"
+  ensure
+    Rails.cache = original_cache
   end
 
   private

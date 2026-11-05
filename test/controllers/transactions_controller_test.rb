@@ -68,6 +68,20 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "personal", @entry.transaction.reload.oknola_side
   end
 
+  test "transaction drawer ignores invalid side values without clearing the override" do
+    @entry.account.update!(oknola_side: "business")
+    @entry.transaction.update!(oknola_side: "personal")
+
+    [ "mixed", "" ].each do |side|
+      patch transaction_path(@entry), params: {
+        entry: { entryable_attributes: { id: @entry.entryable_id, oknola_side: side } }
+      }
+
+      assert_response :redirect
+      assert_equal "personal", @entry.transaction.reload.oknola_side
+    end
+  end
+
   test "transaction drawer renders labeled side controls and split children can change side" do
     account = @entry.account
     account.update!(oknola_side: "business")

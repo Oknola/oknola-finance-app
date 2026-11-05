@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class TransactionsController < ApplicationController
   include EntryableResource
 
@@ -648,6 +648,7 @@ class TransactionsController < ApplicationController
 
       if (entryable_attributes = entry_params[:entryable_attributes])&.key?(:oknola_side)
         entryable_attributes[:oknola_side] = entryable_attributes[:oknola_side].presence_in(Oknola::AccountSide::SIDES)
+        entryable_attributes.delete(:oknola_side) if entryable_attributes[:oknola_side].nil?
       end
 
       if nature.present? && entry_params[:amount].present?

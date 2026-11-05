@@ -231,6 +231,37 @@ class Family::DataExporterTest < ActiveSupport::TestCase
     end
   end
 
+  test "round-trips account defaults and split transaction overrides" do
+    source_account = @other_family.accounts.create!(
+      name: "Side Round Trip Account",
+      accountable: Depository.new,
+      balance: 0,
+      currency: "USD",
+      oknola_side: "business"
+    )
+    parent = create_transaction_entry(
+      source_account,
+      amount: 25,
+      date: Date.current,
+      name: "Side Round Trip Parent"
+    )
+    child = parent.split!([ { name: "Side Round Trip Child", amount: 25 } ]).first
+    child.transaction.update!(oknola_side: "personal")
+    ndjson = nil
+    Zip::File.open_buffer(Family::DataExporter.new(@other_family).generate_export) do |zip|
+      ndjson = zip.read("all.ndjson")
+    end
+    assert_includes ndjson, source_account.id
+
+    result = Family::DataImporter.new(@family, ndjson).import!
+
+    assert_includes result[:accounts].map(&:name), source_account.name, result[:summary].inspect
+    imported_account = @family.accounts.find_by!(name: source_account.name)
+    imported_child = @family.entries.find_by!(name: "Side Round Trip Child").transaction
+    assert_equal "business", imported_account.oknola_side
+    assert_equal "personal", imported_child.oknola_side
+  end
+
   test "exports merchants in CSV format scoped to the family" do
     merchant = @family.merchants.create!(name: "Coffee Shop", website_url: "https://coffeeshop.com")
     other_merchant = @other_family.merchants.create!(name: "Other Family Store")

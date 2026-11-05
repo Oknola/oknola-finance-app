@@ -1,5 +1,6 @@
 require "set"
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Family::DataImporter
   MissingReferenceError = Class.new(StandardError) do
     attr_reader :code, :details
@@ -328,7 +329,8 @@ class Family::DataImporter
           institution_name: data["institution_name"],
           institution_domain: data["institution_domain"],
           notes: data["notes"],
-          status: importable_account_status(data["status"])
+          status: importable_account_status(data["status"]),
+          oknola_side: data["oknola_side"].presence_in(Oknola::AccountSide::SIDES) || account.oknola_side
         )
 
         account.save!
@@ -930,7 +932,8 @@ class Family::DataImporter
         transaction.assign_attributes(
           category_id: new_category_id,
           merchant_id: new_merchant_id,
-          kind: data["kind"] || "standard"
+          kind: data["kind"] || "standard",
+          oknola_side: data["oknola_side"].presence_in(Oknola::AccountSide::SIDES) || transaction.oknola_side
         )
 
         entry ||= Entry.new(entryable: transaction)
@@ -997,7 +1000,8 @@ class Family::DataImporter
           excluded: boolean_import_value(row, "excluded", default: false),
           tag_ids: mapped_tag_ids(row["tag_ids"], record_type: "Transaction"),
           tag_ids_provided: row.key?("tag_ids"),
-          kind: row["kind"]
+          kind: row["kind"],
+          oknola_side: row["oknola_side"].presence_in(Oknola::AccountSide::SIDES)
         }
       end
     end
@@ -1009,7 +1013,8 @@ class Family::DataImporter
             name: row[:name],
             amount: row[:amount],
             category_id: row[:category_id],
-            excluded: row[:excluded]
+            excluded: row[:excluded],
+            oknola_side: row[:oknola_side]
           }
         end
       )

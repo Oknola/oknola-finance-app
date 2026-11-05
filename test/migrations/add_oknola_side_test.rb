@@ -85,7 +85,7 @@ class AddOknolaSideTest < ActiveSupport::TestCase
           ('#{BUSINESS_RULE}', 'transaction_account', '=', '#{BUSINESS_ACCOUNT}'),
           ('#{PERSONAL_RULE}', 'transaction_account', '=', '#{PERSONAL_ACCOUNT}'),
           ('#{OTHER_TAG_RULE}', 'transaction_account', '=', '#{BUSINESS_ACCOUNT}'),
-          ('#{CROSS_FAMILY_RULE}', 'transaction_account', '=', '#{BUSINESS_ACCOUNT}');
+          ('#{CROSS_FAMILY_RULE}', 'transaction_account', '=', '#{UNASSIGNED_ACCOUNT}');
         INSERT INTO rule_actions (rule_id, action_type, value) VALUES
           ('#{BUSINESS_RULE}', 'set_transaction_tags', '#{BUSINESS_TAG}'),
           ('#{PERSONAL_RULE}', 'set_transaction_tags', '#{PERSONAL_TAG}'),
