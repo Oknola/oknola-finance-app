@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 require "webauthn/fake_client"
 
@@ -39,7 +40,9 @@ class PasskeySessionsControllerTest < ActionDispatch::IntegrationTest
   # it immediately after creating the session. Anything that clears the session
   # in between — a reset_session added to "fix" session fixation, say — drops the
   # invitee into their own family with no error and no failing test.
-  test "accepts a pending invitation stored before the passkey sign-in" do
+  test "asks for confirmation before accepting an invitation stored before passkey sign-in" do
+    original_family_id = @user.family_id
+    original_role = @user.role
     invitation = Invitation.create!(
       email: @user.email,
       role: "member",
@@ -53,7 +56,19 @@ class PasskeySessionsControllerTest < ActionDispatch::IntegrationTest
     post passkey_session_path, params: { credential: passkey_assertion }, as: :json
 
     assert_response :success
-    assert invitation.reload.accepted_at.present?, "invitation was not accepted during passkey sign-in"
+    assert_equal confirm_invitation_path(invitation.token), JSON.parse(response.body).fetch("redirect_url")
+    assert_nil invitation.reload.accepted_at
+    assert_equal original_family_id, @user.reload.family_id
+    assert_equal original_role, @user.role
+
+    get confirm_invitation_path(invitation.token)
+
+    assert_response :success
+
+    post confirm_invitation_path(invitation.token), params: { decision: "join" }
+
+    assert_redirected_to root_path
+    assert invitation.reload.accepted_at.present?
     assert_equal "member", @user.reload.role
   end
 

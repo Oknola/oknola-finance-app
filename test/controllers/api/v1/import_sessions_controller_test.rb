@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -110,6 +111,55 @@ class Api::V1::ImportSessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "API Groceries", transaction.category.name
     assert_equal "API Market", transaction.merchant.name
     assert_equal [ "API Weekly" ], transaction.tags.map(&:name)
+  end
+
+  test "rejects a new chunk when family quota is exceeded" do
+    session = build_import_session
+
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      assert_no_difference "Import.count" do
+        post chunks_api_v1_import_session_url(session),
+             params: {
+               sequence: 1,
+               client_chunk_id: "quota-chunk",
+               raw_file_content: build_ndjson(entity_records)
+             },
+             headers: api_headers(@api_key)
+      end
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert_equal "validation_failed", body["error"]
+    assert_includes body["errors"], I18n.t("active_storage.uploads.family_quota_exceeded")
+  end
+
+  test "rejects retrying an unattached chunk when family quota is exceeded" do
+    session = build_import_session
+    content = build_ndjson(entity_records)
+    chunk = session.imports.create!(
+      family: @family,
+      type: "SureImport",
+      sequence: 1,
+      client_chunk_id: "quota-retry",
+      checksum: Digest::SHA256.hexdigest(content)
+    )
+
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      post chunks_api_v1_import_session_url(session),
+           params: {
+             sequence: 1,
+             client_chunk_id: "quota-retry",
+             raw_file_content: content
+           },
+           headers: api_headers(@api_key)
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert_equal "validation_failed", body["error"]
+    assert_includes body["errors"], I18n.t("active_storage.uploads.family_quota_exceeded")
+    assert_not chunk.reload.ndjson_file.attached?
   end
 
   test "rejects replayed chunk with different content" do

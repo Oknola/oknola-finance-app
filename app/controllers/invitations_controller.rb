@@ -1,6 +1,7 @@
 # Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class InvitationsController < ApplicationController
   skip_authentication only: :accept
+  skip_before_action :require_onboarding_and_upgrade, only: :confirm
   def new
     @invitation = Invitation.new
   end
@@ -35,6 +36,33 @@ class InvitationsController < ApplicationController
       render :accept_choice, layout: "auth"
     else
       raise ActiveRecord::RecordNotFound
+    end
+  end
+
+  def confirm
+    token = params[:id].to_s
+    @invitation = Invitation.pending.find_by(token: token)
+
+    unless session[:pending_invitation_token].to_s == token &&
+           @invitation &&
+           @invitation.email.to_s.strip.casecmp?(Current.user.email.to_s.strip)
+      raise ActiveRecord::RecordNotFound
+    end
+
+    return render :confirm, layout: "auth" if request.get? || request.head?
+
+    if params[:decision] == "join"
+      if @invitation.accept_for(Current.user)
+        session.delete(:pending_invitation_token)
+        redirect_to root_path, notice: t("invitations.accept_choice.joined_household")
+      else
+        redirect_to root_path, alert: t(".failure")
+      end
+    elsif params[:decision] == "not_now"
+      session.delete(:pending_invitation_token)
+      redirect_to root_path, notice: t(".not_now")
+    else
+      redirect_to confirm_invitation_path(token), alert: t(".invalid_decision")
     end
   end
 

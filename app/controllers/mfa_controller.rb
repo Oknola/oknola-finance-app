@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class MfaController < ApplicationController
   include WebauthnRelyingParty
 
@@ -57,8 +58,8 @@ class MfaController < ApplicationController
       session.delete(:mfa_user_id)
       redirect_to new_session_path, alert: t("sessions.create.account_deactivated")
     elsif @user&.verify_otp?(params[:code])
-      if complete_mfa_sign_in(@user)
-        redirect_to root_path
+      if (destination = complete_mfa_sign_in(@user))
+        redirect_to destination
       else
         redirect_to new_session_path, alert: t("sessions.create.account_deactivated")
       end
@@ -123,11 +124,12 @@ class MfaController < ApplicationController
         last_used_at: Time.current
       )
     end
-    unless complete_mfa_sign_in(@user)
+    destination = complete_mfa_sign_in(@user)
+    unless destination
       return render json: { error: t(".invalid_credential") }, status: :unprocessable_entity
     end
 
-    render json: { redirect_url: root_path }
+    render json: { redirect_url: destination }
   rescue WebAuthn::Error, ActionController::BadRequest, ActionController::ParameterMissing
     render json: { error: t(".invalid_credential") }, status: :unprocessable_entity
   end
@@ -176,7 +178,6 @@ class MfaController < ApplicationController
       @session = create_session_for(user)
       return false unless @session
 
-      flash[:notice] = t("invitations.accept_choice.joined_household") if accept_pending_invitation_for(user)
-      true
+      accept_pending_invitation_for(user) || root_path
     end
 end

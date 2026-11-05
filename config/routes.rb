@@ -750,6 +750,7 @@ Rails.application.routes.draw do
 
   resources :invitations, only: [ :new, :create, :destroy ] do
     get :accept, on: :member
+    match :confirm, on: :member, via: %i[get post]
   end
 
   # API routes
