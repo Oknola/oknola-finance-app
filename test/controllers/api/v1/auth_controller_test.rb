@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
@@ -1220,12 +1221,15 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     assert_not user.reload.ai_enabled
   end
 
-  test "mobile SSO onboarding via invitation shares existing family accounts when family shares by default" do
+  test "mobile SSO onboarding via invitation does not join the invited family" do
     family = families(:dylan_family)
     family.update!(default_account_sharing: "shared")
     invitation = family.invitations.create!(
       email: "mobile-invitee@example.com", role: "member", inviter: users(:family_admin)
     )
+    Rails.configuration.x.auth.stubs(:sso_providers).returns([
+      { name: "openid_connect", settings: { default_role: "super_admin" } }
+    ])
 
     linking_code = SecureRandom.urlsafe_base64(32)
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
@@ -1239,7 +1243,7 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
       allow_account_creation: true
     }, expires_in: 10.minutes)
 
-    assert_difference("User.count", 1) do
+    assert_difference([ "User.count", "Family.count" ], 1) do
       post "/api/v1/auth/sso_create_account", params: {
         linking_code: linking_code,
         first_name: "Mobile",
@@ -1250,9 +1254,10 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     invitee = User.find_by(email: invitation.email)
     assert_not_nil invitee
-    assert_equal family.id, invitee.family_id
-    assert_equal family.accounts.pluck(:id).sort,
-      AccountShare.where(user: invitee).pluck(:account_id).sort
+    assert_not_equal family.id, invitee.family_id
+    assert_equal "admin", invitee.role
+    assert_nil invitation.reload.accepted_at
+    assert_empty AccountShare.where(user: invitee)
   end
 
   test "mobile SSO cannot use a cached linking code after its identity is removed" do
@@ -1279,7 +1284,7 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     assert_nil Rails.cache.read("mobile_sso_link:#{linking_code}")
   end
 
-  test "mobile SSO onboarding via invitation shares nothing when family sharing is private" do
+  test "mobile SSO onboarding via invitation stays outside private invited family" do
     family = families(:dylan_family)
     family.update!(default_account_sharing: "private")
     invitation = family.invitations.create!(
@@ -1307,7 +1312,8 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     invitee = User.find_by(email: invitation.email)
     assert_not_nil invitee
-    assert_equal family.id, invitee.family_id
+    assert_not_equal family.id, invitee.family_id
+    assert_nil invitation.reload.accepted_at
     assert_equal 0, AccountShare.where(user: invitee).count
   end
 

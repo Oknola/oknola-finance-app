@@ -271,7 +271,6 @@ Rails.application.routes.draw do
       as: :oauth_protected_resource_metadata,
       format: false
   get ".well-known/oauth-authorization-server", to: "oauth_metadata#authorization_server"
-  post "register", to: "oauth_registration#create"
   use_doorkeeper do |mapping|
     mapping.controllers authorizations: "oauth/authorizations"
   end
@@ -750,6 +749,7 @@ Rails.application.routes.draw do
 
   resources :invitations, only: [ :new, :create, :destroy ] do
     get :accept, on: :member
+    match :confirm, on: :member, via: %i[get post]
   end
 
   # API routes

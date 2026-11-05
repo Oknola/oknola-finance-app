@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class ImportsControllerTest < ActionDispatch::IntegrationTest
@@ -264,6 +265,21 @@ class ImportsControllerTest < ActionDispatch::IntegrationTest
     created_import = PdfImport.order(:created_at).last
     assert_equal statement, created_import.account_statement
     assert_redirected_to import_url(created_import)
+  end
+
+  test "shows quota error when PDF upload is refused" do
+    assert_no_difference [ "AccountStatement.count", "Import.where(type: 'PdfImport').count" ] do
+      with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+        post imports_url, params: {
+          import: {
+            import_file: file_fixture_upload("imports/sample_bank_statement.pdf", "application/pdf")
+          }
+        }
+      end
+    end
+
+    assert_redirected_to new_import_url
+    assert_equal I18n.t("active_storage.uploads.family_quota_exceeded"), flash[:alert]
   end
 
   test "duplicate pdf import does not enqueue processing twice for reused import" do
@@ -570,6 +586,26 @@ class ImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_import_url
     assert_equal I18n.t("imports.create.file_too_large", max_size: configured_limit / 1.megabyte), flash[:alert]
+  end
+
+  test "does not report success when Sure import attachment exceeds family quota" do
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      assert_no_difference "Import.count" do
+        post imports_url, params: {
+          import: {
+            type: "SureImport",
+            import_file: Rack::Test::UploadedFile.new(
+              StringIO.new(%({"type":"Account","data":{}}\n)),
+              "application/x-ndjson",
+              original_filename: "all.ndjson"
+            )
+          }
+        }
+      end
+    end
+
+    assert_redirected_to new_import_url
+    assert_equal I18n.t("active_storage.uploads.family_quota_exceeded"), flash[:alert]
   end
 
   test "shows a friendly warning when a Sure import's transactions reference merchants missing from the export (#3113)" do

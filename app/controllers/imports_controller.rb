@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class ImportsController < ApplicationController
   include SettingsHelper
 
@@ -243,6 +244,9 @@ class ImportsController < ApplicationController
       pdf_import = PdfImport.create_from_upload!(family: Current.family, file: file, user: Current.user)
       pdf_import.process_with_ai_later
       redirect_to import_path(pdf_import), notice: t("imports.create.pdf_processing")
+    rescue ActiveRecord::RecordInvalid => e
+      message = e.record.errors.full_messages.to_sentence.presence || t("active_storage.uploads.upload_rejected")
+      redirect_to new_import_path, alert: message
     rescue AccountStatement::DuplicateUploadError
       redirect_to new_import_path, alert: t("imports.create.duplicate_pdf_unavailable")
     rescue AccountStatement::InvalidUploadError
@@ -327,11 +331,18 @@ class ImportsController < ApplicationController
       end
 
       import = Current.family.imports.create!(type: "SureImport")
-      import.ndjson_file.attach(
+      attached = import.ndjson_file.attach(
         io: StringIO.new(content),
         filename: file.original_filename,
         content_type: file.content_type
       )
+      unless attached
+        message = upload_error(import)
+        import.destroy!
+        redirect_to new_import_path, alert: message
+        return
+      end
+
       import.sync_ndjson_rows_count!
 
       redirect_to import_path(import), notice: t("imports.create.ndjson_uploaded")
@@ -341,5 +352,9 @@ class ImportsController < ApplicationController
       header = file.read(5)
       file.rewind
       header&.start_with?("%PDF-")
+    end
+
+    def upload_error(record)
+      record.errors.full_messages.to_sentence.presence || t("active_storage.uploads.upload_rejected")
     end
 end

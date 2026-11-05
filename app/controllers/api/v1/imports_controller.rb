@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # frozen_string_literal: true
 
 class Api::V1::ImportsController < Api::V1::BaseController
@@ -294,11 +295,13 @@ class Api::V1::ImportsController < Api::V1::BaseController
     def persist_sure_import!(family, content, filename, content_type)
       import = nil
       import = family.imports.create!(type: "SureImport")
-      import.ndjson_file.attach(
+      attached = import.ndjson_file.attach(
         io: StringIO.new(content),
         filename: filename,
         content_type: content_type
       )
+      raise ActiveRecord::RecordInvalid.new(import) unless attached
+
       import.sync_ndjson_rows_count!
       import
     rescue StandardError => e
