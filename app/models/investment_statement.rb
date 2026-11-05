@@ -392,7 +392,8 @@ class InvestmentStatement
 
       Rails.cache.fetch([
         "investment_statement", "totals_query/v2", family.id, user&.id, side, family.currency,
-        account_ids_hash, date_range.begin, date_range.end, family.entries_cache_version
+        account_ids_hash, date_range.begin, date_range.end, family.entries_cache_version,
+        family.accounts_status_version
       ]) { Totals.new(family, account_ids: account_ids, date_range: date_range, side: side).call }
     end
 

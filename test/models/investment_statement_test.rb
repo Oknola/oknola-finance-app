@@ -529,6 +529,38 @@ class InvestmentStatementTest < ActiveSupport::TestCase
     assert_equal 20, unfiltered.dividends.amount
   end
 
+  test "cached investment totals refresh when an account changes sides" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    account = create_investment_account(balance: 1000)
+    account.update!(oknola_side: "personal")
+    create_income_transaction(account: account, label: "Dividend", amount: 25, date: Date.current)
+
+    before_change = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    assert_equal 0, before_change.dividends.amount
+
+    Oknola::AccountSide.set(account, "business")
+
+    after_change = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    assert_equal 25, after_change.dividends.amount
+  ensure
+    Rails.cache = original_cache
+  end
+
+  test "investment contributions follow the account side" do
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    account = create_investment_account(balance: 1000)
+    account.update!(oknola_side: "business")
+    create_trade(account: account, qty: 2, amount: 120, date: Date.current)
+
+    business = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    personal = InvestmentStatement.new(@family, side: "personal").totals(period: period)
+
+    assert_equal 120, business.contributions.amount
+    assert_equal 0, personal.contributions.amount
+  end
+
   test "totals aggregate dividend and interest income from income trades" do
     period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
     account = create_investment_account(balance: 500)
