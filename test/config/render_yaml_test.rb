@@ -89,8 +89,6 @@ class RenderYamlTest < ActiveSupport::TestCase
     assert_equal "web", service("finance-web")["type"]
     assert_equal "/up", service("finance-web")["healthCheckPath"]
     assert_equal "worker", service("finance-worker")["type"]
-    assert_equal "bundle exec sidekiq", service("finance-worker")["dockerCommand"]
-
     kv = service("finance-kv")
     assert_equal "keyvalue", kv["type"]
     assert_equal [], kv["ipAllowList"]

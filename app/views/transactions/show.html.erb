@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
 <%= render DS::Dialog.new(frame: "drawer", responsive: true) do |dialog| %>
   <% dialog.with_header(custom_header: true) do %>
     <div class="flex items-start justify-between gap-4">
@@ -63,6 +64,24 @@
                 label: t(".name_label"),
                 disabled: @entry.split_child? || edit_locked,
                 "data-auto-submit-form-target": "auto" %>
+          <%= f.fields_for :entryable do |ef| %>
+            <fieldset class="space-y-2">
+              <legend class="text-sm text-secondary"><%= t(".side_label") %></legend>
+              <div class="flex gap-2">
+                <% %w[business personal].each do |side| %>
+                  <div>
+                    <%= radio_button_tag "entry[entryable_attributes][oknola_side]", side,
+                          Oknola::Side.for(@entry.transaction).downcase == side,
+                          id: "entry_side_#{side}",
+                          disabled: @entry.split_parent? || edit_locked,
+                          class: "sr-only peer",
+                          data: { "auto-submit-form-target": "auto" } %>
+                    <%= label_tag "entry_side_#{side}", t("transactions.form.side_#{side}"), class: "inline-block border border-primary rounded-full px-3 py-1 text-sm text-secondary peer-checked:bg-container-inset peer-checked:text-primary peer-checked:border-solid peer-focus-visible:outline-2 peer-focus-visible:outline-focus-ring peer-focus-visible:outline-offset-0" %>
+                  </div>
+                <% end %>
+              </div>
+            </fieldset>
+          <% end %>
           <%= f.date_field :date,
                 label: t(".date_label"),
                 max: Date.current,

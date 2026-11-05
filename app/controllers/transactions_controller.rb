@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class TransactionsController < ApplicationController
   include EntryableResource
 
@@ -611,7 +611,8 @@ class TransactionsController < ApplicationController
       )
       @entry.entryable.assign_attributes(
         category_id: duplicate_source.entryable.category_id,
-        merchant_id: duplicate_source.entryable.merchant_id
+        merchant_id: duplicate_source.entryable.merchant_id,
+        oknola_side: duplicate_source.entryable.oknola_side
       )
       @entry.entryable.tag_ids = duplicate_source.entryable.tag_ids
     end
@@ -637,13 +638,18 @@ class TransactionsController < ApplicationController
     def entry_params
       entry_params = params.require(:entry).permit(
         :name, :date, :amount, :currency, :excluded, :notes, :nature, :entryable_type,
-        entryable_attributes: [ :id, :category_id, :merchant_id, :kind, :investment_activity_label, :exchange_rate, { tag_ids: [] } ]
+        entryable_attributes: [ :id, :category_id, :merchant_id, :kind, :investment_activity_label, :exchange_rate, :oknola_side, { tag_ids: [] } ]
       )
 
       nature = entry_params.delete(:nature)
 
       entry_params.delete(:amount) if entry_params[:amount].blank?
       entry_params.delete(:date) if entry_params[:date].blank?
+
+      if (entryable_attributes = entry_params[:entryable_attributes])&.key?(:oknola_side)
+        entryable_attributes[:oknola_side] = entryable_attributes[:oknola_side].presence_in(Oknola::AccountSide::SIDES)
+        entryable_attributes.delete(:oknola_side) if entryable_attributes[:oknola_side].nil?
+      end
 
       if nature.present? && entry_params[:amount].present?
         signed_amount = nature == "inflow" ? -entry_params[:amount].to_d : entry_params[:amount].to_d
@@ -809,7 +815,7 @@ class TransactionsController < ApplicationController
       cleaned_params = params.fetch(:q, {})
               .permit(
                 :start_date, :end_date, :search, :amount,
-                :amount_operator, :active_accounts_only,
+                :amount_operator, :active_accounts_only, :side,
                 accounts: [], account_ids: [],
                 categories: [], merchants: [], types: [], tags: [], status: [], ai_status: [],
                 attachment_status: []

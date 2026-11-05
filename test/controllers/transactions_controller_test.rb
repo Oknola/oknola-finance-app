@@ -10,6 +10,107 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     @entry = entries(:transaction)
   end
 
+  test "creating a transaction stores only a side that differs from its account default" do
+    account = accounts(:depository)
+    account.update!(oknola_side: "business")
+
+    [ [ "business", nil ], [ "personal", "personal" ] ].each do |side, stored_side|
+      post transactions_path, params: {
+        entry: {
+          account_id: account.id,
+          name: "Side #{side}",
+          date: Date.current,
+          amount: "12.50",
+          currency: account.currency,
+          nature: "outflow",
+          entryable_type: "Transaction",
+          entryable_attributes: { oknola_side: side }
+        }
+      }
+
+      assert_response :redirect
+      transaction_side = account.entries.order(:created_at).last.transaction.oknola_side
+      stored_side.nil? ? assert_nil(transaction_side) : assert_equal(stored_side, transaction_side)
+    end
+  end
+
+  test "creating a transaction ignores invalid side values" do
+    account = accounts(:depository)
+    account.update!(oknola_side: "business")
+
+    [ "mixed", "" ].each do |side|
+      post transactions_path, params: {
+        entry: {
+          account_id: account.id,
+          name: "Invalid side #{side}",
+          date: Date.current,
+          amount: "12.50",
+          currency: account.currency,
+          nature: "outflow",
+          entryable_type: "Transaction",
+          entryable_attributes: { oknola_side: side }
+        }
+      }
+
+      assert_response :redirect
+      assert_nil account.entries.order(:created_at).last.transaction.oknola_side
+    end
+  end
+
+  test "transaction drawer updates the side override" do
+    @entry.account.update!(oknola_side: "business")
+
+    patch transaction_path(@entry), params: {
+      entry: { entryable_attributes: { id: @entry.entryable_id, oknola_side: "personal" } }
+    }
+
+    assert_response :redirect
+    assert_equal "personal", @entry.transaction.reload.oknola_side
+  end
+
+  test "transaction drawer ignores invalid side values without clearing the override" do
+    @entry.account.update!(oknola_side: "business")
+    @entry.transaction.update!(oknola_side: "personal")
+
+    [ "mixed", "" ].each do |side|
+      patch transaction_path(@entry), params: {
+        entry: { entryable_attributes: { id: @entry.entryable_id, oknola_side: side } }
+      }
+
+      assert_response :redirect
+      assert_equal "personal", @entry.transaction.reload.oknola_side
+    end
+  end
+
+  test "transaction drawer renders labeled side controls and split children can change side" do
+    account = @entry.account
+    account.update!(oknola_side: "business")
+    parent = create_transaction(account: account, amount: 100, name: "Split side parent")
+    parent.transaction.update!(oknola_side: "personal")
+    child = parent.split!([
+      { name: "Split side child", amount: 100 }
+    ]).first
+
+    get transaction_url(parent), headers: { "Turbo-Frame" => "drawer" }
+    assert_response :success
+    assert_select "legend", text: "Side"
+    assert_select "input#entry_side_business[disabled]"
+    assert_select "input#entry_side_personal[disabled]"
+
+    get transaction_url(child), headers: { "Turbo-Frame" => "drawer" }
+    assert_response :success
+    assert_select "legend", text: "Side"
+    assert_select "input#entry_side_personal[disabled]", count: 0
+    assert_select "input#entry_side_business[disabled]", count: 0
+    assert_select "input#entry_side_personal[checked]"
+  end
+
+  test "the database rejects unsupported transaction sides" do
+    assert_raises(ActiveRecord::StatementInvalid) do
+      @entry.transaction.update!(oknola_side: "mixed")
+    end
+  end
+
   # Bills has always linked out to transactions. Until now nothing linked back,
   # so a transaction that settled a bill was a dead end. The link-back is part
   # of the preview-gated bills surface, so the viewer needs the flag.

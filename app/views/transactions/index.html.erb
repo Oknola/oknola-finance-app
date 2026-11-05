@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
 <div class="space-y-4 pb-6 lg:pb-12 flex flex-col">
   <header class="flex justify-between items-center text-primary font-medium">
     <h1 class="text-xl"><%= t(".title") %></h1>
@@ -49,8 +49,7 @@
     </div>
   </header>
 
-  <% @side_tags_available = Oknola::Side.available?(Current.family) %>
-  <%= render "transactions/side_toggle", q: @q if @side_tags_available %>
+  <%= render "transactions/side_toggle", q: @q %>
   <%= render "summary", totals: @search.totals %>
   <% if Current.family.recurring_transactions_disabled? %>
     <%= render "transactions/list", transactions: @transactions, projected_recurring: @projected_recurring, q: params[:q], pagy: @pagy %>

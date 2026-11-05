@@ -1,3 +1,4 @@
+// Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
@@ -17,10 +18,10 @@ export default class extends Controller {
     if (accountId === this.accountId) return;
 
     this.accountId = accountId;
-    const tagId = this.mapValue[accountId];
+    const side = this.mapValue[accountId] || "personal";
 
     for (const radio of this.element.querySelectorAll('input[type="radio"]')) {
-      radio.checked = radio.value === String(tagId);
+      radio.checked = radio.value === side;
     }
   }
 

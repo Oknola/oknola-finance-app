@@ -2,6 +2,8 @@
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
 #
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+#
 # This file is the source Rails uses to define your schema when running `bin/rails
 # db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
 # be faster and is potentially less error prone than running all of your
@@ -9,10 +11,8 @@
 # migrations use external dependencies or application code.
 #
 # It's strongly recommended that you check this file into your version control system.
-#
-# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -117,6 +117,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.jsonb "locked_attributes", default: {}
     t.string "name"
     t.text "notes"
+    t.string "oknola_side", default: "personal", null: false
     t.uuid "owner_id"
     t.uuid "plaid_account_id"
     t.uuid "simplefin_account_id"
@@ -137,6 +138,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.index ["plaid_account_id"], name: "index_accounts_on_plaid_account_id"
     t.index ["simplefin_account_id"], name: "index_accounts_on_simplefin_account_id"
     t.index ["status"], name: "index_accounts_on_status"
+    t.check_constraint "oknola_side::text = ANY (ARRAY['business'::character varying, 'personal'::character varying]::text[])", name: "chk_accounts_oknola_side"
   end
 
   create_table "active_storage_attachments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2791,6 +2793,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.string "kind", default: "standard", null: false
     t.jsonb "locked_attributes", default: {}
     t.uuid "merchant_id"
+    t.string "oknola_side"
     t.uuid "transfer_id"
     t.datetime "updated_at", null: false
     t.index "(((extra -> 'goal'::text) ->> 'pledge_id'::text))", name: "ix_transactions_extra_goal_pledge_id", unique: true, where: "(((extra -> 'goal'::text) ->> 'pledge_id'::text) IS NOT NULL)"
@@ -2801,6 +2804,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.index ["kind"], name: "index_transactions_on_kind"
     t.index ["merchant_id"], name: "index_transactions_on_merchant_id"
     t.index ["transfer_id"], name: "index_transactions_on_transfer_id"
+    t.check_constraint "oknola_side IS NULL OR (oknola_side::text = ANY (ARRAY['business'::character varying, 'personal'::character varying]::text[]))", name: "chk_transactions_oknola_side"
   end
 
   create_table "transfers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

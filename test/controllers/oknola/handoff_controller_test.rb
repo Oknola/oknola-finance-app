@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
@@ -42,8 +43,8 @@ class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
-  test "first handoff creates one family, one admin user without a password, and two tags" do
-    assert_difference({ "Family.count" => 1, "User.count" => 1, "OidcIdentity.count" => 1, "Tag.count" => 2 }) do
+  test "first handoff creates one family and one admin user without a password or seeded tags" do
+    assert_difference({ "Family.count" => 1, "User.count" => 1, "OidcIdentity.count" => 1, "Tag.count" => 0 }) do
       handoff
     end
 
@@ -58,7 +59,7 @@ class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
     assert user.onboarded?
     assert user.set_onboarding_preferences_at.present?
     assert_equal "dark", user.theme
-    assert_equal %w[Business Personal], user.family.tags.order(:name).pluck(:name)
+    assert_empty user.family.tags
     assert_equal "USD", user.family.currency
     assert_equal "America/New_York", user.family.timezone
     assert_equal "US", user.family.country

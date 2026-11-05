@@ -27,6 +27,18 @@ class EntrySplitTest < ActiveSupport::TestCase
     assert @entry.split_parent?
   end
 
+  test "split! copies the parent's side override to its children" do
+    @entry.account.update!(oknola_side: "business")
+    @entry.transaction.update!(oknola_side: "personal")
+
+    children = @entry.split!([
+      { name: "Groceries", amount: 70 },
+      { name: "Household", amount: 30 }
+    ])
+
+    assert_equal [ "personal", "personal" ], children.map { |child| child.transaction.oknola_side }
+  end
+
   test "split! locks only the fields a split sets when asked to" do
     merchant = @entry.account.family.merchants.create!(name: "Lock merchant", type: "FamilyMerchant")
     splits = [

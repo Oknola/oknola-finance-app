@@ -1,8 +1,8 @@
 <%# locals: (entry:, balance_trend: nil, view_ctx: "global", in_split_group: false) %>
-<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
 
 <% transaction = entry.entryable %>
-<% side = Oknola::Side.for(transaction) %>
+<% side = (transaction.oknola_side.presence || entry.account.oknola_side).capitalize %>
 <% transaction_security_logo_url = transaction.activity_security&.display_logo_url %>
 <% open_path = if transaction.transfer?
      transaction.transfer.present? ? transfer_path(transaction.transfer) : entry_path(entry)
@@ -88,14 +88,6 @@
                   </div>
 
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    <% if @side_tags_available && side.present? %>
-                      <%= render DS::Pill.new(
-                        label: t("transactions.transaction.side.#{side.downcase}"),
-                        tone: side == "Business" ? :info : :neutral,
-                        marker: false
-                      ) %>
-                    <% end %>
-
                     <% if transaction.one_time? %>
                       <span class="text-orange-500" title="One-time <%= entry.amount.negative? ? "income" : "expense" %> (excluded from averages)">
                         <%= icon "asterisk", size: "sm", color: "current" %>
@@ -157,6 +149,13 @@
                 </div>
 
                 <div class="text-secondary text-xs font-normal leading-4">
+                  <% if side.present? %>
+                    <%= render DS::Pill.new(
+                      label: t("transactions.transaction.side.#{side.downcase}"),
+                      tone: side == "Business" ? :info : :neutral,
+                      marker: false
+                    ) %>
+                  <% end %>
                   <% if transaction.transfer? %>
                     <span class="text-secondary">
                       <%= transaction.loan_payment? ? t("transactions.show.loan_payment") : t("transactions.show.transfer") %> •

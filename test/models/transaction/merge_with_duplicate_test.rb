@@ -135,6 +135,15 @@ class Transaction::MergeWithDuplicateTest < ActiveSupport::TestCase
     assert_equal @category_a.id, @posted_entry.transaction.reload.category_id
   end
 
+  test "inherits the pending side override onto the posted transaction" do
+    @account.update!(oknola_side: "business")
+    @pending_entry.transaction.update!(oknola_side: "personal")
+
+    @pending_entry.transaction.merge_with_duplicate!
+
+    assert_equal "personal", @posted_entry.transaction.reload.oknola_side
+  end
+
   test "overwrites existing category on posted entry with pending category" do
     @posted_entry.transaction.update!(category: @category_b)
 
