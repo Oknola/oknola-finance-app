@@ -1,0 +1,10 @@
+---
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+en:
+  active_storage:
+    uploads:
+      direct_uploads_disabled: Direct uploads are not available. Upload files through the application.
+      family_quota_exceeded: This upload would exceed your household's storage limit.
+      file_too_large: This file exceeds the per-file upload limit.
+      invalid_size: The upload size is invalid.
+      upload_rejected: The file could not be uploaded. Check your household's storage limit and try again.

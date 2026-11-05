@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 # Regression coverage for https://github.com/we-promise/sure/issues/1442 - when
@@ -12,6 +13,14 @@ class CronScheduleTest < ActiveSupport::TestCase
     SCHEDULE.each do |name, config|
       assert config["class"].constantize < ApplicationJob, "#{name}: #{config["class"]} must be an ApplicationJob"
       assert_equal true, config["active_job"], "#{name}: set `active_job: true` so sidekiq-cron always enqueues an ActiveJob payload"
+    end
+  end
+
+  test "every schedule entry is a valid Sidekiq Cron job" do
+    SCHEDULE.each do |name, config|
+      job = Sidekiq::Cron::Job.new(config.merge("name" => name, "status" => "enabled", "last_enqueue_time" => Time.current.to_s))
+
+      assert job.valid?, "#{name}: #{job.errors.join(", ")}"
     end
   end
 

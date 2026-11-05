@@ -10297,7 +10297,7 @@ paths:
                       items:
                         type: string
                         format: uuid
-                      description: Array of tag IDs
+                      description: Array of tag IDs from the current family
                   required:
                   - account_id
                   - date
@@ -10354,6 +10354,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: foreign family tag IDs rejected
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
       requestBody:
         content:
           application/json:
@@ -10396,8 +10402,8 @@ paths:
                       items:
                         type: string
                         format: uuid
-                      description: Array of tag IDs to assign. Omit to preserve existing
-                        tags; use [] to clear all tags.
+                      description: Array of tag IDs from the current family to assign.
+                        Omit to preserve existing tags; use [] to clear all tags.
                     user_modified:
                       type: boolean
                       description: Whether provider syncs should preserve user-supplied

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -366,6 +367,23 @@ class Api::V1::ImportsControllerTest < ActionDispatch::IntegrationTest
     assert import.ndjson_file.attached?
     assert_equal 1, import.rows_count
     assert_equal "pending", import.status
+  end
+
+  test "rejects Sure import attachment when family quota is exceeded" do
+    ndjson_content = { type: "Account", data: { id: "quota-account", name: "Checking" } }.to_json
+
+    with_env_overrides("OKNOLA_FAMILY_STORAGE_GB" => "0") do
+      assert_no_difference "Import.count" do
+        post api_v1_imports_url,
+             params: { type: "SureImport", raw_file_content: ndjson_content },
+             headers: api_headers(@api_key)
+      end
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert_equal "validation_failed", body["error"]
+    assert_includes body["errors"], I18n.t("active_storage.uploads.family_quota_exceeded")
   end
 
   test "should require authentication for Sure import" do

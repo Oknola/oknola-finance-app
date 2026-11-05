@@ -1,0 +1,24 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
+<%
+  header_title t(".title", family: @invitation.family.name)
+%>
+
+<div class="space-y-1 mb-6 text-center">
+  <p class="text-secondary">
+    <%= t(".message",
+          family: @invitation.family.name,
+          role: t("invitations.new.role_#{@invitation.role}", default: @invitation.role.to_s.humanize)) %>
+  </p>
+</div>
+
+<div class="space-y-4">
+  <%= button_to t(".join"), confirm_invitation_path(@invitation.token),
+      method: :post,
+      params: { decision: "join" },
+      class: "block w-full rounded-md border border-secondary bg-container px-4 py-3 text-center text-sm font-medium text-primary hover:bg-secondary transition" %>
+
+  <%= button_to t(".not_now"), confirm_invitation_path(@invitation.token),
+      method: :post,
+      params: { decision: "not_now" },
+      class: "block w-full rounded-md border border-secondary bg-container px-4 py-3 text-center text-sm font-medium text-primary hover:bg-secondary transition" %>
+</div>

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # frozen_string_literal: true
 
 require 'swagger_helper'
@@ -177,7 +178,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
               external_id: { type: :string, description: 'Optional external idempotency key scoped to account and source' },
               source: { type: :string, description: 'Optional source namespace for external_id. Requires external_id and defaults to api when external_id is provided' },
               user_modified: { type: :boolean, description: 'Whether provider syncs should preserve user-supplied transaction changes' },
-              tag_ids: { type: :array, items: { type: :string, format: :uuid }, description: 'Array of tag IDs' }
+              tag_ids: { type: :array, items: { type: :string, format: :uuid }, description: 'Array of tag IDs from the current family' }
             },
             required: %w[account_id date amount name]
           }
@@ -320,7 +321,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
               tag_ids: {
                 type: :array,
                 items: { type: :string, format: :uuid },
-                description: 'Array of tag IDs to assign. Omit to preserve existing tags; use [] to clear all tags.'
+                description: 'Array of tag IDs from the current family to assign. Omit to preserve existing tags; use [] to clear all tags.'
               },
               user_modified: { type: :boolean, description: 'Whether provider syncs should preserve user-supplied transaction changes' }
             }
@@ -347,6 +348,23 @@ RSpec.describe 'API V1 Transactions', type: :request do
         schema '$ref' => '#/components/schemas/ErrorResponse'
 
         let(:id) { SecureRandom.uuid }
+
+        run_test!
+      end
+
+      response '422', 'foreign family tag IDs rejected' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:foreign_tag) do
+          foreign_family = Family.create!(
+            name: 'Foreign API Family',
+            currency: 'USD',
+            locale: 'en',
+            date_format: '%m-%d-%Y'
+          )
+          foreign_family.tags.create!(name: 'Foreign tag')
+        end
+        let(:body) { { transaction: { tag_ids: [ foreign_tag.id ] } } }
 
         run_test!
       end

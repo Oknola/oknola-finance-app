@@ -12,10 +12,6 @@ class Rack::Attack
     request.ip if request.path == "/oauth/token"
   end
 
-  throttle("oauth/register", limit: 10, period: 1.minute) do |request|
-    request.ip if request.post? && request.path == "/register"
-  end
-
   # Throttle unauthenticated WebAuthn ceremonies similarly to sign-in
   # endpoints; registration remains behind normal application authentication.
   # Covers both the MFA step-up and passwordless passkey sign-in.
