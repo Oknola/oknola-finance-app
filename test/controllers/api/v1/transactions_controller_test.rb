@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -846,6 +847,22 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
 
     @transaction.reload
     assert_equal new_tags.map(&:id), @transaction.tag_ids
+  end
+
+  test "should return 422 and preserve tags when a foreign tag is submitted" do
+    original_tags = [ tags(:one) ]
+    @transaction.update!(tags: original_tags)
+    foreign_tag = users(:empty).family.tags.create!(name: "Foreign API tag")
+
+    put api_v1_transaction_url(@transaction),
+        params: { transaction: { tag_ids: [ foreign_tag.id ] } },
+        headers: api_headers(@api_key)
+
+    assert_response :unprocessable_entity
+    response_data = JSON.parse(response.body)
+    assert_equal "validation_failed", response_data["error"]
+    assert_equal [ "One or more tags are invalid" ], response_data["errors"]
+    assert_equal original_tags.map(&:id), @transaction.reload.tag_ids
   end
 
   # DESTROY action tests

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 require "ostruct"
 
@@ -103,6 +104,20 @@ class Settings::HostingsControllerTest < ActionDispatch::IntegrationTest
       assert_includes response.body, I18n.t("settings.hostings.show.instance_settings_restricted")
       assert_select "form input[name^='setting[']", count: 0
       assert_select "select[name='family[assistant_type]']"
+      assert_select "form[action=?]", clear_cache_settings_hosting_path, count: 0
+    end
+  end
+
+  test "a family admin cannot clear the instance data cache" do
+    with_self_hosting do
+      sign_in users(:empty)
+
+      assert_no_enqueued_jobs only: DataCacheClearJob do
+        delete clear_cache_settings_hosting_url
+      end
+
+      assert_redirected_to settings_hosting_url
+      assert_equal I18n.t("settings.hostings.not_authorized"), flash[:alert]
     end
   end
 

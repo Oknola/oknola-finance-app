@@ -6,7 +6,11 @@
     <%= render "settings/user_avatar_field", form: form, user: @user %>
 
     <div>
-      <%= form.email_field :email, placeholder: t(".email"), label: t(".email") %>
+      <% oknola_email = @user.oidc_identities.exists?(provider: "oknola") %>
+      <%= form.email_field :email, placeholder: t(".email"), label: t(".email"), readonly: oknola_email %>
+      <% if oknola_email %>
+        <p class="mt-2 text-sm text-secondary"><%= t("users.update.email_managed_by_oknola") %></p>
+      <% end %>
 
       <% if @user.unconfirmed_email.present? %>
         <p class="mt-2 text-sm text-secondary">

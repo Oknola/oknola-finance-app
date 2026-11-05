@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class BudgetTest < ActiveSupport::TestCase
@@ -23,7 +24,7 @@ class BudgetTest < ActiveSupport::TestCase
 
     old_entry = Entry.create!(
       account: old_account,
-      entryable: Transaction.new(category: categories(:income)),
+      entryable: Transaction.new(category: @family.categories.create!(name: "Old transaction category")),
       date: 3.years.ago,
       name: "Old Transaction",
       amount: 100,
@@ -47,7 +48,7 @@ class BudgetTest < ActiveSupport::TestCase
 
     Entry.create!(
       account: account,
-      entryable: Transaction.new(category: categories(:income)),
+      entryable: Transaction.new(category: @family.categories.create!(name: "Recent transaction category")),
       date: 1.year.ago,
       name: "Recent Transaction",
       amount: 100,

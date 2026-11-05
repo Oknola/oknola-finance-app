@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -8,7 +9,7 @@ class OauthMobileTest < ActionDispatch::IntegrationTest
     sign_in(@user)
 
     @oauth_app = Doorkeeper::Application.create!(
-      name: "Sure Mobile App",
+      name: MobileDevice::OAUTH_APPLICATION_NAME,
       redirect_uri: "sureapp://oauth/callback",
       scopes: "read"
     )

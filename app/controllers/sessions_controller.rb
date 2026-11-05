@@ -80,8 +80,7 @@ class SessionsController < ApplicationController
         @session = create_session_for(user)
 
         if @session
-          flash[:notice] = t("invitations.accept_choice.joined_household") if accept_pending_invitation_for(user)
-          redirect_to root_path
+          redirect_to accept_pending_invitation_for(user) || root_path
         else
           redirect_to new_session_path, alert: t("sessions.create.account_deactivated")
         end
@@ -231,8 +230,7 @@ class SessionsController < ApplicationController
         redirect_to new_session_path, alert: t("sessions.openid_connect.failed")
         return
       end
-      flash[:notice] = t("invitations.accept_choice.joined_household") if accept_pending_invitation_for(user)
-      redirect_to root_path
+      redirect_to accept_pending_invitation_for(user) || root_path
     end
   end
 
@@ -314,8 +312,7 @@ class SessionsController < ApplicationController
           redirect_to new_session_path, alert: t("sessions.openid_connect.failed")
           return
         end
-        flash[:notice] = t("invitations.accept_choice.joined_household") if accept_pending_invitation_for(user)
-        redirect_to root_path
+        redirect_to accept_pending_invitation_for(user) || root_path
       end
     else
       # Mobile SSO with no linked identity - cache pending auth and redirect

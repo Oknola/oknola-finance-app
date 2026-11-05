@@ -7,6 +7,7 @@
 # REQUIRED at assertion time, which makes a lone passkey two factors on its
 # own (possession + biometric/PIN) — that is why this path deliberately skips
 # the TOTP step in MfaController.
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class PasskeySessionsController < ApplicationController
   include WebauthnRelyingParty
 
@@ -59,9 +60,10 @@ class PasskeySessionsController < ApplicationController
       )
     end
 
-    return render_invalid unless complete_sign_in(user)
+    destination = complete_sign_in(user)
+    return render_invalid unless destination
 
-    render json: { redirect_url: root_path }
+    render json: { redirect_url: destination }
   rescue WebAuthn::Error, ActionController::BadRequest, ActionController::ParameterMissing
     render_invalid
   end
@@ -83,8 +85,7 @@ class PasskeySessionsController < ApplicationController
       @session = create_session_for(user)
       return false unless @session
 
-      flash[:notice] = t("invitations.accept_choice.joined_household") if accept_pending_invitation_for(user)
-      true
+      accept_pending_invitation_for(user) || root_path
     end
 
     def render_invalid

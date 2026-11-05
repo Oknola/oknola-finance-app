@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 require "test_helper"
 
 class FamilyDataExportJobTest < ActiveJob::TestCase
@@ -16,6 +17,20 @@ class FamilyDataExportJobTest < ActiveJob::TestCase
     @export.reload
     assert_equal "completed", @export.status
     assert @export.export_file.attached?
+  end
+
+  test "completes exports larger than the per-file upload limit" do
+    Family::DataExporter.any_instance.stubs(:generate_export).returns(StringIO.new("x" * 10))
+
+    with_env_overrides("OKNOLA_UPLOAD_MAX_MB" => "0.000001") do
+      perform_enqueued_jobs do
+        FamilyDataExportJob.perform_later(@export)
+      end
+    end
+
+    @export.reload
+    assert_equal "completed", @export.status
+    assert_equal 10, @export.export_file.blob.byte_size
   end
 
   test "does not restart an export in a terminal status" do
