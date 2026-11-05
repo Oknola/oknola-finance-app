@@ -230,6 +230,10 @@ class Rack::Attack
     request.ip if request.post? && request.path == "/settings/background_jobs/cancel"
   end
 
+  throttle("oknola/csp_reports/ip", limit: 60, period: 1.minute) do |request|
+    request.ip if request.post? && request.path == "/oknola/csp_reports"
+  end
+
   # Determine limits based on self-hosted mode
   self_hosted = Rails.application.config.app_mode.self_hosted?
 

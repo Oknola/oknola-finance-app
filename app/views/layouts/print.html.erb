@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
 <!DOCTYPE html>
 <html lang="en" class="font-sans">
   <head>
@@ -15,7 +16,7 @@
       <%= yield %>
     </div>
 
-    <script>
+    <script nonce="<%= content_security_policy_nonce %>">
       // Auto-trigger print dialog when page loads
       window.onload = function() {
         // Small delay to ensure styles are loaded
