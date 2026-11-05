@@ -1,7 +1,13 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Oknola Finance App hardening: production boot checks and the handoff throttle.
 require Rails.root.join("lib/active_record_encryption_config").to_s
+
+# The upstream Doorkeeper URI policy still reads this legacy constant.
+module OauthRegistrationController
+  LOOPBACK_HOSTS = %w[localhost 127.0.0.1 ::1].freeze
+end
 
 module OknolaHardening
   module_function

@@ -1,4 +1,5 @@
 ---
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 id:
   defaults:
     brand_name: "%{brand_name}"
@@ -11,11 +12,6 @@ id:
     errors:
       invalid_session_id: "ID sesi MCP tidak valid"
       unsupported_protocol_version: "Versi protokol MCP tidak didukung: %{version}"
-  oauth:
-    registration:
-      invalid_redirect_uris: "redirect_uris harus menggunakan https, loopback http, atau skema URI aplikasi bawaan"
-      invalid_client_name: "client_name tidak boleh berisi karakter kontrol dua arah"
-      reserved_client_name: "client_name dicadangkan untuk aplikasi pihak pertama"
   activerecord:
     errors:
       messages:

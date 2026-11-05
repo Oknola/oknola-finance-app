@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class OauthMetadataController < ApplicationController
   include OauthBase
 
@@ -24,7 +25,6 @@ class OauthMetadataController < ApplicationController
       issuer: configured_base_url,
       authorization_endpoint: "#{configured_base_url}/oauth/authorize",
       token_endpoint: "#{configured_base_url}/oauth/token",
-      registration_endpoint: "#{configured_base_url}/register",
       response_types_supported: [ "code" ],
       grant_types_supported: [ "authorization_code" ],
       code_challenge_methods_supported: [ "S256" ],

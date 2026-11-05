@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -14,6 +15,88 @@ class OauthBasicTest < ActionDispatch::IntegrationTest
 
     # Should redirect to login page when not authenticated
     assert_redirected_to new_session_path
+  end
+
+  test "oauth client registration is unavailable" do
+    assert_no_difference "Doorkeeper::Application.count" do
+      post "/register", params: {
+        client_name: "Oknola",
+        redirect_uris: [ "https://client.example.com/callback" ]
+      }.to_json, headers: { "Content-Type" => "application/json" }
+    end
+
+    assert_response :not_found
+  end
+
+  test "oauth authorization refuses an existing third-party client" do
+    oauth_app = Doorkeeper::Application.create!(
+      name: "Oknola",
+      redirect_uri: "https://client.example.com/callback",
+      scopes: "read_write"
+    )
+    sign_in(users(:family_admin))
+    authorization_params = {
+      client_id: oauth_app.uid,
+      redirect_uri: oauth_app.redirect_uri,
+      response_type: "code",
+      scope: "read_write"
+    }
+
+    ensure_tailwind_build
+    assert_no_difference "Doorkeeper::AccessGrant.count" do
+      get "/oauth/authorize", params: authorization_params
+    end
+
+    assert_response :unauthorized
+    assert_includes response.body, I18n.t("doorkeeper.authorizations.error.title")
+    assert_not_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
+  end
+
+  test "oauth authorization refuses POST for an existing third-party client" do
+    oauth_app = Doorkeeper::Application.create!(
+      name: "Oknola",
+      redirect_uri: "https://client.example.com/callback",
+      scopes: "read_write"
+    )
+    sign_in(users(:family_admin))
+
+    assert_no_difference "Doorkeeper::AccessGrant.count" do
+      post "/oauth/authorize", params: {
+        client_id: oauth_app.uid,
+        redirect_uri: oauth_app.redirect_uri,
+        response_type: "code",
+        scope: "read_write"
+      }
+    end
+
+    assert_response :unauthorized
+    assert_not_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
+  end
+
+  test "oauth authorization still shows consent for Sure Mobile" do
+    oauth_app = Doorkeeper::Application.create!(
+      name: MobileDevice::OAUTH_APPLICATION_NAME,
+      redirect_uri: MobileDevice::CALLBACK_URL,
+      scopes: "read_write",
+      confidential: false
+    )
+    sign_in(users(:family_admin))
+    ensure_tailwind_build
+    verifier = SecureRandom.urlsafe_base64(64)
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+
+    get "/oauth/authorize", params: {
+      client_id: oauth_app.uid,
+      redirect_uri: oauth_app.redirect_uri,
+      response_type: "code",
+      scope: "read_write",
+      code_challenge: challenge,
+      code_challenge_method: "S256"
+    }
+
+    assert_response :success
+    assert_includes response.body, oauth_app.name
+    assert_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
   end
 
   test "oauth authorization endpoint rejects a deactivated user's existing session" do
