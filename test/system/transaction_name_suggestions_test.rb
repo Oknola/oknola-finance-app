@@ -1,6 +1,20 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "application_system_test_case"
 
 class TransactionNameSuggestionsTest < ApplicationSystemTestCase
+  module LateNameSuggestions
+    mattr_accessor :gate, :started
+
+    def name_suggestions
+      super
+      if params[:q] == "My custom purchase" && (gate = LateNameSuggestions.gate)
+        LateNameSuggestions.started << true
+        gate.pop
+      end
+    end
+  end
+  TransactionsController.prepend(LateNameSuggestions)
+
   setup do
     @user = users(:family_admin)
     @user.family.update!(auto_sync_on_login: false, auto_generate_transaction_names: true)
@@ -20,10 +34,17 @@ class TransactionNameSuggestionsTest < ApplicationSystemTestCase
     assert_field "entry_name", with: "Starbucks"
     assert_category categories(:food_and_drink)
 
-    fill_in "entry_name", with: "My custom purchase"
-    find("input[name='entry[amount]']").set("12.34")
-    click_button "Add transaction"
-    assert_text "Transaction created"
+    with_late_name_suggestions do |gate, started|
+      fill_in "entry_name", with: "My custom purchase"
+      Timeout.timeout(Capybara.default_max_wait_time) { started.pop }
+      find("input[name='entry[amount]']").set("12.34")
+      click_button "Add transaction"
+      assert_selector "html[data-transaction-saved='true']"
+      gate.close
+      assert_selector "html[data-name-response-received='true']"
+      page.execute_script("window.releaseTransactionRedirect()")
+      assert_text "Transaction created"
+    end
     entry = @user.family.entries.order(created_at: :desc).first
     assert_equal "My custom purchase", entry.name
     assert_equal categories(:food_and_drink), entry.entryable.category
@@ -86,6 +107,40 @@ class TransactionNameSuggestionsTest < ApplicationSystemTestCase
   end
 
   private
+    # Force the autocomplete's old session cookie to arrive after the POST,
+    # but before its redirect, instead of depending on network timing.
+    def with_late_name_suggestions
+      gate = Queue.new
+      started = Queue.new
+      LateNameSuggestions.gate = gate
+      LateNameSuggestions.started = started
+      page.execute_script(<<~JS)
+        const originalFetch = window.fetch;
+        window.fetch = (...args) => originalFetch(...args).then((response) => {
+          const url = new URL(response.url);
+          if (url.pathname.endsWith("/name_suggestions") && url.searchParams.get("q") === "My custom purchase") {
+            document.documentElement.dataset.nameResponseReceived = "true";
+          }
+          return response;
+        });
+        document.addEventListener("turbo:before-stream-render", (event) => {
+          if (event.target.action !== "redirect") return;
+          const render = event.detail.render;
+          event.detail.render = async (stream) => {
+            const released = new Promise((resolve) => window.releaseTransactionRedirect = resolve);
+            document.documentElement.dataset.transactionSaved = "true";
+            await released;
+            return render(stream);
+          };
+        });
+      JS
+      yield gate, started
+    ensure
+      LateNameSuggestions.gate = nil
+      gate.close
+      page.execute_script("window.releaseTransactionRedirect?.()")
+    end
+
     def select_starbucks
       fill_in "entry_name", with: "Starb"
       find(".hw-combobox [role='option']", text: "Starbucks").click
