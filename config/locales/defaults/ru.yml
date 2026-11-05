@@ -1,4 +1,5 @@
 ---
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 ru:
   activerecord:
     errors:
@@ -280,8 +281,3 @@ ru:
     errors:
       invalid_session_id: Недействительный идентификатор сеанса MCP
       unsupported_protocol_version: 'Неподдерживаемая версия протокола MCP: %{version}'
-  oauth:
-    registration:
-      invalid_redirect_uris: redirect_uris должны использовать HTTPS, HTTP для loopback-адреса или URI-схему нативного приложения
-      invalid_client_name: client_name не должно содержать управляющие символы направления текста
-      reserved_client_name: client_name зарезервировано для собственных приложений

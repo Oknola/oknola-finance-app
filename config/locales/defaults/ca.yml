@@ -1,4 +1,5 @@
 ---
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 ca:
   activerecord:
     errors:
@@ -234,8 +235,3 @@ ca:
     errors:
       invalid_session_id: ID de sessió MCP no vàlid
       unsupported_protocol_version: 'Versió del protocol MCP no compatible: %{version}'
-  oauth:
-    registration:
-      invalid_redirect_uris: redirect_uris ha d'utilitzar https, http de loopback o un esquema d'URI d'aplicació nativa
-      invalid_client_name: client_name no pot contenir caràcters de control bidireccionals
-      reserved_client_name: client_name està reservat per a les aplicacions pròpies

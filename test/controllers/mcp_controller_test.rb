@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class McpControllerTest < ActionDispatch::IntegrationTest
@@ -50,51 +51,21 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     assert_mcp_initialize_response(result)
   end
 
-  test "authenticates a token issued to a dynamically registered MCP client" do
-    post "/register",
-      params: {
-        client_name: "Claude",
-        redirect_uris: [ "https://claude.ai/callback" ],
-        grant_types: [ "authorization_code" ],
-        response_types: [ "code" ],
-        token_endpoint_auth_method: "none"
-      }.to_json,
-      headers: { "Content-Type" => "application/json" }
-
-    assert_response :created
-    app = Doorkeeper::Application.find_by!(uid: JSON.parse(response.body)["client_id"])
-    assert_equal "read_write", app.scopes.to_s
-
-    sign_in(@user)
-    verifier = SecureRandom.urlsafe_base64(64)
-    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
-
-    post "/oauth/authorize", params: {
-      client_id: app.uid,
-      redirect_uri: app.redirect_uri,
-      response_type: "code",
-      code_challenge: challenge,
-      code_challenge_method: "S256"
-    }
-
-    assert_response :redirect
-    code = Rack::Utils.parse_query(URI.parse(response.location).query)["code"]
-    assert code.present?, "Authorization response should contain a code"
-
-    post "/oauth/token", params: {
-      grant_type: "authorization_code",
-      client_id: app.uid,
-      redirect_uri: app.redirect_uri,
-      code: code,
-      code_verifier: verifier
-    }
-
-    assert_response :success
-    token_response = JSON.parse(response.body)
-    assert_equal "read_write", token_response["scope"]
+  test "continues to authenticate existing third-party OAuth tokens" do
+    app = Doorkeeper::Application.create!(
+      name: "Claude",
+      redirect_uri: "https://claude.ai/callback",
+      confidential: false
+    )
+    token = Doorkeeper::AccessToken.create!( # pipelock:ignore
+      application: app,
+      resource_owner_id: @user.id,
+      scopes: "read_write",
+      expires_in: 1.year
+    )
 
     post "/mcp", params: jsonrpc_request("initialize").to_json,
-         headers: mcp_headers(token_response["access_token"])
+         headers: mcp_headers(token.token)
 
     assert_response :ok
     assert_mcp_initialize_response(JSON.parse(response.body)["result"])
