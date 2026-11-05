@@ -45,6 +45,34 @@ class BudgetsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, I18n.t("oknola.side_switch.personal")
   end
 
+  test "rejects an edit submitted for a different side than the current budget" do
+    @user.family.update!(personal_budgets: true)
+    date = Date.current.beginning_of_month
+    personal = Budget.find_or_bootstrap(@user.family, start_date: date, user: @user, side: "personal")
+    business = Budget.find_or_bootstrap(@user.family, start_date: date, user: @user, side: "business")
+    personal.update!(budgeted_spending: 1000)
+    business.update!(budgeted_spending: 2000)
+
+    @user.with_locked_preferences { |preferences| preferences["oknola_side"] = "business" }
+    get edit_budget_url(Budget.date_to_param(date))
+
+    assert_response :success
+    assert_select "input[name='budget[oknola_side]'][value='business']"
+
+    patch budget_url(Budget.date_to_param(date)),
+          params: { budget: { oknola_side: "business", budgeted_spending: 2500, expected_income: 0 } }
+
+    assert_equal 2500, business.reload.budgeted_spending
+
+    patch budget_url(Budget.date_to_param(date)),
+          params: { budget: { oknola_side: "personal", budgeted_spending: 9000, expected_income: 0 } }
+
+    assert_redirected_to budget_url(Budget.date_to_param(date))
+    assert_equal I18n.t("budgets.edit.side_changed"), flash[:alert]
+    assert_equal 2500, business.reload.budgeted_spending
+    assert_equal 1000, personal.reload.budgeted_spending
+  end
+
   test "show renders when the budget has spending but no expected income" do
     budgets(:one).update!(budgeted_spending: 4000, expected_income: nil)
 

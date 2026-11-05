@@ -100,6 +100,13 @@ class Api::V1::BudgetCategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response_data["budget_categories"].map { |category| category["id"] }, @budget_category.id
   end
 
+  test "rejects an invalid side filter" do
+    get api_v1_budget_categories_url, params: { side: "other" }, headers: api_headers(@api_key)
+
+    assert_response :unprocessable_entity
+    assert_equal "validation_failed", JSON.parse(response.body)["error"]
+  end
+
   test "shows a budget category" do
     get api_v1_budget_category_url(@budget_category), headers: api_headers(@api_key)
 

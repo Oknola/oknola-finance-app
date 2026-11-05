@@ -1826,13 +1826,23 @@ class Family::DataImporterTest < ActiveSupport::TestCase
     assert_equal 5000.0, budget.expected_income.to_f
   end
 
-  test "imports each budget side separately and defaults missing side to personal" do
+  test "imports a budget without a side as personal and keeps the business side separate" do
     personal = @family.budgets.create!(
       start_date: Date.parse("2024-01-01"),
       end_date: Date.parse("2024-01-31"),
       currency: "USD"
     )
     ndjson = build_ndjson([
+      {
+        type: "Budget",
+        data: {
+          id: "personal-budget",
+          start_date: "2024-01-01",
+          end_date: "2024-01-31",
+          budgeted_spending: "2000.00",
+          currency: "USD"
+        }
+      },
       {
         type: "Budget",
         data: {
@@ -1848,9 +1858,10 @@ class Family::DataImporterTest < ActiveSupport::TestCase
 
     Family::DataImporter.new(@family, ndjson).import!
 
+    assert_equal "personal", personal.reload.oknola_side
+    assert_equal 2000, personal.budgeted_spending.to_i
     business = @family.budgets.find_by!(start_date: personal.start_date, oknola_side: "business")
     assert_equal 2, @family.budgets.where(start_date: personal.start_date).count
-    assert_nil personal.reload.budgeted_spending
     assert_equal 3000, business.budgeted_spending.to_i
   end
 

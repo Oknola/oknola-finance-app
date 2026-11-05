@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Assistant::Function::UpdateBudgetTest < ActiveSupport::TestCase
@@ -20,9 +21,10 @@ class Assistant::Function::UpdateBudgetTest < ActiveSupport::TestCase
     refute @function.strict_mode?
   end
 
-  test "params_schema declares month totals and categories as optional" do
+  test "params_schema declares month, side, totals, and categories as optional" do
     schema = @function.params_schema
     assert schema[:properties].key?(:month)
+    assert schema[:properties].key?(:side)
     assert schema[:properties].key?(:budgeted_spending)
     assert schema[:properties].key?(:expected_income)
     assert schema[:properties].key?(:categories)
@@ -41,6 +43,30 @@ class Assistant::Function::UpdateBudgetTest < ActiveSupport::TestCase
     @budget.reload
     assert_equal 6500, @budget.budgeted_spending
     assert_equal 9000, @budget.expected_income
+  end
+
+  test "updates only the requested budget side and returns it" do
+    personal = Budget.find_or_bootstrap(@family, start_date: Date.current, user: @user, side: "personal")
+    business = Budget.find_or_bootstrap(@family, start_date: Date.current, user: @user, side: "business")
+    personal.update!(budgeted_spending: 1000, expected_income: 2000)
+    business.update!(budgeted_spending: 3000, expected_income: 4000)
+
+    result = @function.call("side" => "business", "budgeted_spending" => 3500)
+
+    assert_equal true, result[:success]
+    assert_equal "business", result[:side]
+    assert_equal 3500, business.reload.budgeted_spending
+    assert_equal 4000, business.expected_income
+    assert_equal 1000, personal.reload.budgeted_spending
+    assert_equal 2000, personal.expected_income
+  end
+
+  test "rejects an invalid budget side" do
+    result = @function.call("side" => "other", "budgeted_spending" => 2500)
+
+    assert_equal false, result[:success]
+    assert_equal "invalid_side", result[:error]
+    assert_equal @budget.budgeted_spending, @budget.reload.budgeted_spending
   end
 
   test "sets a category allocation by case-insensitive name" do
