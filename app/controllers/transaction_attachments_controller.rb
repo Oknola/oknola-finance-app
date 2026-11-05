@@ -64,9 +64,19 @@ class TransactionAttachmentsController < ApplicationController
     end
   rescue => e
     logger.error "#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
+    quota_message = t("active_storage.uploads.family_quota_exceeded")
+    message = if e.is_a?(ActiveRecord::RecordNotSaved) && @transaction.attachments.any? { |attachment| attachment.errors[:blob].include?(quota_message) }
+      quota_message
+    else
+      t("transactions.attachments.upload_failed")
+    end
+    @transaction.reload
     respond_to do |format|
-      format.html { redirect_back_or_to transaction_path(@transaction), alert: t("transactions.attachments.upload_failed") }
-      format.turbo_stream { flash.now[:alert] = t("transactions.attachments.upload_failed") }
+      format.html { redirect_back_or_to transaction_path(@transaction), alert: message }
+      format.turbo_stream do
+        flash.now[:alert] = message
+        render :create, status: :unprocessable_entity
+      end
     end
   end
 

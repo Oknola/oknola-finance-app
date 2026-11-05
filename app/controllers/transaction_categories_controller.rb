@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class TransactionCategoriesController < ApplicationController
   include ActionView::RecordIdentifier
 
@@ -8,7 +9,7 @@ class TransactionCategoriesController < ApplicationController
     # read-only (Transaction#category_set_on_transfer_outflow?).
     return head(:unprocessable_entity) if @entry.transaction.category_set_on_transfer_outflow?
 
-    @entry.update!(entry_params)
+    return head(:unprocessable_entity) unless @entry.update(entry_params)
 
     transaction = @entry.transaction
 
