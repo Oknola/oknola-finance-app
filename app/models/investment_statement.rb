@@ -1,5 +1,5 @@
 # Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
-require "digest/md5"
+require "digest"
 
 class InvestmentStatement
   include Monetizable
@@ -388,7 +388,7 @@ class InvestmentStatement
         return Totals.new(family, account_ids: account_ids, date_range: date_range, side: side).call
       end
 
-      account_ids_hash = Digest::MD5.hexdigest(account_ids.sort.join(","))
+      account_ids_hash = Digest::SHA256.hexdigest(account_ids.sort.join(","))
 
       Rails.cache.fetch([
         "investment_statement", "totals_query/v2", family.id, user&.id, side, family.currency,
