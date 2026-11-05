@@ -85,19 +85,21 @@ class TransactionsController < ApplicationController
     # cached: cached ActiveRecord objects outlive schema changes across
     # upgrades and raise MissingAttributeError for columns added since.
     projected_recurring_ids = Rails.cache.fetch(projected_recurring_cache_key, expires_in: 1.day) do
-      Current.family.recurring_transactions
-                    .accessible_by(Current.user)
-                    .active
-                    .where("next_expected_date <= ? AND next_expected_date >= ?",
-                           10.days.from_now.to_date,
-                           Date.current)
-                    .pluck(:id)
+      scope = Current.family.recurring_transactions
+        .accessible_by(Current.user)
+        .active
+        .where("next_expected_date <= ? AND next_expected_date >= ?",
+               10.days.from_now.to_date,
+               Date.current)
+      scope = recurring_transactions_for_current_side(scope)
+      scope.pluck(:id)
     end
     @projected_recurring = if projected_recurring_ids.empty?
       []
     else
-      Current.family.recurring_transactions.accessible_by(Current.user)
-                    .where(id: projected_recurring_ids).includes(:merchant).to_a
+      scope = Current.family.recurring_transactions.accessible_by(Current.user)
+      scope = recurring_transactions_for_current_side(scope)
+      scope.where(id: projected_recurring_ids).includes(:merchant).to_a
     end
 
     @breadcrumbs = [ [ t("breadcrumbs.home"), root_path ], [ t("breadcrumbs.transactions"), nil ] ]
@@ -556,8 +558,14 @@ class TransactionsController < ApplicationController
 
     def projected_recurring_cache_key
       "transactions_projected_recurring/v6/#{Current.family.id}/#{Current.user.id}/#{Date.current}/" \
-        "#{Current.family.recurring_transactions_version}/#{Current.family.accounts_status_version}/" \
+        "#{Current.side}/#{Current.family.recurring_transactions_version}/#{Current.family.accounts_status_version}/" \
         "#{Current.family.recurring_transaction_merchants_version}/#{Current.account_share_version}"
+    end
+
+    def recurring_transactions_for_current_side(scope)
+      return scope if Current.side.blank?
+
+      scope.left_joins(:account).where("accounts.id IS NULL OR accounts.oknola_side = ?", Current.side)
     end
 
     def covering_series_for(entry)
@@ -819,7 +827,7 @@ class TransactionsController < ApplicationController
       cleaned_params = params.fetch(:q, {})
               .permit(
                 :start_date, :end_date, :search, :amount,
-                :amount_operator, :active_accounts_only, :side,
+                :amount_operator, :active_accounts_only,
                 accounts: [], account_ids: [],
                 categories: [], merchants: [], types: [], tags: [], status: [], ai_status: [],
                 attachment_status: []

@@ -1,9 +1,11 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class ReportsController < ApplicationController
   include Periodable
 
   # Allow API key authentication for exports (for Google Sheets integration)
   # Note: We run authentication_for_export which handles both session and API key auth
   skip_authentication only: :export_transactions
+  skip_before_action :set_current_side, only: :export_transactions
   before_action :authenticate_for_export, only: :export_transactions
 
   def index
@@ -650,7 +652,7 @@ class ReportsController < ApplicationController
     # `investment_accounts` applies -- so another member's unshared account
     # is neither listed nor opens the card.
     def period_sell_trades
-      Current.family.trades
+      scope = Current.family.trades
         .joins(entry: :account)
         # An excluded trade is left out of reports, as InvestmentStatement::Totals
         # leaves it out of the same card's contributions and withdrawals.
@@ -664,6 +666,8 @@ class ReportsController < ApplicationController
           "trades.investment_activity_label IS NULL OR trades.investment_activity_label NOT IN (?)",
           Trade::INTERNAL_MOVEMENT_LABELS
         )
+      scope = scope.where(accounts: { oknola_side: Current.side }) if Current.side.present?
+      scope
     end
 
     def build_net_worth_metrics
@@ -728,6 +732,16 @@ class ReportsController < ApplicationController
       # Scope to user's finance accounts
       finance_account_ids = Current.user&.finance_accounts&.pluck(:id) || []
       scope = scope.where(entries: { account_id: finance_account_ids })
+
+      if Current.side.present?
+        scope = if scope.klass == Transaction
+          scope.where("COALESCE(transactions.oknola_side, accounts.oknola_side) = ?", Current.side)
+        elsif scope.klass == Trade
+          scope.where(accounts: { oknola_side: Current.side })
+        else
+          scope
+        end
+      end
 
       # Filter by category (including subcategories)
       if params[:filter_category_id].present?
@@ -1127,6 +1141,7 @@ class ReportsController < ApplicationController
       else
         # Use normal session authentication
         authenticate_user!
+        set_current_side unless performed?
       end
     end
 

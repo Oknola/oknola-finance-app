@@ -2,6 +2,8 @@
 require "test_helper"
 
 class BudgetTest < ActiveSupport::TestCase
+  include EntriesTestHelper
+
   setup do
     @family = families(:empty)
   end
@@ -9,6 +11,43 @@ class BudgetTest < ActiveSupport::TestCase
   test "budget_date_valid? allows going back 2 years even without entries" do
     two_years_ago = 2.years.ago.beginning_of_month
     assert Budget.budget_date_valid?(two_years_ago, family: @family)
+  end
+
+  test "budget actuals and rollover include both sides despite a selected browser side" do
+    user = users(:empty)
+    Current.session = user.sessions.create!
+    Current.side = "personal"
+    category = @family.categories.create!(name: "Both sides budget expenses")
+    personal_account = @family.accounts.create!(
+      owner: user, name: "Personal", balance: 0, currency: "USD", accountable: Depository.new
+    )
+    business_account = @family.accounts.create!(
+      owner: user, name: "Business", balance: 0, currency: "USD", accountable: Depository.new,
+      oknola_side: "business"
+    )
+    previous_start = Date.current.beginning_of_month - 1.month
+    previous = Budget.find_or_bootstrap(@family, start_date: previous_start, user: user)
+    current = Budget.find_or_bootstrap(@family, start_date: Date.current, user: user)
+    previous.update!(budgeted_spending: 100)
+    current.update!(budgeted_spending: 0)
+    previous_category = previous.budget_categories.find_by!(category: category)
+    current_category = current.budget_categories.find_by!(category: category)
+    previous_category.update!(budgeted_spending: 100, rollover_enabled: true)
+    current_category.update!(rollover_enabled: true)
+    create_transaction(account: personal_account, amount: 20, category: category, date: previous_start + 1.day)
+    create_transaction(account: business_account, amount: 30, category: category, date: previous_start + 2.days)
+    create_transaction(account: personal_account, amount: 7, category: category, date: Date.current)
+    create_transaction(account: business_account, amount: 8, category: category, date: Date.current)
+
+    assert_equal 50, previous.budget_category_actual_spending(previous_category).to_d
+
+    Budget::RolloverCalculator.new(family: @family, user: nil).recompute!
+
+    assert_equal 50, current_category.reload[:rolled_over_amount].to_d
+    assert_equal 15, current.actual_spending.to_d
+  ensure
+    Current.session = nil
+    Current.side = nil
   end
 
   test "budget_date_valid? allows going back to earliest entry date if more than 2 years ago" do

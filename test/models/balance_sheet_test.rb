@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class BalanceSheetTest < ActiveSupport::TestCase
@@ -5,6 +6,46 @@ class BalanceSheetTest < ActiveSupport::TestCase
 
   setup do
     @family = families(:empty)
+  end
+
+  test "balance sheet and historical series include only accounts on the selected side" do
+    business = create_account(name: "Business", balance: 1000, accountable: Depository.new)
+    personal = create_account(name: "Personal", balance: 2000, accountable: Depository.new)
+    business.update!(oknola_side: "business")
+    personal.update!(oknola_side: "personal")
+    period = Period.custom(start_date: Date.current - 1.day, end_date: Date.current)
+    create_balance(account: business, date: period.start_date, balance: 900)
+    create_balance(account: business, date: period.end_date, balance: 1000)
+    create_balance(account: personal, date: period.start_date, balance: 1900)
+    create_balance(account: personal, date: period.end_date, balance: 2000)
+
+    business_sheet = BalanceSheet.new(@family, side: "business")
+    personal_sheet = BalanceSheet.new(@family, side: "personal")
+
+    assert_equal 1000, business_sheet.assets.total
+    assert_equal 1000, business_sheet.net_worth
+    assert_equal [ "Business" ], business_sheet.assets.account_groups.flat_map(&:accounts).map(&:name)
+    assert_equal 2000, personal_sheet.assets.total
+    assert_equal 2000, personal_sheet.net_worth
+    assert_equal [ "Personal" ], personal_sheet.assets.account_groups.flat_map(&:accounts).map(&:name)
+    assert_equal 1000, business_sheet.net_worth_series(period: period).values.last.value.amount
+    assert_equal 2000, personal_sheet.net_worth_series(period: period).values.last.value.amount
+  end
+
+  test "changing an account side invalidates cached balance sheet totals" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    account = create_account(name: "Business", balance: 1000, accountable: Depository.new)
+    Oknola::AccountSide.set(account, "business")
+
+    assert_equal 1000, BalanceSheet.new(@family, side: "business").assets.total
+
+    Oknola::AccountSide.set(account, "personal")
+
+    assert_equal 0, BalanceSheet.new(@family, side: "business").assets.total
+    assert_equal 1000, BalanceSheet.new(@family, side: "personal").assets.total
+  ensure
+    Rails.cache = original_cache
   end
 
   test "calculates total assets" do

@@ -1,20 +1,22 @@
-require "digest/md5"
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+require "digest"
 
 class IncomeStatement
   include Monetizable
 
   monetize :median_expense, :median_income
 
-  attr_reader :family, :user
+  attr_reader :family, :user, :side
 
   # `accounts:` overrides the account scope entirely (e.g. a personal
   # budget's "owned accounts only" view) instead of inferring it from
   # `user.finance_accounts`. `user` is still kept for cache-key/estimate
   # purposes when both are given.
-  def initialize(family, user: nil, accounts: nil)
+  def initialize(family, user: nil, accounts: nil, side: Current.side)
     @family = family
     @user = user || Current.user
     @accounts = accounts
+    @side = side
   end
 
   def totals(transactions_scope: nil, date_range:)
@@ -266,13 +268,14 @@ class IncomeStatement
       Rails.cache.fetch([
         "income_statement", "daily_expense_series", family.id, user&.id,
         included_account_ids_hash, period.start_date, period.end_date,
-        *cache_freshness_key
+        side, *cache_freshness_key
       ]) do
         DailyExpenseTotals.new(
           family,
           transactions_scope: family.transactions.visible.excluding_pending.in_period(period),
           date_range: period.date_range,
-          included_account_ids: included_account_ids
+          included_account_ids: included_account_ids,
+          side: side
         ).call
       end
     end
@@ -285,7 +288,7 @@ class IncomeStatement
       @daily_expense_by_category ||= {}
       @daily_expense_by_category[period_cache_key(period)] ||= Rails.cache.fetch([
         "income_statement", "daily_expense_by_category", family.id, user&.id,
-        included_account_ids_hash, period.start_date, period.end_date,
+        included_account_ids_hash, period.start_date, period.end_date, side,
         *cache_freshness_key
       ]) do
         DailyExpenseTotals.new(
@@ -293,7 +296,8 @@ class IncomeStatement
           transactions_scope: family.transactions.visible.excluding_pending.in_period(period),
           date_range: period.date_range,
           included_account_ids: included_account_ids,
-          by_category: true
+          by_category: true,
+          side: side
         ).call
       end
     end
@@ -315,15 +319,15 @@ class IncomeStatement
     def family_stats(interval: "month")
       @family_stats ||= {}
       @family_stats[interval] ||= Rails.cache.fetch([
-        "income_statement", "family_stats", family.id, user&.id, interval, included_account_ids_hash, *cache_freshness_key
-      ]) { FamilyStats.new(family, interval:, account_ids: included_account_ids).call }
+        "income_statement", "family_stats", family.id, user&.id, interval, included_account_ids_hash, side, *cache_freshness_key
+      ]) { FamilyStats.new(family, interval:, account_ids: included_account_ids, side: side).call }
     end
 
     def category_stats(interval: "month")
       @category_stats ||= {}
       @category_stats[interval] ||= Rails.cache.fetch([
-        "income_statement", "category_stats", family.id, user&.id, interval, included_account_ids_hash, *cache_freshness_key
-      ]) { CategoryStats.new(family, interval:, account_ids: included_account_ids).call }
+        "income_statement", "category_stats", family.id, user&.id, interval, included_account_ids_hash, side, *cache_freshness_key
+      ]) { CategoryStats.new(family, interval:, account_ids: included_account_ids, side: side).call }
     end
 
     def included_account_ids
@@ -335,7 +339,7 @@ class IncomeStatement
     end
 
     def included_account_ids_hash
-      @included_account_ids_hash ||= included_account_ids ? Digest::MD5.hexdigest(included_account_ids.sort.join(",")) : nil
+      @included_account_ids_hash ||= included_account_ids ? Digest::SHA256.hexdigest(included_account_ids.sort.join(",")) : nil
     end
 
     # An IncomeStatement is a request-scoped reporting snapshot, like its memoized
@@ -346,6 +350,7 @@ class IncomeStatement
       @cache_freshness_key ||= [
         family.entries_cache_version,
         family.accounts_status_version,
+        side,
         family.currency,
         ExchangeRate.maximum(:updated_at)&.to_i,
         family.investment_contributions_as_spending?
@@ -353,11 +358,11 @@ class IncomeStatement
     end
 
     def totals_query(transactions_scope:, date_range:)
-      sql_hash = Digest::MD5.hexdigest(transactions_scope.to_sql)
+      sql_hash = Digest::SHA256.hexdigest(transactions_scope.to_sql)
 
       Rails.cache.fetch([
-        "income_statement", "totals_query", "v2", family.id, user&.id, included_account_ids_hash, sql_hash, date_range.begin, date_range.end, *cache_freshness_key
-      ]) { Totals.new(family, transactions_scope: transactions_scope, date_range: date_range, included_account_ids: included_account_ids).call }
+        "income_statement", "totals_query", "v2", family.id, user&.id, included_account_ids_hash, sql_hash, date_range.begin, date_range.end, side, *cache_freshness_key
+      ]) { Totals.new(family, transactions_scope: transactions_scope, date_range: date_range, included_account_ids: included_account_ids, side: side).call }
     end
 
     def monetizable_currency

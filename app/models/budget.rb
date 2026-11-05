@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Budget < ApplicationRecord
   include Monetizable
 
@@ -523,7 +524,7 @@ class Budget < ApplicationRecord
       0.to_d
     end
     def income_statement
-      @income_statement ||= family.income_statement(user: current_user, accounts: income_statement_accounts)
+      @income_statement ||= family.income_statement(user: current_user, accounts: income_statement_accounts, side: nil)
     end
 
     # nil for the household budget (IncomeStatement falls back to whatever

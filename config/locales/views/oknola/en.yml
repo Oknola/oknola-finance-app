@@ -1,6 +1,11 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 ---
 en:
   oknola:
+    side_switch:
+      aria: Choose Business or Personal
+      business: Business
+      personal: Personal
     acceptances:
       show:
         title: "Finance is in early access."

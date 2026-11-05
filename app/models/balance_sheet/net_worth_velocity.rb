@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # How fast net worth is moving over a period (velocity, per month) and how that
 # pace compares with the period immediately before it (momentum).
 #
@@ -65,7 +66,7 @@ class BalanceSheet::NetWorthVelocity
     end
 
     def breakdown_builder
-      @breakdown_builder ||= BalanceSheet::NetWorthBreakdownSeriesBuilder.new(balance_sheet.family, user: balance_sheet.user)
+      @breakdown_builder ||= BalanceSheet::NetWorthBreakdownSeriesBuilder.new(balance_sheet.family, user: balance_sheet.user, side: balance_sheet.side)
     end
 
     def amount_of(value)
@@ -94,7 +95,7 @@ class BalanceSheet::NetWorthVelocity
     # see only some of them.
     def account_start_dates
       @account_start_dates ||= begin
-        account_ids = BalanceSheet::HistoricalAccountScope.new(balance_sheet.family, user: balance_sheet.user).account_ids
+        account_ids = BalanceSheet::HistoricalAccountScope.new(balance_sheet.family, user: balance_sheet.user, side: balance_sheet.side).account_ids
         entry_starts = Entry.where(account_id: account_ids).excluding_pending.group(:account_id).minimum(:date)
         balance_starts = Balance.where(account_id: account_ids).group(:account_id).minimum(:date)
         entry_starts.merge(balance_starts) { |_account_id, entry_start, balance_start| [ entry_start, balance_start ].min }

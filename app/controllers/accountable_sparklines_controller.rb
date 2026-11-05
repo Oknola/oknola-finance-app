@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class AccountableSparklinesController < ApplicationController
   def show
     @accountable = Accountable.from_type(params[:accountable_type]&.classify)
@@ -23,11 +24,15 @@ class AccountableSparklinesController < ApplicationController
     # user, visible, included in reports and counted in their finances (owned,
     # or shared with include_in_finances).
     def account_scope
-      @account_scope ||= Current.accessible_accounts
+      @account_scope ||= begin
+        scope = Current.accessible_accounts
         .visible
         .included_in_reports
         .included_in_finances_for(Current.user)
         .where(accountable_type: @accountable.name)
+        scope = scope.where(oknola_side: Current.side) if Current.side.present?
+        scope
+      end
     end
 
     def account_ids
@@ -81,7 +86,7 @@ class AccountableSparklinesController < ApplicationController
     # whenever the set does and never repeats for a different set.
     def cache_key
       family.build_cache_key(
-        "#{@accountable.name}_sparkline_#{Account::Chartable::SPARKLINE_CACHE_VERSION}_#{account_rows_digest}",
+        "#{@accountable.name}_sparkline_#{Account::Chartable::SPARKLINE_CACHE_VERSION}_#{Current.side}_#{account_rows_digest}",
         invalidate_on_data_updates: true
       )
     end

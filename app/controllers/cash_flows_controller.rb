@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class CashFlowsController < ApplicationController
   before_action :require_preview_features!
 
@@ -13,7 +14,7 @@ class CashFlowsController < ApplicationController
       return render json: { error: "invalid_group_by" }, status: :unprocessable_entity
     end
 
-    statement = IncomeStatement.new(Current.family, user: Current.user)
+    statement = IncomeStatement.new(Current.family, user: Current.user, side: Current.side)
     period = Period.custom(start_date: start_date, end_date: end_date)
     # Resolve reporting dates after ordinary session authentication has set Current.
     Time.use_zone(resolved_timezone) do

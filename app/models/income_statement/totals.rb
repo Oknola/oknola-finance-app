@@ -1,12 +1,14 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class IncomeStatement::Totals
   include IncomeStatement::ScopedTransactionsQuery
 
-  def initialize(family, transactions_scope:, date_range:, include_trades: true, included_account_ids: nil)
+  def initialize(family, transactions_scope:, date_range:, include_trades: true, included_account_ids: nil, side: nil)
     @family = family
     @transactions_scope = transactions_scope
     @date_range = date_range
     @include_trades = include_trades
     @included_account_ids = included_account_ids
+    @side = side
 
     validate_date_range!
   end
@@ -78,6 +80,7 @@ class IncomeStatement::Totals
           AND a.exclude_from_reports = false
           #{exclude_tax_advantaged_sql}
           #{include_finance_accounts_sql}
+          #{side_filter_sql("at")}
         GROUP BY c.id, c.parent_id, #{classification_sql("at")};
       SQL
     end
@@ -104,6 +107,7 @@ class IncomeStatement::Totals
           AND a.exclude_from_reports = false
           #{exclude_tax_advantaged_sql}
           #{include_finance_accounts_sql}
+          #{side_filter_sql("at")}
         GROUP BY c.id, c.parent_id, #{classification_sql("at")}
       SQL
     end

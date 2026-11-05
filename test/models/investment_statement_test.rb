@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class InvestmentStatementTest < ActiveSupport::TestCase
@@ -5,6 +6,21 @@ class InvestmentStatementTest < ActiveSupport::TestCase
     @family = families(:empty)
     # families(:empty) defaults to currency "USD"
     @statement = InvestmentStatement.new(@family, user: nil)
+  end
+
+  test "investment accounts and portfolio totals follow the selected side" do
+    business = create_investment_account(balance: 1000, cash_balance: 100)
+    personal = create_investment_account(balance: 2000, cash_balance: 200)
+    business.update!(oknola_side: "business")
+    personal.update!(oknola_side: "personal")
+
+    business_statement = InvestmentStatement.new(@family, side: "business")
+    personal_statement = InvestmentStatement.new(@family, side: "personal")
+
+    assert_equal [ business.id ], business_statement.investment_accounts.pluck(:id)
+    assert_equal [ personal.id ], personal_statement.investment_accounts.pluck(:id)
+    assert_equal 1000, business_statement.portfolio_value
+    assert_equal 2000, personal_statement.portfolio_value
   end
 
   test "portfolio_value and cash_balance with a single-currency family" do
@@ -494,6 +510,55 @@ class InvestmentStatementTest < ActiveSupport::TestCase
     # account_ids is pre-scoped to the family's visible accounts, so the
     # aggregate trusts that input and no longer joins back to accounts.
     assert_no_match(/JOIN accounts/, aggregate_queries.first)
+  end
+
+  test "dividend transactions use their effective side while API-style totals stay unfiltered" do
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    account = create_investment_account(balance: 1000)
+    account.update!(oknola_side: "personal")
+    create_income_transaction(account: account, label: "Dividend", amount: 12.5, date: Date.current)
+    override = create_income_transaction(account: account, label: "Dividend", amount: 7.5, date: Date.current)
+    override.transaction.update!(oknola_side: "business")
+
+    business = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    personal = InvestmentStatement.new(@family, side: "personal").totals(period: period)
+    unfiltered = InvestmentStatement.new(@family, side: nil).totals(period: period)
+
+    assert_equal 7.5, business.dividends.amount
+    assert_equal 12.5, personal.dividends.amount
+    assert_equal 20, unfiltered.dividends.amount
+  end
+
+  test "cached investment totals refresh when an account changes sides" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    account = create_investment_account(balance: 1000)
+    account.update!(oknola_side: "personal")
+    create_income_transaction(account: account, label: "Dividend", amount: 25, date: Date.current)
+
+    before_change = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    assert_equal 0, before_change.dividends.amount
+
+    Oknola::AccountSide.set(account, "business")
+
+    after_change = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    assert_equal 25, after_change.dividends.amount
+  ensure
+    Rails.cache = original_cache
+  end
+
+  test "investment contributions follow the account side" do
+    period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    account = create_investment_account(balance: 1000)
+    account.update!(oknola_side: "business")
+    create_trade(account: account, qty: 2, amount: 120, date: Date.current)
+
+    business = InvestmentStatement.new(@family, side: "business").totals(period: period)
+    personal = InvestmentStatement.new(@family, side: "personal").totals(period: period)
+
+    assert_equal 120, business.contributions.amount
+    assert_equal 0, personal.contributions.amount
   end
 
   test "totals aggregate dividend and interest income from income trades" do

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class AccountableSparklinesControllerTest < ActionDispatch::IntegrationTest
@@ -63,6 +64,30 @@ class AccountableSparklinesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_nil requested_account_ids, "member must not be served the admin's cached series"
     assert_not_includes requested_account_ids, accounts(:connected).id
+  end
+
+  test "group sparkline filters accounts and cache by selected side" do
+    Rails.stubs(:cache).returns(ActiveSupport::Cache::MemoryStore.new)
+    personal = accounts(:connected)
+    business = accounts(:depository)
+    personal.update!(oknola_side: "personal")
+    business.update!(oknola_side: "business")
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "personal"))
+    requested_account_ids = []
+    Balance::ChartSeriesBuilder.expects(:new).twice.with do |args|
+      requested_account_ids << args[:account_ids]
+      true
+    end.returns(stub(balance_series: empty_series))
+
+    get accountable_sparkline_url("depository")
+    assert_response :success
+    assert_equal [ personal.id ], requested_account_ids.last
+
+    @user.update!(preferences: @user.preferences.merge("oknola_side" => "business"))
+    get accountable_sparkline_url("depository")
+
+    assert_response :success
+    assert_equal [ business.id ], requested_account_ids.last
   end
 
   test "group sparkline cache is invalidated when account sharing changes" do

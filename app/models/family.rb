@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Family < ApplicationRecord
   has_many :financekit_items, dependent: :destroy
   has_many :financekit_account_lineages, dependent: :destroy
@@ -609,13 +610,13 @@ class Family < ApplicationRecord
   # (mobile + desktop, each with 3 tabs), so a single request can ask for the
   # balance sheet many times. Rebuilding it repeats the account/sync/exchange-
   # rate queries it depends on.
-  def balance_sheet(user: Current.user)
+  def balance_sheet(user: Current.user, side: Current.side)
     @balance_sheets ||= {}
-    @balance_sheets[user&.id] ||= BalanceSheet.new(self, user: user)
+    @balance_sheets[[ user&.id, side ]] ||= BalanceSheet.new(self, user: user, side: side)
   end
 
-  def income_statement(user: Current.user, accounts: nil)
-    IncomeStatement.new(self, user: user, accounts: accounts)
+  def income_statement(user: Current.user, accounts: nil, side: Current.side)
+    IncomeStatement.new(self, user: user, accounts: accounts, side: side)
   end
 
   # Returns the Investment Contributions category for this family, creating it if it doesn't exist.
@@ -695,9 +696,9 @@ class Family < ApplicationRecord
   end
 
   # Memoized per user for the same reason as #balance_sheet above.
-  def investment_statement(user: Current.user)
+  def investment_statement(user: Current.user, side: Current.side)
     @investment_statements ||= {}
-    @investment_statements[user&.id] ||= InvestmentStatement.new(self, user: user)
+    @investment_statements[[ user&.id, side ]] ||= InvestmentStatement.new(self, user: user, side: side)
   end
 
   def eu?

@@ -2059,6 +2059,37 @@ end
     Rails.cache = original_cache
   end
 
+  test "index projected recurring rows follow the selected account side" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    business = recurring_transactions(:netflix_subscription)
+    personal = recurring_transactions(:inactive_subscription)
+    unassigned = @user.family.recurring_transactions.create!(
+      account: nil, name: "Unassigned recurring bill", amount: 25, currency: "USD",
+      expected_day_of_month: Date.current.day, status: "active", manual: true, bill_type: "bill",
+      last_occurrence_date: Date.current, next_expected_date: 5.days.from_now.to_date
+    )
+    business.update!(status: "active", next_expected_date: Date.current)
+    personal.update!(status: "active", next_expected_date: Date.current)
+    business.account.update!(oknola_side: "business")
+    personal.account.update!(oknola_side: "personal")
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "business"))
+
+    get transactions_url
+    assert_response :success
+    assert_equal [ business.id, unassigned.id ].sort, @controller.instance_variable_get(:@projected_recurring).map(&:id).sort
+    assert_includes response.body, unassigned.name
+
+    @user.update!(preferences: @user.preferences.merge("oknola_side" => "personal"))
+    get transactions_url
+
+    assert_response :success
+    assert_equal [ personal.id, unassigned.id ].sort, @controller.instance_variable_get(:@projected_recurring).map(&:id).sort
+    assert_includes response.body, unassigned.name
+  ensure
+    Rails.cache = original_cache
+  end
+
   test "index projected_recurring cache reflects a merchant rename immediately" do
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new

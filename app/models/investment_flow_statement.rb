@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class InvestmentFlowStatement
   include Monetizable
 
@@ -12,11 +13,12 @@ class InvestmentFlowStatement
   INVESTMENT_ACCOUNT_TYPES = %w[Investment Crypto].freeze
   private_constant :CONTRIBUTIONS_TOTAL_SQL, :WITHDRAWALS_TOTAL_SQL, :INVESTMENT_ACCOUNT_TYPES
 
-  attr_reader :family, :user
+  attr_reader :family, :user, :side
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, side: Current.side)
     @family = family
     @user = user
+    @side = side
   end
 
   # Get contribution/withdrawal totals for a period
@@ -29,6 +31,8 @@ class InvestmentFlowStatement
 
     scope = base.where(kind: %w[standard investment_contribution])
       .or(matched_investment_flows(base))
+
+    scope = scope.where("COALESCE(transactions.oknola_side, accounts.oknola_side) = ?", side) if side.present?
 
     if user
       account_ids = family.accounts.included_in_finances_for(user).included_in_reports.select(:id)

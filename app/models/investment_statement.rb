@@ -1,20 +1,22 @@
-require "digest/md5"
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+require "digest"
 
 class InvestmentStatement
   include Monetizable
 
   monetize :total_contributions, :total_dividends, :total_interest, :unrealized_gains
 
-  attr_reader :family, :user
+  attr_reader :family, :user, :side
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, side: Current.side)
     @family = family
     @user = user || Current.user
+    @side = side
   end
 
   # Get totals for a specific period
   def totals(period: Period.current_month)
-    account_ids = investment_account_ids
+    account_ids = investment_accounts_scope.pluck(:id)
 
     result = totals_query(account_ids: account_ids, date_range: period.date_range)
 
@@ -261,14 +263,16 @@ class InvestmentStatement
 
   # Investment accounts
   def investment_accounts
-    @investment_accounts ||= begin
+    @investment_accounts ||= side.present? ? investment_accounts_scope.where(oknola_side: side) : investment_accounts_scope
+  end
+
+  private
+    def investment_accounts_scope
       scope = family.accounts.visible.included_in_reports.where(accountable_type: %w[Investment Crypto])
       scope = scope.included_in_finances_for(user) if user
       scope
     end
-  end
 
-  private
     # Today's rates for every currency present on the family's investment
     # accounts and their holdings. Mirrors BalanceSheet::AccountTotals#exchange_rates.
     def exchange_rates
@@ -381,15 +385,16 @@ class InvestmentStatement
 
     def totals_query(account_ids:, date_range:)
       if account_ids.empty?
-        return Totals.new(family, account_ids: account_ids, date_range: date_range).call
+        return Totals.new(family, account_ids: account_ids, date_range: date_range, side: side).call
       end
 
-      account_ids_hash = Digest::MD5.hexdigest(account_ids.sort.join(","))
+      account_ids_hash = Digest::SHA256.hexdigest(account_ids.sort.join(","))
 
       Rails.cache.fetch([
-        "investment_statement", "totals_query/v2", family.id, user&.id, family.currency,
-        account_ids_hash, date_range.begin, date_range.end, family.entries_cache_version
-      ]) { Totals.new(family, account_ids: account_ids, date_range: date_range).call }
+        "investment_statement", "totals_query/v2", family.id, user&.id, side, family.currency,
+        account_ids_hash, date_range.begin, date_range.end, family.entries_cache_version,
+        family.accounts_status_version
+      ]) { Totals.new(family, account_ids: account_ids, date_range: date_range, side: side).call }
     end
 
     def monetizable_currency

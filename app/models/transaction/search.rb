@@ -172,6 +172,8 @@ class Transaction::Search
   def initialize(family, filters: {}, accessible_account_ids: nil)
     @family = family
     @accessible_account_ids = accessible_account_ids
+    filters = filters.to_h.stringify_keys
+    filters["side"] = Current.side unless filters.key?("side")
     super(filters)
   end
 
@@ -261,6 +263,7 @@ class Transaction::Search
     [
       family.id,
       family.currency,
+      side.presence || "all",
       Digest::SHA256.hexdigest(attributes.sort.to_h.to_json), # cached by filters
       family.entries_cache_version,
       family.accounts_status_version,

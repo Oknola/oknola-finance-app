@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Net spending per category for a period, compared with what is normal for
 # that category: its net spending over the year before the period, scaled to
 # the period's length. An unfinished period (the default current month)
@@ -46,11 +47,13 @@ class IncomeStatement::SpendingComparison
   # entry can predate real spending by years, and would dilute "normal" with
   # empty months.
   def self.history_start(income_statement)
-    Entry.joins("JOIN transactions ON transactions.id = entries.entryable_id")
-         .where(account_id: income_statement.eligible_accounts.select(:id), entryable_type: "Transaction", excluded: false)
-         .merge(Transaction.excluding_pending)
-         .where.not(transactions: { kind: income_statement.family.analytics_excluded_kinds })
-         .minimum(:date)
+    scope = Entry.joins("JOIN transactions ON transactions.id = entries.entryable_id")
+      .joins(:account)
+      .where(account_id: income_statement.eligible_accounts.select(:id), entryable_type: "Transaction", excluded: false)
+      .merge(Transaction.excluding_pending)
+      .where.not(transactions: { kind: income_statement.family.analytics_excluded_kinds })
+    scope = scope.where("COALESCE(transactions.oknola_side, accounts.oknola_side) = ?", income_statement.side) if income_statement.side.present?
+    scope.minimum(:date)
   end
 
   def initialize(income_statement, period:, history_start:, as_of: Date.current)

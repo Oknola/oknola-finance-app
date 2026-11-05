@@ -10,6 +10,8 @@ class ApplicationController < ActionController::Base
   # After Authentication, so Current.session is set when it runs.
   include Oknola::RequiresNotice
 
+  before_action :set_current_side, unless: :side_filter_excluded_request?
+
   include Pagy::Backend
 
   # Pundit uses current_user by default, but this app uses Current.user
@@ -24,6 +26,20 @@ class ApplicationController < ActionController::Base
   helper_method :demo_config, :demo_host_match?, :show_demo_warning?, :current_sidekiq_health
 
   private
+    def set_current_side
+      return unless Current.user
+
+      preference = Current.user.preferences&.[]("oknola_side")
+      Current.side = Oknola::AccountSide::SIDES.include?(preference) ? preference : "personal"
+    end
+
+    def side_filter_excluded_request?
+      controller_path.start_with?("api/v1/") ||
+        controller_path.start_with?("doorkeeper/") ||
+        request.path.start_with?("/oauth") ||
+        controller_name == "mcp"
+    end
+
     def accept_pending_invitation_for(user)
       return if user.blank? || user.super_admin?
 

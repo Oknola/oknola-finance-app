@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Goal < ApplicationRecord
   include AASM, Monetizable
 
@@ -536,7 +537,7 @@ class Goal < ApplicationRecord
     # it has already saved through, and a median frozen on first read would
     # hand it back the figure it started with.
     def median_monthly_expense
-      IncomeStatement.new(family, accounts: family.accounts.visible.included_in_reports)
+      IncomeStatement.new(family, accounts: family.accounts.visible.included_in_reports, side: nil)
                      .median_expense(interval: "month").to_d
     end
 
