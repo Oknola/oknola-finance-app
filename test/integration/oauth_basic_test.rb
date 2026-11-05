@@ -4,6 +4,10 @@
 require "test_helper"
 
 class OauthBasicTest < ActionDispatch::IntegrationTest
+  setup do
+    ensure_tailwind_build
+  end
+
   test "oauth authorization endpoint requires authentication" do
     oauth_app = Doorkeeper::Application.create!(
       name: "Test API Client",
@@ -52,6 +56,27 @@ class OauthBasicTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
   end
 
+  test "oauth authorization refuses a same-named client with another redirect uri" do
+    oauth_app = Doorkeeper::Application.create!(
+      name: MobileDevice::OAUTH_APPLICATION_NAME,
+      redirect_uri: "https://client.example.com/callback",
+      scopes: "read_write"
+    )
+    sign_in(users(:family_admin))
+
+    assert_no_difference "Doorkeeper::Application.count" do
+      get "/oauth/authorize", params: {
+        client_id: oauth_app.uid,
+        redirect_uri: oauth_app.redirect_uri,
+        response_type: "code",
+        scope: "read_write"
+      }
+    end
+
+    assert_response :unauthorized
+    assert_not_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
+  end
+
   test "oauth authorization refuses POST for an existing third-party client" do
     oauth_app = Doorkeeper::Application.create!(
       name: "Oknola",
@@ -96,6 +121,31 @@ class OauthBasicTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, oauth_app.name
+    assert_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
+  end
+
+  test "oauth authorization defaults the Sure Mobile scope when scope is omitted" do
+    oauth_app = Doorkeeper::Application.create!(
+      name: MobileDevice::OAUTH_APPLICATION_NAME,
+      redirect_uri: MobileDevice::CALLBACK_URL,
+      scopes: "read_write",
+      confidential: false
+    )
+    sign_in(users(:family_admin))
+    ensure_tailwind_build
+    verifier = SecureRandom.urlsafe_base64(64)
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+
+    get "/oauth/authorize", params: {
+      client_id: oauth_app.uid,
+      redirect_uri: oauth_app.redirect_uri,
+      response_type: "code",
+      code_challenge: challenge,
+      code_challenge_method: "S256"
+    }
+
+    assert_response :success
+    assert_select 'input[name="scope"][value="read_write"]'
     assert_includes response.body, I18n.t("doorkeeper.authorizations.buttons.authorize")
   end
 

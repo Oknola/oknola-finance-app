@@ -7,7 +7,8 @@ class Oauth::AuthorizationsController < Doorkeeper::AuthorizationsController
 
     def first_party_client_only
       application = Doorkeeper::Application.find_by(uid: params[:client_id])
-      return if application&.name == MobileDevice::OAUTH_APPLICATION_NAME
+      return if application&.name == MobileDevice::OAUTH_APPLICATION_NAME &&
+        application.redirect_uri == MobileDevice::CALLBACK_URL
 
       # shortcut: first-party clients only, widen this when MCP clients join the Finance offer
       params[:client_id] = SecureRandom.hex(32)

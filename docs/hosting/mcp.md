@@ -92,9 +92,8 @@ POST /mcp
 
 ### Authentication
 
-MCP requests use bearer tokens. Previously issued OAuth tokens remain subject to
-their normal expiration and revocation behavior, but third-party clients cannot
-obtain new authorization grants.
+MCP requests use bearer tokens. Third-party authorization is closed. Tokens issued
+earlier keep working until revoked or expired under their existing settings.
 
 For self-hosted deployments, requests may use
 the legacy `MCP_API_TOKEN` as a Bearer token:

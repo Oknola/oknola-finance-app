@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # LLM Configuration Guide
 
 This document explains how Sure uses Large Language Models (LLMs) for AI features and how to configure them for your deployment.
@@ -527,7 +528,7 @@ Sure exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) 
 
 Sure supports both:
 
-- OAuth bearer tokens issued through its discovery and registration endpoints (`/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `POST /register`)
+- OAuth bearer tokens for the first-party Sure Mobile flow (`/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`)
 - Static bearer tokens configured with `MCP_API_TOKEN` and `MCP_USER_EMAIL`
 
 **Static-token environment variables:**
