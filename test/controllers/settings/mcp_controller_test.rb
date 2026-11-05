@@ -1,7 +1,9 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Settings::McpControllerTest < ActionDispatch::IntegrationTest
   setup do
+    ensure_tailwind_build
     @user = users(:family_admin)
     sign_in @user
   end
@@ -9,6 +11,9 @@ class Settings::McpControllerTest < ActionDispatch::IntegrationTest
   test "shows MCP settings page" do
     get settings_mcp_path
     assert_response :success
+    assert_select "p", text: I18n.t("settings.mcp.show.connect_unavailable")
+    assert_not_includes response.body, "Claude.ai"
+    assert_not_includes response.body, "Settings → Customize → Connectors"
   end
 
   test "shows connected tokens" do
