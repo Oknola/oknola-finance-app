@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class PagesControllerTest < ActionDispatch::IntegrationTest
@@ -12,6 +13,13 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   test "dashboard" do
     get root_path
     assert_response :ok
+  end
+
+  test "dashboard logo has non-empty alt text" do
+    get root_path
+
+    assert_response :ok
+    assert_select "img[alt=?]", Rails.configuration.x.product_name
   end
 
   test "dashboard renders the net worth chart as drag-selectable, opting it out of card drag-and-drop" do
