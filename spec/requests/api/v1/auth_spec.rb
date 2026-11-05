@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Auth', type: :request do
@@ -123,12 +125,12 @@ RSpec.describe 'API V1 Auth', type: :request do
         run_test!
       end
 
-      response '401', 'invalid credentials, MFA required, or account deactivated' do
+      response '401', 'invalid credentials, emergency override rejected, MFA required, or account deactivated' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
         run_test!
       end
 
-      response '403', 'local login is disabled: the instance is SSO-only, and this account is not a super admin using the emergency override' do
+      response '403', 'local login and the emergency override are disabled' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
         run_test!
       end

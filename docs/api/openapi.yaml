@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 ---
 openapi: 3.0.3
 info:
@@ -4958,14 +4958,14 @@ paths:
                       ai_enabled:
                         type: boolean
         '401':
-          description: invalid credentials, MFA required, or account deactivated
+          description: invalid credentials, emergency override rejected, MFA required,
+            or account deactivated
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
         '403':
-          description: 'local login is disabled: the instance is SSO-only, and this
-            account is not a super admin using the emergency override'
+          description: local login and the emergency override are disabled
           content:
             application/json:
               schema:
