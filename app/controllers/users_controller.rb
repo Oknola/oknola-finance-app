@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class UsersController < ApplicationController
   before_action :set_user
   before_action :ensure_admin, only: %i[reset reset_with_sample_data]
@@ -13,6 +14,15 @@ class UsersController < ApplicationController
   def update
     @user = Current.user
     return if admin_family_change_requested? && !ensure_admin
+
+    if email_changed? && @user.oidc_identities.exists?(provider: "oknola")
+      message = t("users.update.email_managed_by_oknola")
+      respond_to do |format|
+        format.html { redirect_to settings_profile_path, alert: message }
+        format.json { render json: { errors: [ message ] }, status: :unprocessable_entity }
+      end
+      return
+    end
 
     if email_changed?
       if @user.initiate_email_change(user_params[:email])

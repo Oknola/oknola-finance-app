@@ -789,6 +789,17 @@ class TransactionsController < ApplicationController
         permitted[:entryable_attributes] = permitted[:entryable_attributes].except(:category_id)
       end
 
+      if (attributes = permitted[:entryable_attributes])&.key?(:tag_ids)
+        submitted_tag_ids = Array(attributes[:tag_ids]).reject(&:blank?)
+        allowed_tag_ids = Current.family.tags.where(id: submitted_tag_ids).pluck(:id)
+
+        if submitted_tag_ids.map(&:to_s).uniq.sort == allowed_tag_ids.map(&:to_s).uniq.sort
+          attributes[:tag_ids] = allowed_tag_ids
+        else
+          permitted[:entryable_attributes] = attributes.except(:tag_ids)
+        end
+      end
+
       permitted
     end
 

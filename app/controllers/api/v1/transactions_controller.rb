@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Api::V1::TransactionsController < Api::V1::BaseController
   include Pagy::Backend
   include Api::V1::TransactionLookup
@@ -93,6 +94,11 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       return
     end
 
+    if foreign_tag_ids_requested?
+      render_invalid_tag_ids
+      return
+    end
+
     account = family.accounts.writable_by(current_resource_owner).find(account_id_param)
 
     if idempotency_key_requested? && (existing_entry = existing_idempotent_entry(account))
@@ -144,6 +150,11 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       return
     end
 
+    if foreign_tag_ids_requested?
+      render_invalid_tag_ids
+      return
+    end
+
     Entry.transaction do
       if @entry.update(entry_params_for_update)
         sync_needed = @entry.saved_changes_affect_balances?
@@ -151,7 +162,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
         # Handle tags separately - only when explicitly provided in the request
         # This allows clearing tags with tag_ids: [] while preserving tags when not specified
         if tags_provided?
-          @entry.transaction.tag_ids = transaction_params[:tag_ids] || []
+          @entry.transaction.tag_ids = resolved_tag_ids
           @entry.transaction.save!
           @entry.transaction.lock_attr!(:tag_ids) if @entry.transaction.tags.any?
         end
@@ -172,6 +183,12 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       end
     end
 
+  rescue ActiveRecord::RecordInvalid => error
+    render json: {
+      error: "validation_failed",
+      message: "Transaction could not be updated",
+      errors: error.record.errors.full_messages
+    }, status: :unprocessable_entity
   rescue => e
     Rails.logger.error "TransactionsController#update error: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
@@ -309,6 +326,25 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       )
     end
 
+    def requested_tag_ids
+      Array(transaction_params[:tag_ids]).reject(&:blank?)
+    end
+
+    def resolved_tag_ids
+      @resolved_tag_ids ||= current_resource_owner.family.tags.where(id: requested_tag_ids).pluck(:id)
+    end
+
+    def foreign_tag_ids_requested?
+      return false unless tags_provided?
+
+      requested_tag_ids.map(&:to_s).uniq.sort != resolved_tag_ids.map(&:to_s).uniq.sort
+    end
+
+    def render_invalid_tag_ids
+      message = "One or more tags are invalid"
+      render json: { error: "validation_failed", message: message, errors: [ message ] }, status: :unprocessable_entity
+    end
+
     # An API client can opt a transaction it creates or updates into the
     # same sync-protection a manual edit gets (Entry#protected_from_sync?) -
     # useful for a client that owns its own writes into an account also
@@ -334,7 +370,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
         entryable_attributes: {
           category_id: transaction_params[:category_id],
           merchant_id: transaction_params[:merchant_id],
-          tag_ids: transaction_params[:tag_ids] || []
+          tag_ids: resolved_tag_ids
         }
       }
       if idempotency_key_requested?

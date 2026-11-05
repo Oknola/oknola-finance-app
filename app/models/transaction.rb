@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class Transaction < ApplicationRecord
   include Entryable, Transferable, Ruleable, Splittable
 
@@ -7,6 +8,8 @@ class Transaction < ApplicationRecord
 
   has_many :taggings, as: :taggable, dependent: :destroy
   has_many :tags, through: :taggings
+
+  attr_accessor :validation_family_id
 
   # File attachments (receipts, invoices, etc.) using Active Storage
   # Supports images (JPEG, PNG, GIF, WebP) and PDFs up to 10MB each
@@ -51,8 +54,28 @@ class Transaction < ApplicationRecord
   end
 
   validate :exchange_rate_must_be_valid
+  validate :references_belong_to_entry_family, if: :references_changed?
 
   private
+
+    def references_changed?
+      category_id_changed? || merchant_id_changed? || association(:tags).loaded?
+    end
+
+    def references_belong_to_entry_family
+      family_id = entry&.account&.family_id || validation_family_id
+      return if family_id.nil?
+
+      if category_id_changed? && category && category.family_id != family_id
+        errors.add(:category, :invalid)
+      end
+      if merchant_id_changed? && merchant.is_a?(FamilyMerchant) && merchant.family_id != family_id
+        errors.add(:merchant, :invalid)
+      end
+      if association(:tags).loaded? && association(:tags).target.any? { |tag| tag.family_id != family_id }
+        errors.add(:tags, :invalid)
+      end
+    end
 
     def exchange_rate_must_be_valid
       if extra&.dig("exchange_rate_invalid")

@@ -41,6 +41,7 @@ class Entry < ApplicationRecord
 
   validate :cannot_unexclude_split_parent
   validate :split_child_date_matches_parent
+  validate :transaction_tags_belong_to_family, if: :transaction_tags_loaded?
 
   # new_record? && import_id.blank? keeps this to genuinely new manual
   # entries -- excludes CSV imports (which have their own, separately
@@ -58,6 +59,7 @@ class Entry < ApplicationRecord
       entryable_type == "Transaction" && account&.family&.auto_generate_transaction_names?
   }
   before_validation :normalize_transaction_side
+  before_validation :set_transaction_validation_family
 
   before_destroy :prevent_individual_child_deletion, if: :split_child?
   after_save :track_earliest_saved_date, if: :saved_change_to_date?
@@ -744,6 +746,27 @@ class Entry < ApplicationRecord
       return if destroyed_by_association || unsplitting
 
       throw :abort
+    end
+
+    def set_transaction_validation_family
+      return unless entryable_type == "Transaction" && association(:entryable).loaded? && entryable
+
+      entryable.validation_family_id = account&.family_id
+    end
+
+    def transaction_tags_loaded?
+      entryable_type == "Transaction" &&
+        association(:entryable).loaded? &&
+        entryable&.association(:tags)&.loaded?
+    end
+
+    def transaction_tags_belong_to_family
+      family_id = account&.family_id
+      return if family_id.nil?
+
+      if entryable.association(:tags).target.any? { |tag| tag.family_id != family_id }
+        errors.add(:entryable, :invalid)
+      end
     end
 
     # Deliberately does not fall back to a generic label like "Unknown
