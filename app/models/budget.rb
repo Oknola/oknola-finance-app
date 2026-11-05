@@ -18,7 +18,7 @@ class Budget < ApplicationRecord
   has_many :budget_categories, -> { includes(:category) }, dependent: :destroy, inverse_of: :budget
 
   validates :start_date, :end_date, presence: true
-  validates :start_date, :end_date, uniqueness: { scope: [ :family_id, :user_id ] }
+  validates :start_date, :end_date, uniqueness: { scope: [ :family_id, :user_id, :oknola_side ] }
 
   monetize :available_cash, :earmarked_for_goals, :free_cash
   monetize :budgeted_spending, :allocated_spending,
@@ -63,7 +63,7 @@ class Budget < ApplicationRecord
     #
     # Returns nil if the household budget was explicitly requested but the
     # family opted out of it via `household_budget_enabled?`.
-    def find_or_bootstrap(family, start_date:, user: nil, household: false)
+    def find_or_bootstrap(family, start_date:, user: nil, household: false, side: Current.side || "personal")
       return nil unless budget_date_valid?(start_date, family: family)
       return nil if household && family.personal_budgets? && !family.household_budget_enabled?
 
@@ -71,12 +71,14 @@ class Budget < ApplicationRecord
         budget_start, budget_end = period_for(start_date, family: family)
 
         owner = (household || !family.personal_budgets?) ? nil : user
+        side ||= "personal"
 
         budget = Budget.find_or_create_by!(
           family: family,
           start_date: budget_start,
           end_date: budget_end,
-          user: owner
+          user: owner,
+          oknola_side: side
         ) do |b|
           b.currency = family.currency
         end
@@ -84,7 +86,7 @@ class Budget < ApplicationRecord
         budget.current_user = user
         budget.sync_budget_categories
 
-        Budget::RolloverCalculator.new(family: family, user: owner).recompute!
+        Budget::RolloverCalculator.new(family: family, user: owner, side: side).recompute!
 
         budget
       end
@@ -169,11 +171,13 @@ class Budget < ApplicationRecord
   # see, since it has no single owner to scope by.
   def transactions
     scope = family.transactions.visible.in_period(period)
+                   .joins(entry: :account)
+                   .where("COALESCE(transactions.oknola_side, accounts.oknola_side) = ?", oknola_side)
 
     if user_id.present?
-      scope = scope.joins(:entry).where(entries: { account_id: family.accounts.where(owner_id: user_id).included_in_reports.select(:id) })
+      scope = scope.where(entries: { account_id: family.accounts.where(owner_id: user_id).included_in_reports.select(:id) })
     elsif current_user
-      scope = scope.joins(:entry).where(entries: { account_id: family.accounts.accessible_by(current_user).included_in_reports.select(:id) })
+      scope = scope.where(entries: { account_id: family.accounts.accessible_by(current_user).included_in_reports.select(:id) })
     end
 
     scope
@@ -202,11 +206,11 @@ class Budget < ApplicationRecord
     scope = family.accounts.visible.included_in_reports.where(accountable_type: "Depository")
 
     if user_id.present?
-      scope.where(owner_id: user_id)
+      scope.where(owner_id: user_id, oknola_side: oknola_side)
     elsif current_user
-      scope.accessible_by(current_user)
+      scope.accessible_by(current_user).where(oknola_side: oknola_side)
     else
-      scope
+      scope.where(oknola_side: oknola_side)
     end
   end
 
@@ -291,6 +295,7 @@ class Budget < ApplicationRecord
       .where("start_date < ?", start_date)
       .where.not(budgeted_spending: nil)
       .where(user_id: user_id)
+      .where(oknola_side: oknola_side)
       .order(start_date: :desc)
       .first
   end
@@ -323,7 +328,7 @@ class Budget < ApplicationRecord
       # Copying the toggle changes what the chain should hold, and this runs
       # after find_or_bootstrap already recomputed it. Recompute again so the
       # target doesn't sit on a zero carry until the next page load.
-      Budget::RolloverCalculator.new(family: family, user: user).recompute!
+      Budget::RolloverCalculator.new(family: family, user: user, side: oknola_side).recompute!
     end
   end
 
@@ -524,7 +529,7 @@ class Budget < ApplicationRecord
       0.to_d
     end
     def income_statement
-      @income_statement ||= family.income_statement(user: current_user, accounts: income_statement_accounts, side: nil)
+      @income_statement ||= family.income_statement(user: current_user, accounts: income_statement_accounts, side: oknola_side)
     end
 
     # nil for the household budget (IncomeStatement falls back to whatever

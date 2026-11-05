@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Materializes BudgetCategory#rolled_over_amount for a single budget chain:
 # either a family's household budgets (user nil) or one member's personal
 # budgets. Chains never mix — a personal budget only ever inherits from the
@@ -12,9 +13,10 @@ class Budget::RolloverCalculator
   # other pg_advisory_lock user in the application.
   LOCK_NAMESPACE = 1_920_231_276
 
-  def initialize(family:, user:)
+  def initialize(family:, user:, side: Current.side || "personal")
     @family = family
     @user = user
+    @side = side || "personal"
   end
 
   # The read-then-write below is not atomic on its own: two overlapping
@@ -38,7 +40,7 @@ class Budget::RolloverCalculator
   end
 
   private
-    attr_reader :family, :user
+    attr_reader :family, :user, :side
 
     def lock_chain!
       BudgetCategory.connection.execute(
@@ -49,7 +51,7 @@ class Budget::RolloverCalculator
     end
 
     def chain_key
-      "budget_rollover:#{family.id}:#{user&.id}"
+      "budget_rollover:#{family.id}:#{user&.id}:#{side}"
     end
 
     def recompute_chain!(from)
@@ -147,6 +149,7 @@ class Budget::RolloverCalculator
     def initialized_budgets
       family.budgets
         .where(user_id: user&.id)
+        .where(oknola_side: side)
         .where.not(budgeted_spending: nil)
     end
 

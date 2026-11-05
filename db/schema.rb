@@ -2,8 +2,6 @@
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
 #
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
-#
 # This file is the source Rails uses to define your schema when running `bin/rails
 # db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
 # be faster and is potentially less error prone than running all of your
@@ -12,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_213430) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -138,7 +136,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.index ["plaid_account_id"], name: "index_accounts_on_plaid_account_id"
     t.index ["simplefin_account_id"], name: "index_accounts_on_simplefin_account_id"
     t.index ["status"], name: "index_accounts_on_status"
-    t.check_constraint "oknola_side::text = ANY (ARRAY['business'::character varying, 'personal'::character varying]::text[])", name: "chk_accounts_oknola_side"
+    t.check_constraint "oknola_side::text = ANY (ARRAY['business'::character varying::text, 'personal'::character varying::text])", name: "chk_accounts_oknola_side"
   end
 
   create_table "active_storage_attachments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -397,13 +395,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.date "end_date", null: false
     t.decimal "expected_income", precision: 19, scale: 4
     t.uuid "family_id", null: false
+    t.string "oknola_side", default: "personal", null: false
     t.date "start_date", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id"
-    t.index ["family_id", "start_date", "end_date", "user_id"], name: "index_budgets_personal_unique", unique: true, where: "(user_id IS NOT NULL)"
-    t.index ["family_id", "start_date", "end_date"], name: "index_budgets_shared_unique", unique: true, where: "(user_id IS NULL)"
+    t.index ["family_id", "start_date", "end_date", "oknola_side"], name: "index_budgets_shared_unique", unique: true, where: "(user_id IS NULL)"
+    t.index ["family_id", "start_date", "end_date", "user_id", "oknola_side"], name: "index_budgets_personal_unique", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["family_id"], name: "index_budgets_on_family_id"
     t.index ["user_id"], name: "index_budgets_on_user_id"
+    t.check_constraint "oknola_side::text = ANY (ARRAY['business'::character varying, 'personal'::character varying]::text[])", name: "chk_budgets_oknola_side"
   end
 
   create_table "categories", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1608,7 +1608,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.integer "term_months"
     t.datetime "updated_at", null: false
     t.jsonb "variable_rate_schedule", default: {}, null: false
-    t.check_constraint "day_count_convention::text = ANY (ARRAY['thirty_360'::character varying, 'actual_365'::character varying, 'actual_actual'::character varying]::text[])", name: "chk_loans_day_count_convention"
+    t.check_constraint "day_count_convention::text = ANY (ARRAY['thirty_360'::character varying::text, 'actual_365'::character varying::text, 'actual_actual'::character varying::text])", name: "chk_loans_day_count_convention"
     t.check_constraint "down_payment IS NULL OR down_payment >= 0::numeric", name: "chk_loans_down_payment_non_negative"
     t.check_constraint "insurance_rate IS NULL OR insurance_rate >= 0::numeric", name: "chk_loans_insurance_rate_non_negative"
     t.check_constraint "insurance_rate_type IS NULL OR (insurance_rate_type::text = ANY (ARRAY['level_term'::character varying::text, 'decreasing_life'::character varying::text]))", name: "chk_loans_insurance_rate_type"
@@ -1985,7 +1985,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.datetime "updated_at", null: false
     t.integer "year_built"
     t.index ["avm_last_synced_on"], name: "index_properties_on_avm_provider_sync", order: "NULLS FIRST", where: "(avm_provider IS NOT NULL)"
-    t.check_constraint "avm_provider IS NULL OR (avm_provider::text = ANY (ARRAY['rentcast'::character varying, 'realie'::character varying, 'chimnie'::character varying]::text[]))", name: "properties_avm_provider_check"
+    t.check_constraint "avm_provider IS NULL OR (avm_provider::text = ANY (ARRAY['rentcast'::character varying::text, 'realie'::character varying::text, 'chimnie'::character varying::text]))", name: "properties_avm_provider_check"
   end
 
   create_table "provider_request_counts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2804,7 +2804,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.index ["kind"], name: "index_transactions_on_kind"
     t.index ["merchant_id"], name: "index_transactions_on_merchant_id"
     t.index ["transfer_id"], name: "index_transactions_on_transfer_id"
-    t.check_constraint "oknola_side IS NULL OR (oknola_side::text = ANY (ARRAY['business'::character varying, 'personal'::character varying]::text[]))", name: "chk_transactions_oknola_side"
+    t.check_constraint "oknola_side IS NULL OR (oknola_side::text = ANY (ARRAY['business'::character varying::text, 'personal'::character varying::text]))", name: "chk_transactions_oknola_side"
   end
 
   create_table "transfers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
