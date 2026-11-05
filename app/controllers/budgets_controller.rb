@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BudgetsController < ApplicationController
   include BudgetOwnership
 
@@ -20,6 +21,12 @@ class BudgetsController < ApplicationController
   end
 
   def update
+    submitted_side = params.require(:budget).permit(:oknola_side)[:oknola_side]
+    if submitted_side.present? && submitted_side != @budget.oknola_side
+      redirect_to budget_path(@budget, **budget_owner_query), alert: t("budgets.edit.side_changed")
+      return
+    end
+
     @budget.update!(budget_params)
     redirect_to budget_budget_categories_path(@budget, **budget_owner_query)
   end

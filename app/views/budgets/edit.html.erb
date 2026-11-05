@@ -1,3 +1,6 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<%= render "oknola/side_switch" %>
+
 <%= content_for :header_nav do %>
   <%= render "budgets/budget_nav", budget: @budget %>
 <% end %>
@@ -16,6 +19,7 @@
 
     <div class="mx-auto max-w-lg">
       <%= styled_form_with model: @budget, url: budget_path(@budget, **budget_owner_query), class: "space-y-3", data: { controller: "budget-form" } do |f| %>
+        <%= f.hidden_field :oknola_side %>
         <%= f.money_field :budgeted_spending, label: t(".budgeted_spending"), required: true, disable_currency: true %>
         <%= f.money_field :expected_income, label: t(".expected_income"), required: true, disable_currency: true %>
 

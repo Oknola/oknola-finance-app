@@ -2,7 +2,7 @@
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
 #
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 #
 # This file is the source Rails uses to define your schema when running `bin/rails
 # db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_213430) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -397,13 +397,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.date "end_date", null: false
     t.decimal "expected_income", precision: 19, scale: 4
     t.uuid "family_id", null: false
+    t.string "oknola_side", default: "personal", null: false
     t.date "start_date", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id"
-    t.index ["family_id", "start_date", "end_date", "user_id"], name: "index_budgets_personal_unique", unique: true, where: "(user_id IS NOT NULL)"
-    t.index ["family_id", "start_date", "end_date"], name: "index_budgets_shared_unique", unique: true, where: "(user_id IS NULL)"
+    t.index ["family_id", "start_date", "end_date", "oknola_side"], name: "index_budgets_shared_unique", unique: true, where: "(user_id IS NULL)"
+    t.index ["family_id", "start_date", "end_date", "user_id", "oknola_side"], name: "index_budgets_personal_unique", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["family_id"], name: "index_budgets_on_family_id"
     t.index ["user_id"], name: "index_budgets_on_user_id"
+    t.check_constraint "oknola_side::text = ANY (ARRAY['business'::character varying, 'personal'::character varying]::text[])", name: "chk_budgets_oknola_side"
   end
 
   create_table "categories", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

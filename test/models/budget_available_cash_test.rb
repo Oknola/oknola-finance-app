@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 # Lot A3: cash on hand shown beside the plan, never folded into it.
@@ -13,6 +14,28 @@ class BudgetAvailableCashTest < ActiveSupport::TestCase
     investment(9_000)
 
     assert_equal cash.balance.to_d, @budget.available_cash
+  end
+
+  test "cash accounts follow the budget side" do
+    personal = depository(2_000)
+    business = Account.create!(
+      family: @family,
+      accountable: Depository.new,
+      name: "Business cash",
+      currency: "USD",
+      balance: 4_000,
+      oknola_side: "business"
+    )
+    business_budget = Budget.find_or_bootstrap(
+      @family,
+      start_date: Date.current,
+      side: "business"
+    )
+
+    assert_equal [ personal.id ], @budget.cash_accounts.map(&:id)
+    assert_equal [ business.id ], business_budget.cash_accounts.map(&:id)
+    assert_equal 2_000, @budget.available_cash
+    assert_equal 4_000, business_budget.available_cash
   end
 
   test "leaves out accounts excluded from reports" do

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class BudgetCategoryTest < ActiveSupport::TestCase
@@ -113,6 +114,59 @@ class BudgetCategoryTest < ActiveSupport::TestCase
 
     assert_equal 120, @parent_budget_category.bills_reserved.amount
     assert_equal 0, @parent_budget_category.bills_reserved_unconvertible_count
+  end
+
+  test "bills_reserved is scoped to the budget side while unassigned bills count on both" do
+    business_account = @family.accounts.create!(
+      accountable: Depository.new,
+      name: "Business bills",
+      currency: "USD",
+      balance: 0,
+      oknola_side: "business"
+    )
+    business_budget = @family.budgets.create!(
+      user: @budget.user,
+      start_date: @budget.start_date,
+      end_date: @budget.end_date,
+      currency: @budget.currency,
+      oknola_side: "business"
+    )
+    business_category = business_budget.budget_categories.create!(
+      category: @parent_category,
+      budgeted_spending: 0,
+      currency: "USD"
+    )
+
+    [
+      [ "Business bill", business_account, 120 ],
+      [ "Unassigned bill", nil, 30 ]
+    ].each do |name, account, amount|
+      bill = @family.recurring_transactions.create!(
+        name: name,
+        account: account,
+        amount: amount,
+        currency: "USD",
+        bill_type: "bill",
+        category_id: @parent_category.id,
+        expected_day_of_month: 3,
+        anchor_date: @budget.start_date,
+        last_occurrence_date: @budget.start_date,
+        next_expected_date: @budget.start_date,
+        status: "active",
+        manual: true
+      )
+      bill.recurring_occurrences.destroy_all
+      bill.recurring_occurrences.create!(
+        family: @family,
+        original_due_on: @budget.start_date + 3,
+        due_on: @budget.start_date + 3,
+        currency: "USD",
+        expected_amount: amount
+      )
+    end
+
+    assert_equal 30, @parent_budget_category.bills_reserved.amount
+    assert_equal 150, business_category.bills_reserved.amount
   end
 
   test "subcategory with zero budget inherits from parent" do
@@ -1001,6 +1055,22 @@ class BudgetCategoryRolloverTest < ActiveSupport::TestCase
     assert budget_category_for(later).reload.rollover_enabled?
   end
 
+  test "switching rollover on does not change a later month on another side" do
+    @family.update!(personal_budgets: true)
+    user = users(:josh)
+    personal_first = initialized_budget(2.months.ago, user: user, side: "personal")
+    personal_later = initialized_budget(1.month.ago, user: user, side: "personal")
+    business_later = initialized_budget(1.month.ago, user: user, side: "business")
+    allocate(personal_first, 100, rollover: true)
+    allocate(personal_later, 100, rollover: false)
+    allocate(business_later, 100, rollover: false)
+
+    budget_category_for(personal_first).propagate_rollover_choice_forward!
+
+    assert budget_category_for(personal_later).reload.rollover_enabled?
+    assert_not budget_category_for(business_later).reload.rollover_enabled?
+  end
+
   test "switching it off reaches them too, and never runs backwards" do
     first = initialized_budget(2.months.ago)
     middle = initialized_budget(1.month.ago)
@@ -1039,8 +1109,8 @@ class BudgetCategoryRolloverTest < ActiveSupport::TestCase
       )
     end
 
-    def initialized_budget(date, user: nil)
-      Budget.find_or_bootstrap(@family, start_date: date, user: user).tap do |budget|
+    def initialized_budget(date, user: nil, side: Current.side || "personal")
+      Budget.find_or_bootstrap(@family, start_date: date, user: user, side: side).tap do |budget|
         budget.update!(budgeted_spending: 5_000, expected_income: 7_000)
       end
     end

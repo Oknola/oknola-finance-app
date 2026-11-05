@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 ---
 en:
   budgets:
@@ -35,6 +36,7 @@ en:
       autosuggest_title: "Autosuggest income & spending budget"
       autosuggest_description: "This will be based on transaction history. AI can make mistakes, verify before continuing."
       continue: "Continue"
+      side_changed: "Your budget side changed. Reopen this budget before saving."
     name:
       custom_range: "%{start} - %{end_date}"
       month_year: "%{month}"

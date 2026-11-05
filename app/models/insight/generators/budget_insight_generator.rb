@@ -1,4 +1,5 @@
-# Reads the family's current budget (if they've set one up) and produces
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+# Reads the family's current Personal budget (if they've set one up) and produces
 # either a warning — categories over or near their limit — or, once the month
 # is at least half over, a quiet positive signal that everything is on track.
 # Reuses BudgetCategory's own health checks rather than re-deriving pace math.
@@ -31,6 +32,7 @@ class Insight::Generators::BudgetInsightGenerator < Insight::Generator
       family.budgets
         .includes(budget_categories: :category)
         .where("start_date <= ? AND end_date >= ?", Date.current, Date.current)
+        .where(oknola_side: "personal")
         .first
     end
 

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "securerandom"
 
 class Demo::Generator
@@ -417,13 +418,15 @@ class Demo::Generator
 
       # Fetch expense transactions in the analysis period (positive amounts = expenses)
       txns = Entry.joins("INNER JOIN transactions ON transactions.id = entries.entryable_id")
+                  .joins(:account)
                   .joins("INNER JOIN categories ON categories.id = transactions.category_id")
                   .where(entries: { entryable_type: "Transaction", date: analysis_period, account_id: family.accounts.select(:id) })
+                  .where("COALESCE(transactions.oknola_side, accounts.oknola_side) = ?", "personal")
                   .where("entries.amount > 0")
 
       spend_per_cat = txns.group("categories.id").sum("entries.amount")
 
-      budget = family.budgets.where(start_date: current_month).first_or_initialize
+      budget = family.budgets.where(start_date: current_month, oknola_side: "personal").first_or_initialize
       budget.update!(
         end_date: current_month.end_of_month,
         currency: "USD",

@@ -1,5 +1,6 @@
 # Bills subsystem: exposes what this category's bills have already committed
 # inside the budget period, as a read-side hook only.
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class BudgetCategory < ApplicationRecord
   # Money this category's bills still expect inside the budget period --
   # committed but not yet spent. Read-side only: budgets stay derived from
@@ -176,7 +177,7 @@ class BudgetCategory < ApplicationRecord
     later = BudgetCategory
       .joins(:budget)
       .where(category_id: category_id)
-      .where(budgets: { family_id: budget.family_id, user_id: budget.user_id })
+      .where(budgets: { family_id: budget.family_id, user_id: budget.user_id, oknola_side: budget.oknola_side })
       .where("budgets.start_date > ?", budget.start_date)
       .where.not(rollover_enabled: rollover_enabled)
 
@@ -428,6 +429,10 @@ class BudgetCategory < ApplicationRecord
                                  status: :active,
                                  destination_account_id: nil
                                })
+                        .where(
+                          "recurring_transactions.account_id IS NULL OR recurring_transactions.account_id IN (?)",
+                          budget.family.accounts.where(oknola_side: budget.oknola_side).select(:id)
+                        )
                         .where("recurring_transactions.amount > 0")
                         .where(due_on: budget.start_date..budget.end_date)
                         .includes(:recurring_transaction)

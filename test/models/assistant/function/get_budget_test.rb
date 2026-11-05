@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Assistant::Function::GetBudgetTest < ActiveSupport::TestCase
@@ -19,10 +20,11 @@ class Assistant::Function::GetBudgetTest < ActiveSupport::TestCase
     refute @function.strict_mode?
   end
 
-  test "params_schema declares optional month and prior_months" do
+  test "params_schema declares optional month, prior_months, and side" do
     schema = @function.params_schema
     assert schema[:properties].key?(:month)
     assert schema[:properties].key?(:prior_months)
+    assert schema[:properties].key?(:side)
     assert_empty schema[:required]
   end
 
@@ -36,6 +38,22 @@ class Assistant::Function::GetBudgetTest < ActiveSupport::TestCase
     assert month[:is_current]
     assert_equal Date.current.beginning_of_month, month[:period][:start_date]
     assert_equal Date.current.end_of_month, month[:period][:end_date]
+  end
+
+  test "reads the requested side and defaults to personal" do
+    start_date = Date.current.beginning_of_month
+    personal = Budget.find_or_bootstrap(@family, start_date: start_date, user: @user, side: "personal")
+    business = Budget.find_or_bootstrap(@family, start_date: start_date, user: @user, side: "business")
+    personal.update!(budgeted_spending: 100)
+    business.update!(budgeted_spending: 200)
+
+    default_result = @function.call({})
+    business_result = @function.call("side" => "business")
+
+    assert_equal "personal", default_result[:months].first[:side]
+    assert_equal "business", business_result[:months].first[:side]
+    assert_equal Money.new(100, @family.currency).format, default_result[:months].first[:totals][:budgeted_spending]
+    assert_equal Money.new(200, @family.currency).format, business_result[:months].first[:totals][:budgeted_spending]
   end
 
   test "returns N+1 months sorted oldest first when prior_months is set" do

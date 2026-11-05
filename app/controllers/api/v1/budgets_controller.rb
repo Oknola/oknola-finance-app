@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Api::V1::BudgetsController < Api::V1::BaseController
   include Pagy::Backend
 
@@ -43,8 +44,17 @@ class Api::V1::BudgetsController < Api::V1::BaseController
 
     def budgets_scope
       current_resource_owner.family.budgets
-        .where(user_id: visible_owner_ids)
+        .where(user_id: visible_owner_ids, oknola_side: requested_side)
         .includes(budget_categories: :category)
+    end
+
+    def requested_side
+      @requested_side ||= begin
+        side = params[:side].presence || "personal"
+        raise InvalidFilterError, "side must be one of: #{Oknola::AccountSide::SIDES.join(', ')}" unless Oknola::AccountSide::SIDES.include?(side)
+
+        side
+      end
     end
 
     # nil (the shared household budget) + the caller's own personal budget +

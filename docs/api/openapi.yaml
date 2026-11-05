@@ -660,6 +660,7 @@ components:
       - end_date
       - name
       - currency
+      - oknola_side
       - initialized
       - current
       - created_at
@@ -678,6 +679,11 @@ components:
           type: string
         currency:
           type: string
+        oknola_side:
+          type: string
+          enum:
+          - business
+          - personal
         initialized:
           type: boolean
         current:
@@ -712,6 +718,7 @@ components:
       - end_date
       - name
       - currency
+      - oknola_side
       - initialized
       - current
       - created_at
@@ -730,6 +737,11 @@ components:
           type: string
         currency:
           type: string
+        oknola_side:
+          type: string
+          enum:
+          - business
+          - personal
         initialized:
           type: boolean
         current:
@@ -5580,6 +5592,15 @@ paths:
           format: date
         description: Filter budget categories whose budget ends on or before this
           date
+      - name: side
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - business
+          - personal
+        description: 'Filter by budget side (default: personal)'
       responses:
         '200':
           description: budget categories listed
@@ -5620,6 +5641,16 @@ paths:
       - Budget Categories
       security:
       - apiKeyAuth: []
+      parameters:
+      - name: side
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - business
+          - personal
+        description: 'Filter by budget side (default: personal)'
       responses:
         '200':
           description: budget category retrieved
@@ -5679,6 +5710,15 @@ paths:
           type: string
           format: date
         description: Filter budgets ending on or before this date
+      - name: side
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - business
+          - personal
+        description: 'Filter by budget side (default: personal)'
       responses:
         '200':
           description: budgets listed
@@ -5719,6 +5759,16 @@ paths:
       - Budgets
       security:
       - apiKeyAuth: []
+      parameters:
+      - name: side
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - business
+          - personal
+        description: 'Filter by budget side (default: personal)'
       responses:
         '200':
           description: budget retrieved

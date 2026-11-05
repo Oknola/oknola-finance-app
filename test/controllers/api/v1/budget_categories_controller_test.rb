@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 require "test_helper"
 
 class Api::V1::BudgetCategoriesControllerTest < ActionDispatch::IntegrationTest
@@ -68,6 +69,42 @@ class Api::V1::BudgetCategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, budget_category["rollover_enabled"]
     assert_not budget_category.key?("rolled_over_amount")
     assert_not budget_category.key?("rolled_over_amount_cents")
+  end
+
+  test "defaults to personal budgets and supports filtering categories by side" do
+    business_budget = @family.budgets.create!(
+      start_date: @budget.start_date,
+      end_date: @budget.end_date,
+      budgeted_spending: 1000,
+      currency: "USD",
+      oknola_side: "business"
+    )
+    business_category = business_budget.budget_categories.create!(
+      category: @category,
+      budgeted_spending: 200,
+      currency: "USD"
+    )
+
+    get api_v1_budget_categories_url, headers: api_headers(@api_key)
+
+    assert_response :success
+    response_data = JSON.parse(response.body)
+    assert_includes response_data["budget_categories"].map { |category| category["id"] }, @budget_category.id
+    assert_not_includes response_data["budget_categories"].map { |category| category["id"] }, business_category.id
+
+    get api_v1_budget_categories_url, params: { side: "business" }, headers: api_headers(@api_key)
+
+    assert_response :success
+    response_data = JSON.parse(response.body)
+    assert_includes response_data["budget_categories"].map { |category| category["id"] }, business_category.id
+    assert_not_includes response_data["budget_categories"].map { |category| category["id"] }, @budget_category.id
+  end
+
+  test "rejects an invalid side filter" do
+    get api_v1_budget_categories_url, params: { side: "other" }, headers: api_headers(@api_key)
+
+    assert_response :unprocessable_entity
+    assert_equal "validation_failed", JSON.parse(response.body)["error"]
   end
 
   test "shows a budget category" do

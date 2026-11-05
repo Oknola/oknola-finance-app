@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 class Assistant::Function::UpdateBudget < Assistant::Function
   include Assistant::Function::MonthResolvable
 
@@ -20,6 +21,7 @@ class Assistant::Function::UpdateBudget < Assistant::Function
 
         Parameters:
         - `month` (optional): "YYYY-MM" or "MMM-YYYY". Defaults to the current month.
+        - `side` (optional): "business" or "personal". Defaults to "personal".
         - `budgeted_spending` (optional): total planned spending for the month.
         - `expected_income` (optional): expected income for the month.
         - `categories` (optional): array of { category: <name or id>, amount: <number> }.
@@ -52,6 +54,11 @@ class Assistant::Function::UpdateBudget < Assistant::Function
         month: {
           type: "string",
           description: "Target month in YYYY-MM or MMM-YYYY format. Defaults to the current month."
+        },
+        side: {
+          type: "string",
+          enum: Oknola::AccountSide::SIDES,
+          description: "Budget side to update. Defaults to personal."
         },
         budgeted_spending: {
           type: "number",
@@ -88,6 +95,9 @@ class Assistant::Function::UpdateBudget < Assistant::Function
   end
 
   def call(params = {})
+    side = params["side"].presence || "personal"
+    return error("invalid_side", "Side must be one of: #{Oknola::AccountSide::SIDES.join(', ')}.") unless Oknola::AccountSide::SIDES.include?(side)
+
     category_changes = Array(params["categories"])
     unless params.key?("budgeted_spending") || params.key?("expected_income") || category_changes.any?
       return error("no_changes", "Provide at least one of budgeted_spending, expected_income, or categories.")
@@ -107,7 +117,7 @@ class Assistant::Function::UpdateBudget < Assistant::Function
     # Bootstrap and all writes share one transaction so a bad entry can't
     # leave a newly created (or half-updated) budget behind.
     Budget.transaction do
-      budget = Budget.find_or_bootstrap(family, start_date: start_date, user: user)
+      budget = Budget.find_or_bootstrap(family, start_date: start_date, user: user, side: side)
 
       if attrs.key?(:budgeted_spending) && !attrs.key?(:expected_income) && budget.expected_income.nil?
         attrs[:expected_income] = 0
@@ -133,6 +143,7 @@ class Assistant::Function::UpdateBudget < Assistant::Function
     {
       success: true,
       month: budget.to_param,
+      side: budget.oknola_side,
       totals: {
         budgeted_spending: format_money(budget.budgeted_spending),
         expected_income: format_money(budget.expected_income),

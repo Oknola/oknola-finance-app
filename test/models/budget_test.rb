@@ -13,7 +13,7 @@ class BudgetTest < ActiveSupport::TestCase
     assert Budget.budget_date_valid?(two_years_ago, family: @family)
   end
 
-  test "budget actuals and rollover include both sides despite a selected browser side" do
+  test "budgets scope actuals and rollover to their own side" do
     user = users(:empty)
     Current.session = user.sessions.create!
     Current.side = "personal"
@@ -26,25 +26,45 @@ class BudgetTest < ActiveSupport::TestCase
       oknola_side: "business"
     )
     previous_start = Date.current.beginning_of_month - 1.month
-    previous = Budget.find_or_bootstrap(@family, start_date: previous_start, user: user)
-    current = Budget.find_or_bootstrap(@family, start_date: Date.current, user: user)
-    previous.update!(budgeted_spending: 100)
-    current.update!(budgeted_spending: 0)
-    previous_category = previous.budget_categories.find_by!(category: category)
-    current_category = current.budget_categories.find_by!(category: category)
-    previous_category.update!(budgeted_spending: 100, rollover_enabled: true)
-    current_category.update!(rollover_enabled: true)
-    create_transaction(account: personal_account, amount: 20, category: category, date: previous_start + 1.day)
-    create_transaction(account: business_account, amount: 30, category: category, date: previous_start + 2.days)
-    create_transaction(account: personal_account, amount: 7, category: category, date: Date.current)
-    create_transaction(account: business_account, amount: 8, category: category, date: Date.current)
+    previous_personal = Budget.find_or_bootstrap(@family, start_date: previous_start, user: user)
+    current_personal = Budget.find_or_bootstrap(@family, start_date: Date.current, user: user)
+    previous_business = Budget.find_or_bootstrap(@family, start_date: previous_start, user: user, side: "business")
+    current_business = Budget.find_or_bootstrap(@family, start_date: Date.current, user: user, side: "business")
 
-    assert_equal 50, previous.budget_category_actual_spending(previous_category).to_d
+    [ previous_personal, previous_business ].each do |budget|
+      budget.update!(budgeted_spending: 100)
+      budget.budget_categories.find_by!(category: category).update!(budgeted_spending: 100, rollover_enabled: true)
+    end
+    [ current_personal, current_business ].each do |budget|
+      budget.update!(budgeted_spending: 0)
+      budget.budget_categories.find_by!(category: category).update!(rollover_enabled: true)
+    end
 
-    Budget::RolloverCalculator.new(family: @family, user: nil).recompute!
+    assert_not_equal previous_personal.id, previous_business.id
+    assert_equal "personal", previous_personal.oknola_side
+    assert_equal "business", previous_business.oknola_side
 
-    assert_equal 50, current_category.reload[:rolled_over_amount].to_d
-    assert_equal 15, current.actual_spending.to_d
+    personal_previous_entry = create_transaction(account: personal_account, amount: 20, category: category, date: previous_start + 1.day)
+    business_previous_entry = create_transaction(account: business_account, amount: 30, category: category, date: previous_start + 2.days)
+    personal_current_entry = create_transaction(account: personal_account, amount: 7, category: category, date: Date.current)
+    business_current_entry = create_transaction(account: business_account, amount: 8, category: category, date: Date.current)
+
+    assert_equal 20, previous_personal.actual_spending.to_d
+    assert_equal 30, previous_business.actual_spending.to_d
+    assert_equal 7, current_personal.actual_spending.to_d
+    assert_equal 8, current_business.actual_spending.to_d
+    assert_includes current_personal.transactions, personal_current_entry.entryable
+    assert_not_includes current_personal.transactions, business_current_entry.entryable
+    assert_includes current_business.transactions, business_current_entry.entryable
+    assert_not_includes current_business.transactions, personal_current_entry.entryable
+    assert_equal 20, previous_personal.budget_category_actual_spending(previous_personal.budget_categories.find_by!(category: category)).to_d
+    assert_equal 30, previous_business.budget_category_actual_spending(previous_business.budget_categories.find_by!(category: category)).to_d
+
+    Budget::RolloverCalculator.new(family: @family, user: nil, side: "personal").recompute!
+    Budget::RolloverCalculator.new(family: @family, user: nil, side: "business").recompute!
+
+    assert_equal 80, current_personal.budget_categories.find_by!(category: category).reload[:rolled_over_amount].to_d
+    assert_equal 70, current_business.budget_categories.find_by!(category: category).reload[:rolled_over_amount].to_d
   ensure
     Current.session = nil
     Current.side = nil
@@ -474,6 +494,14 @@ class BudgetTest < ActiveSupport::TestCase
 
     target_bc = target_budget.budget_categories.find_by(category: categories(:food_and_drink))
     assert_equal 500, target_bc.budgeted_spending
+  end
+
+  test "copy_from rejects a source budget from another side" do
+    family = families(:empty)
+    source_budget = Budget.find_or_bootstrap(family, start_date: 2.months.ago, side: "business")
+    target_budget = Budget.find_or_bootstrap(family, start_date: 1.month.ago, side: "personal")
+
+    assert_raises(ArgumentError) { target_budget.copy_from!(source_budget) }
   end
 
   test "copy_from copies the rollover toggle but not the rolled over amount" do

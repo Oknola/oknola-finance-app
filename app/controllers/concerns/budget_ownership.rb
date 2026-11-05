@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Resolves "whose budget is this request about" from the `owner` query
 # param, shared by BudgetsController, BudgetCategoriesController, and
 # PlansController now that a household budget and personal budgets can
@@ -42,17 +43,29 @@ module BudgetOwnership
         # the owner hasn't set one up yet, same as the household fallback
         # below, so shared-budget navigation doesn't dead-end.
         budget_start, budget_end = Budget.period_for(start_date, family: Current.family)
-        existing = Current.family.budgets.find_by(start_date: budget_start, end_date: budget_end, user: target_user)
+        existing = Current.family.budgets.find_by(
+          start_date: budget_start,
+          end_date: budget_end,
+          user: target_user,
+          oknola_side: Current.side || "personal"
+        )
         return existing if existing
 
-        return Budget.find_or_bootstrap(Current.family, start_date: start_date, user: Current.user, household: false)
+        return Budget.find_or_bootstrap(
+          Current.family,
+          start_date: start_date,
+          user: Current.user,
+          household: false,
+          side: Current.side || "personal"
+        )
       end
 
       budget = Budget.find_or_bootstrap(
         Current.family,
         start_date: start_date,
         user: target_user,
-        household: viewing_household_budget?
+        household: viewing_household_budget?,
+        side: Current.side || "personal"
       )
 
       return budget if budget || !viewing_household_budget?
@@ -60,7 +73,13 @@ module BudgetOwnership
       # Household budget was explicitly requested but the family disabled it
       # (stale link, bookmarked URL) — fall back to the viewer's own budget
       # rather than a hard 404.
-      Budget.find_or_bootstrap(Current.family, start_date: start_date, user: Current.user, household: false)
+      Budget.find_or_bootstrap(
+        Current.family,
+        start_date: start_date,
+        user: Current.user,
+        household: false,
+        side: Current.side || "personal"
+      )
     end
 
     def ensure_budget_editable!
