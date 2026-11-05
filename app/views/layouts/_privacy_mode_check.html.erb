@@ -1,4 +1,5 @@
-<script>
+<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<script nonce="<%= content_security_policy_nonce %>">
   if (localStorage.getItem('privacyMode') === 'true') {
     document.documentElement.classList.add('privacy-mode');
   }
