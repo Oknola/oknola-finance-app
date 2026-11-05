@@ -38,4 +38,16 @@ class Oknola::AccountSideTest < ActiveSupport::TestCase
     assert_equal false, Oknola::AccountSide.set(@account, "mixed")
     assert_equal "personal", @account.reload.oknola_side
   end
+
+  test "setting the default and clearing overrides roll back together" do
+    transactions = @account.transactions
+    @account.stubs(:transactions).returns(transactions)
+    transactions.expects(:where).with(oknola_side: "business").raises(ActiveRecord::StatementInvalid)
+
+    assert_raises(ActiveRecord::StatementInvalid) do
+      Oknola::AccountSide.set(@account, "business")
+    end
+
+    assert_equal "personal", @account.reload.oknola_side
+  end
 end

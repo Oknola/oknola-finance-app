@@ -1,6 +1,8 @@
 # Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
 class AddOknolaSide < ActiveRecord::Migration[8.1]
   def up
+    execute "SET LOCAL lock_timeout = '10s'"
+
     execute <<~SQL
       ALTER TABLE accounts
         ADD COLUMN oknola_side varchar NOT NULL DEFAULT 'personal',
@@ -71,15 +73,17 @@ class AddOknolaSide < ActiveRecord::Migration[8.1]
         AND (SELECT COUNT(*) FROM rule_actions WHERE rule_id = rules.id) = 1
         AND EXISTS (
           SELECT 1
-          FROM accounts
-          JOIN rule_conditions ON rule_conditions.rule_id = rules.id
+          FROM rule_conditions
+          JOIN accounts ON accounts.id::text = rule_conditions.value
+            AND accounts.family_id = rules.family_id
           JOIN rule_actions ON rule_actions.rule_id = rules.id
-          WHERE accounts.family_id = rules.family_id
-            AND rules.name LIKE 'Side: %'
+          JOIN tags ON tags.id::text = rule_actions.value
+            AND tags.family_id = rules.family_id
+          WHERE rule_conditions.rule_id = rules.id
             AND rule_conditions.condition_type = 'transaction_account'
             AND rule_conditions.operator = '='
-            AND rule_conditions.value = accounts.id::text
             AND rule_actions.action_type = 'set_transaction_tags'
+            AND tags.name IN ('Business', 'Personal')
         );
     SQL
   end
@@ -94,15 +98,17 @@ class AddOknolaSide < ActiveRecord::Migration[8.1]
         AND (SELECT COUNT(*) FROM rule_actions WHERE rule_id = rules.id) = 1
         AND EXISTS (
           SELECT 1
-          FROM accounts
-          JOIN rule_conditions ON rule_conditions.rule_id = rules.id
+          FROM rule_conditions
+          JOIN accounts ON accounts.id::text = rule_conditions.value
+            AND accounts.family_id = rules.family_id
           JOIN rule_actions ON rule_actions.rule_id = rules.id
-          WHERE accounts.family_id = rules.family_id
-            AND rules.name LIKE 'Side: %'
+          JOIN tags ON tags.id::text = rule_actions.value
+            AND tags.family_id = rules.family_id
+          WHERE rule_conditions.rule_id = rules.id
             AND rule_conditions.condition_type = 'transaction_account'
             AND rule_conditions.operator = '='
-            AND rule_conditions.value = accounts.id::text
             AND rule_actions.action_type = 'set_transaction_tags'
+            AND tags.name IN ('Business', 'Personal')
         );
     SQL
 

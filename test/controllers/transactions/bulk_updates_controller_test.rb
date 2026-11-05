@@ -51,6 +51,21 @@ class Transactions::BulkUpdatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "personal", entry.transaction.reload.oknola_side
   end
 
+  test "bulk update ignores invalid side values" do
+    entry = create_transaction(account: accounts(:depository))
+    entry.account.update!(oknola_side: "business")
+
+    post transactions_bulk_update_url, params: {
+      bulk_update: {
+        entry_ids: [ entry.id ],
+        oknola_side: "mixed"
+      }
+    }
+
+    assert_redirected_to transactions_url
+    assert_equal "Business", Oknola::Side.for(entry.transaction.reload)
+  end
+
   test "bulk update preloads transaction records" do
     transaction_ids = @user.family.entries.transactions.limit(4).pluck(:id)
 

@@ -73,7 +73,7 @@
                     <%= radio_button_tag "entry[entryable_attributes][oknola_side]", side,
                           Oknola::Side.for(@entry.transaction).downcase == side,
                           id: "entry_side_#{side}",
-                          disabled: @entry.split_child? || split_locked || edit_locked,
+                          disabled: @entry.split_parent? || edit_locked,
                           class: "sr-only peer",
                           data: { "auto-submit-form-target": "auto" } %>
                     <%= label_tag "entry_side_#{side}", t("transactions.form.side_#{side}"), class: "inline-block border border-primary rounded-full px-3 py-1 text-sm text-secondary peer-checked:bg-container-inset peer-checked:text-primary peer-checked:border-solid peer-focus-visible:outline-2 peer-focus-visible:outline-focus-ring peer-focus-visible:outline-offset-0" %>

@@ -51,6 +51,10 @@ class Transactions::BulkUpdatesController < ApplicationController
         scoped[:merchant_id] = Current.family.available_merchants_for(Current.user).where(id: scoped[:merchant_id]).pick(:id)
       end
 
+      if scoped.key?(:oknola_side)
+        scoped[:oknola_side] = scoped[:oknola_side].presence_in(Oknola::AccountSide::SIDES)
+      end
+
       if scoped.key?(:tag_ids)
         tag_ids = Array.wrap(scoped[:tag_ids]).reject(&:blank?)
         resolved = tag_ids.any? ? Current.family.tags.where(id: tag_ids).pluck(:id) : []

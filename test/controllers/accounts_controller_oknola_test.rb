@@ -22,7 +22,6 @@ class AccountsControllerOknolaTest < ActionDispatch::IntegrationTest
       }
     end
     account = @family.accounts.find_by!(name: "Business Checking")
-    account = @family.accounts.find_by!(name: "Business Checking")
     assert_equal "business", Oknola::AccountSide.side_for(account)
 
     get edit_depository_path(account)

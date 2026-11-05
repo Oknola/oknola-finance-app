@@ -77,6 +77,18 @@ class Oknola::SideToggleTest < ActionDispatch::IntegrationTest
     assert_side_chip @personal_entry, "Personal"
   end
 
+  test "side summary cache updates when an account default changes" do
+    get transactions_path(q: { side: "business" }, page: 1)
+    assert_select "#total-transactions", text: "3"
+    prior_version = @family.accounts_status_version
+
+    Oknola::AccountSide.set(accounts(:depository), "personal")
+
+    assert_not_equal prior_version, @family.accounts_status_version
+    get transactions_path(q: { side: "business" }, page: 1)
+    assert_select "#total-transactions", text: "0"
+  end
+
   private
     def assert_rows(entries, present: true)
       entries.each do |entry|

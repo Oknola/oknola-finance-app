@@ -62,7 +62,7 @@ class Family::DataExporter
 
     def generate_accounts_csv
       CSV.generate do |csv|
-        csv << [ "id", "name", "type", "subtype", "balance", "currency", "created_at" ]
+        csv << [ "id", "name", "type", "subtype", "balance", "currency", "oknola_side", "created_at" ]
 
         # Only export accounts belonging to this family
         @family.accounts.includes(:accountable).find_each do |account|
@@ -73,6 +73,7 @@ class Family::DataExporter
             account.subtype,
             account.balance.to_s,
             account.currency,
+            account.oknola_side,
             account.created_at.iso8601
           ]
         end
@@ -81,7 +82,7 @@ class Family::DataExporter
 
     def generate_transactions_csv
       CSV.generate do |csv|
-        csv << [ "date", "account_name", "amount", "name", "category", "tags", "notes", "currency" ]
+        csv << [ "date", "account_name", "amount", "name", "category", "tags", "notes", "currency", "oknola_side" ]
 
         # Only export transactions from accounts belonging to this family
         # Exclude split parents (export children instead)
@@ -96,7 +97,8 @@ class Family::DataExporter
               transaction.category&.name,
               transaction.tags.map { |tag| escape_legacy_tag_name(tag.name) }.join(","),
               transaction.entry.notes,
-              transaction.entry.currency
+              transaction.entry.currency,
+              transaction.oknola_side
             ]
           end
       end
@@ -407,6 +409,7 @@ class Family::DataExporter
           name: transaction.entry.name,
           notes: transaction.entry.notes,
           excluded: transaction.entry.excluded,
+          oknola_side: transaction.oknola_side,
           category_id: transaction.category_id,
           merchant_id: transaction.merchant_id,
           tag_ids: transaction.tag_ids,

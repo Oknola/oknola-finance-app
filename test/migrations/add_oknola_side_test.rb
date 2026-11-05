@@ -15,6 +15,11 @@ class AddOknolaSideTest < ActiveSupport::TestCase
   PERSONAL_TRANSACTION = "50000000-0000-0000-0000-000000000002"
   BOTH_TAGS_TRANSACTION = "50000000-0000-0000-0000-000000000003"
   PERSONAL_OVERRIDE_TRANSACTION = "50000000-0000-0000-0000-000000000004"
+  OTHER_FAMILY_ID = "20000000-0000-0000-0000-000000000002"
+  OTHER_TAG = "30000000-0000-0000-0000-000000000003"
+  OTHER_FAMILY_BUSINESS_TAG = "30000000-0000-0000-0000-000000000004"
+  OTHER_TAG_RULE = "40000000-0000-0000-0000-000000000003"
+  CROSS_FAMILY_RULE = "40000000-0000-0000-0000-000000000004"
 
   test "backfills unambiguous account and transaction sides and reverses the migration" do
     create_legacy_tables
@@ -29,7 +34,7 @@ class AddOknolaSideTest < ActiveSupport::TestCase
     assert_nil side_for("transactions", PERSONAL_TRANSACTION)
     assert_nil side_for("transactions", BOTH_TAGS_TRANSACTION)
     assert_equal "personal", side_for("transactions", PERSONAL_OVERRIDE_TRANSACTION)
-    assert_equal [ false, false ], connection.select_values("SELECT active FROM rules ORDER BY id")
+    assert_equal [ false, false, true, true ], connection.select_values("SELECT active FROM rules ORDER BY id")
 
     assert_raises(ActiveRecord::StatementInvalid) do
       connection.transaction(requires_new: true) do
@@ -39,7 +44,7 @@ class AddOknolaSideTest < ActiveSupport::TestCase
 
     AddOknolaSide.new.down
 
-    assert_equal [ true, true ], connection.select_values("SELECT active FROM rules ORDER BY id")
+    assert_equal [ true, true, true, true ], connection.select_values("SELECT active FROM rules ORDER BY id")
     assert_equal 0, column_count("accounts")
     assert_equal 0, column_count("transactions")
   end
@@ -68,16 +73,24 @@ class AddOknolaSideTest < ActiveSupport::TestCase
           ('#{UNASSIGNED_ACCOUNT}', '#{FAMILY_ID}', 'Unassigned account');
         INSERT INTO tags (id, family_id, name) VALUES
           ('#{BUSINESS_TAG}', '#{FAMILY_ID}', 'Business'),
-          ('#{PERSONAL_TAG}', '#{FAMILY_ID}', 'Personal');
+          ('#{PERSONAL_TAG}', '#{FAMILY_ID}', 'Personal'),
+          ('#{OTHER_TAG}', '#{FAMILY_ID}', 'Other'),
+          ('#{OTHER_FAMILY_BUSINESS_TAG}', '#{OTHER_FAMILY_ID}', 'Business');
         INSERT INTO rules (id, family_id, name, resource_type, active) VALUES
           ('#{BUSINESS_RULE}', '#{FAMILY_ID}', 'Side: Business account', 'transaction', true),
-          ('#{PERSONAL_RULE}', '#{FAMILY_ID}', 'Side: Personal account', 'transaction', true);
+          ('#{PERSONAL_RULE}', '#{FAMILY_ID}', 'Side: Personal account', 'transaction', true),
+          ('#{OTHER_TAG_RULE}', '#{FAMILY_ID}', 'Side: Other tag', 'transaction', true),
+          ('#{CROSS_FAMILY_RULE}', '#{FAMILY_ID}', 'Side: Foreign Business tag', 'transaction', true);
         INSERT INTO rule_conditions (rule_id, condition_type, operator, value) VALUES
           ('#{BUSINESS_RULE}', 'transaction_account', '=', '#{BUSINESS_ACCOUNT}'),
-          ('#{PERSONAL_RULE}', 'transaction_account', '=', '#{PERSONAL_ACCOUNT}');
+          ('#{PERSONAL_RULE}', 'transaction_account', '=', '#{PERSONAL_ACCOUNT}'),
+          ('#{OTHER_TAG_RULE}', 'transaction_account', '=', '#{BUSINESS_ACCOUNT}'),
+          ('#{CROSS_FAMILY_RULE}', 'transaction_account', '=', '#{BUSINESS_ACCOUNT}');
         INSERT INTO rule_actions (rule_id, action_type, value) VALUES
           ('#{BUSINESS_RULE}', 'set_transaction_tags', '#{BUSINESS_TAG}'),
-          ('#{PERSONAL_RULE}', 'set_transaction_tags', '#{PERSONAL_TAG}');
+          ('#{PERSONAL_RULE}', 'set_transaction_tags', '#{PERSONAL_TAG}'),
+          ('#{OTHER_TAG_RULE}', 'set_transaction_tags', '#{OTHER_TAG}'),
+          ('#{CROSS_FAMILY_RULE}', 'set_transaction_tags', '#{OTHER_FAMILY_BUSINESS_TAG}');
         INSERT INTO transactions (id) VALUES
           ('#{BUSINESS_TRANSACTION}'),
           ('#{PERSONAL_TRANSACTION}'),

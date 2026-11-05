@@ -161,6 +161,23 @@ class Oknola::QuickEntrySystemTest < ApplicationSystemTestCase
     assert_nil saved.transaction.oknola_side
   end
 
+  test "duplicating a Business override on a Personal account preserves the override" do
+    account = accounts(:credit_card)
+    Oknola::AccountSide.set(account, "personal")
+    source = create_transaction(account: account, tags: [ @business ])
+    source.transaction.update!(oknola_side: "business")
+
+    visit new_transaction_path(duplicate_entry_id: source.id)
+
+    assert_checked_field "entry_side_business", visible: :all
+    find_field("Amount").send_keys(:enter)
+
+    assert_no_selector "#entry_amount"
+    saved = Entry.order(:created_at).last
+    assert_equal account.id, saved.account_id
+    assert_equal "business", saved.transaction.oknola_side
+  end
+
   test "duplicating a Business-tagged transaction keeps the tag as ordinary metadata" do
     source = create_transaction(tags: [ @business, tags(:one) ])
     visit new_transaction_path(duplicate_entry_id: source.id)

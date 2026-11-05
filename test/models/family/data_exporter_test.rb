@@ -172,7 +172,7 @@ class Family::DataExporterTest < ActiveSupport::TestCase
     Zip::File.open_buffer(zip_data) do |zip|
       # Check accounts.csv
       accounts_csv = zip.read("accounts.csv")
-      assert_equal [ "id", "name", "type", "subtype", "balance", "currency", "created_at" ],
+      assert_equal [ "id", "name", "type", "subtype", "balance", "currency", "oknola_side", "created_at" ],
                    CSV.parse(accounts_csv, headers: true).headers
 
       # Check version marker
@@ -182,7 +182,7 @@ class Family::DataExporterTest < ActiveSupport::TestCase
 
       # Check transactions.csv
       transactions_csv = zip.read("transactions.csv")
-      assert_equal [ "date", "account_name", "amount", "name", "category", "tags", "notes", "currency" ],
+      assert_equal [ "date", "account_name", "amount", "name", "category", "tags", "notes", "currency", "oknola_side" ],
                    CSV.parse(transactions_csv, headers: true).headers
 
       # Check trades.csv
@@ -201,6 +201,33 @@ class Family::DataExporterTest < ActiveSupport::TestCase
       # Check rules.csv
       rules_csv = zip.read("rules.csv")
       assert rules_csv.include?("name,resource_type,active,effective_date,conditions,actions")
+    end
+  end
+
+  test "exports account defaults and transaction side overrides" do
+    @account.update!(oknola_side: "business")
+    entry = @account.entries.create!(
+      name: "Side export",
+      amount: 25,
+      currency: "USD",
+      date: Date.current,
+      entryable: Transaction.new
+    )
+    entry.transaction.update!(oknola_side: "personal")
+
+    Zip::File.open_buffer(@exporter.generate_export) do |zip|
+      account_row = CSV.parse(zip.read("accounts.csv"), headers: true)
+                       .find { |row| row["id"] == @account.id }
+      transaction_row = CSV.parse(zip.read("transactions.csv"), headers: true)
+                            .find { |row| row["name"] == entry.name }
+      ndjson = zip.read("all.ndjson").lines.map { |line| JSON.parse(line) }
+      account_data = ndjson.find { |item| item["type"] == "Account" && item.dig("data", "id") == @account.id }["data"]
+      transaction_data = ndjson.find { |item| item["type"] == "Transaction" && item.dig("data", "id") == entry.transaction.id }["data"]
+
+      assert_equal "business", account_row["oknola_side"]
+      assert_equal "personal", transaction_row["oknola_side"]
+      assert_equal "business", account_data["oknola_side"]
+      assert_equal "personal", transaction_data["oknola_side"]
     end
   end
 

@@ -587,6 +587,9 @@ class Transaction < ApplicationRecord
           if pending_transaction.is_a?(Transaction) && pending_transaction.category_id.present?
             tx_attrs[:category_id] = pending_transaction.category_id
           end
+          if pending_transaction.is_a?(Transaction) && pending_transaction.oknola_side.present?
+            tx_attrs[:oknola_side] = pending_transaction.oknola_side
+          end
         end
 
         posted_tx.update!(tx_attrs) if tx_attrs.any?

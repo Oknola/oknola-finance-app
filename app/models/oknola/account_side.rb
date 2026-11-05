@@ -12,9 +12,11 @@ module Oknola
     def set(account, side)
       return false unless SIDES.include?(side)
 
-      account.update!(oknola_side: side)
-      account.transactions.where(oknola_side: side).update_all(oknola_side: nil)
-      side
+      Account.transaction do
+        account.update!(oknola_side: side)
+        account.transactions.where(oknola_side: side).update_all(oknola_side: nil)
+        side
+      end
     end
   end
 end

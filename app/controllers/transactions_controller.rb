@@ -611,7 +611,8 @@ class TransactionsController < ApplicationController
       )
       @entry.entryable.assign_attributes(
         category_id: duplicate_source.entryable.category_id,
-        merchant_id: duplicate_source.entryable.merchant_id
+        merchant_id: duplicate_source.entryable.merchant_id,
+        oknola_side: duplicate_source.entryable.oknola_side
       )
       @entry.entryable.tag_ids = duplicate_source.entryable.tag_ids
     end
@@ -644,6 +645,10 @@ class TransactionsController < ApplicationController
 
       entry_params.delete(:amount) if entry_params[:amount].blank?
       entry_params.delete(:date) if entry_params[:date].blank?
+
+      if (entryable_attributes = entry_params[:entryable_attributes])&.key?(:oknola_side)
+        entryable_attributes[:oknola_side] = entryable_attributes[:oknola_side].presence_in(Oknola::AccountSide::SIDES)
+      end
 
       if nature.present? && entry_params[:amount].present?
         signed_amount = nature == "inflow" ? -entry_params[:amount].to_d : entry_params[:amount].to_d
