@@ -1,4 +1,5 @@
 # Be sure to restart your server when you modify this file.
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 
 # Configure parameters to be partially matched (e.g. passw matches password) and filtered from the log file.
 # Use this to limit dissemination of sensitive information.
@@ -20,5 +21,5 @@ Rails.application.config.filter_parameters += [
   :bank_username, :bank_password, :security_answers, :captcha_input,
   # FinanceKit publisher bodies. Anchored: an unanchored :credential also hides
   # credential_id and has_*_credentials, and :events any key containing "events".
-  /\A(publisher_)?credential\z/i, /\Aevents\z/i, /\Aconsent\z/i, /\Abooked_balance\z/i
+  /\A(publisher_)?credential\z/i, /\Aevents\z/i, /\Aconsent\z/i, /\Abooked_balance\z/i, :"csp-report"
 ]

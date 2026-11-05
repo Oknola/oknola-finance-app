@@ -6,7 +6,7 @@ module Oknola
       body = request.body.read(MAX_BODY_BYTES) || ""
       return head :no_content if body.bytesize >= MAX_BODY_BYTES
 
-      payload = JSON.parse(body)
+      payload = parse_report(body)
       report = payload["csp-report"] if payload.is_a?(Hash)
       return head :no_content unless report.is_a?(Hash)
 
@@ -19,8 +19,13 @@ module Oknola
 
       Rails.logger.info("[CSP] #{directive} #{blocked_host} #{document_path}")
       head :no_content
-    rescue JSON::ParserError, URI::InvalidURIError, KeyError
+    rescue JSON::ParserError, URI::Error, ArgumentError, KeyError
       head :no_content
     end
+
+    private
+      def parse_report(body)
+        JSON.parse(body)
+      end
   end
 end

@@ -27,7 +27,12 @@ Rails.application.configure do
     end
   end
 
-  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
+  config.content_security_policy_nonce_generator = ->(request) do
+    next if request.path == "/oknola/csp_reports"
+    next unless request.format.html?
+
+    request.session[:oknola_csp_nonce] ||= SecureRandom.base64(16)
+  end
   config.content_security_policy_nonce_directives = %w[script-src]
   config.content_security_policy_report_only = true
 end

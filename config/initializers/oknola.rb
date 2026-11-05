@@ -3,6 +3,8 @@
 # Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Oknola Finance App hardening: production boot checks and the handoff throttle.
 require Rails.root.join("lib/active_record_encryption_config").to_s
+require Rails.root.join("app/middleware/oknola/csp_report_query_sanitizer").to_s
+Rails.application.config.middleware.insert_before Rails::Rack::Logger, Oknola::CspReportQuerySanitizer
 
 # The upstream Doorkeeper URI policy still reads this legacy constant.
 module OauthRegistrationController
