@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+
+require "aws-sdk-s3"
+require "open3"
+require "tempfile"
+require "uri"
+
+class OknolaOffsiteBackup
+  REQUIRED_ENV = %w[DATABASE_URL R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET].freeze
+
+  def initialize(env: ENV, storage: nil, stdout: $stdout, stderr: $stderr)
+    @env, @storage, @stdout, @stderr = env, storage, stdout, stderr
+  end
+
+  def run
+    missing = REQUIRED_ENV.select { |name| @env[name].to_s.strip.empty? }
+    unless missing.empty?
+      @stderr.puts "Missing backup environment variables: #{missing.join(', ')}"
+      return 1
+    end
+
+    old_umask = File.umask(0o077)
+    dump = Tempfile.new([ "finance-db-", ".dump" ])
+    dump.close
+
+    database_url = URI.parse(@env.fetch("DATABASE_URL"))
+    encoded_password = database_url.password
+    password = URI::DEFAULT_PARSER.unescape(encoded_password) if encoded_password
+    database_url.password = nil
+    query_passwords, query = (database_url.query || "").split("&").partition do |entry|
+      URI::DEFAULT_PARSER.unescape(entry.split("=", 2).first) == "password"
+    end
+    encoded_query_passwords = query_passwords.map { |entry| entry.split("=", 2).last.to_s }
+    password = URI::DEFAULT_PARSER.unescape(encoded_query_passwords.last) unless encoded_query_passwords.empty?
+    database_url.query = query.empty? ? nil : query.join("&")
+    @redactions = [ @env.fetch("DATABASE_URL"), database_url.to_s, encoded_password, password,
+      (URI::DEFAULT_PARSER.unescape(encoded_password) if encoded_password),
+      (URI.encode_www_form_component(password) if password),
+      *encoded_query_passwords, *encoded_query_passwords.map { |value| URI::DEFAULT_PARSER.unescape(value) }
+    ].compact.reject(&:empty?).sort_by { |value| -value.length }
+
+    # Keep credentials out of process arguments and redact them from diagnostics.
+    unless run_command({ "PGPASSWORD" => password }, "pg_dump", "--format=custom", "--no-owner", "--no-privileges",
+      "--dbname=#{database_url}", "--file=#{dump.path}")
+      @stderr.puts "pg_dump failed; backup not uploaded."
+      return 1
+    end
+    unless run_command({}, "pg_restore", "--list", dump.path)
+      @stderr.puts "pg_restore validation failed; backup not uploaded."
+      return 1
+    end
+
+    storage = @storage || Aws::S3::Resource.new(
+      endpoint: "https://#{@env.fetch('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com",
+      region: "auto",
+      access_key_id: @env.fetch("R2_ACCESS_KEY_ID"),
+      secret_access_key: @env.fetch("R2_SECRET_ACCESS_KEY"),
+      request_checksum_calculation: "when_required",
+      response_checksum_validation: "when_required"
+    )
+    key = "finance-db/#{Time.now.utc.strftime('%Y-%m-%dT%H%M%SZ')}.dump"
+    raise "Upload failed" unless storage.bucket(@env.fetch("R2_BUCKET")).object(key).upload_file(dump.path)
+
+    @stdout.puts "Uploaded #{key}"
+    0
+  rescue StandardError => error
+    # Exception messages can contain credentials; log only the error class.
+    @stderr.puts "Backup failed (#{error.class})."
+    1
+  ensure
+    dump&.close!
+    File.umask(old_umask) if old_umask
+  end
+
+  private
+    def run_command(env, *command)
+      _, stderr, status = Open3.capture3(env, *command)
+      unless status.success?
+        @redactions.each { |value| stderr = stderr.gsub(value, "[REDACTED]") }
+        @stderr.puts stderr unless stderr.empty?
+      end
+      status.success?
+    end
+end
+
+exit OknolaOffsiteBackup.new.run if $PROGRAM_NAME == __FILE__

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Render Blueprint for finance.oknola.com (Oknola Finance App, a fork of Sure).
 # Runbook: docs/hosting/oknola.md. Spec: https://render.com/docs/blueprint-spec
 #
@@ -123,6 +124,29 @@ services:
       - key: EMAIL_SENDER
         sync: false
 
+  - type: cron
+    name: finance-backup
+    runtime: image
+    image:
+      url: ghcr.io/oknola/oknola-finance-app:oknola
+    region: ohio
+    plan: 0.5c-512mb
+    schedule: "17 6 * * 0"
+    dockerCommand: bundle exec ruby bin/oknola-offsite-backup
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finance-db
+          property: connectionString
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+
   - type: keyvalue
     name: finance-kv
     region: ohio
@@ -139,8 +163,8 @@ databases:
     region: ohio
     plan: 0.5c-1g
     postgresMajorVersion: "16"
-    # No ipAllowList: the default allows external TLS connections with the
-    # password, which the weekly off-site backup (backup-offsite.yml) needs.
+    # Internal connections only, including the finance-backup cron job.
+    ipAllowList: []
 
 envVarGroups:
   - name: finance-prod

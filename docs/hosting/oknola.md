@@ -21,7 +21,8 @@ All in the Render workspace "Cardona Labs", region Ohio, from `render.yaml` at t
 |---|---|---|
 | Web service | `finance-web` | Image `ghcr.io/oknola/oknola-finance-app`, Puma. Runs `db:prepare` (migrations) on every boot. Custom domain `finance.oknola.com`, health check `/up`. |
 | Background worker | `finance-worker` | Same image, `bundle exec sidekiq`. |
-| Postgres 16 | `finance-db` | Render's daily backups plus the weekly off-site copy below. |
+| Cron job | `finance-backup` | Same image, `bundle exec ruby bin/oknola-offsite-backup`, Sundays at 06:17 UTC. Internal database access; no Rails boot or app secrets. |
+| Postgres 16 | `finance-db` | Internal connections only (`ipAllowList: []`). Render's daily backups plus the weekly off-site copy below. |
 | Key Value | `finance-kv` | Sidekiq queues, Action Cable and `Rails.cache` (the one-time handoff codes). Internal connections only, `noeviction`. |
 | Env group | `finance-prod` | Every plain (non-secret) setting. Both services read it. |
 | R2 bucket (Cloudflare) | `oknola-finance-storage` | Active Storage: uploads, imports, exports. See Uploaded files. |
@@ -50,8 +51,23 @@ Render prompts for these only on the first Blueprint apply. A secret added later
 GitHub repository secrets (Settings → Secrets and variables → Actions):
 
 - `RENDER_WEB_DEPLOY_HOOK_URL`, `RENDER_WORKER_DEPLOY_HOOK_URL`: from each service's Settings → Deploy Hook. Treat them as secrets: anyone holding one can redeploy.
-- `DATABASE_URL`: `finance-db` → Connect → External Database URL, for the off-site backup.
-- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`: a private Cloudflare R2 bucket and an API token limited to it (Object Read & Write). Add a lifecycle rule on the bucket to delete objects after 29 days (R2 object storage → the bucket → Settings → Object Lifecycle Rules → Add rule: name `expire-dumps`, prefix `finance-db/`, delete objects after 29 days → Save changes). Oknola's Finance terms promise deleted data leaves backups within 30 days, and R2 may take up to a day to act on a rule; never lengthen it.
+
+## Off-site database backup
+
+`finance-backup` runs on Render every Sunday at 06:17 UTC over the internal database connection supplied by the Blueprint. It dumps a custom-format archive, checks it with `pg_restore --list`, and uploads to `finance-db/<UTC yyyy-mm-ddTHHMMSSZ>.dump` in R2. Missing settings or a failed dump, validation or upload fail the run; the local archive is always removed.
+
+Owner steps for the migration:
+
+1. Apply/sync the Blueprint after the image containing `bin/oknola-offsite-backup` is published. Confirm `finance-backup` exists and `finance-db` → Access Control has no external IPs allowed.
+2. Create a private Cloudflare R2 backup bucket and an API token limited to that bucket (Object Read & Write), separate from the uploaded-files bucket/token.
+3. Add a lifecycle rule to delete objects after 29 days (R2 object storage → the bucket → Settings → Object Lifecycle Rules → Add rule: name `expire-dumps`, prefix `finance-db/`, delete objects after 29 days → Save changes). Oknola's Finance terms promise deleted data leaves backups within 30 days, and R2 may take up to a day to act on a rule; never lengthen it.
+4. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET` on **Render → finance-backup → Environment**, not GitHub or the web/worker services. `DATABASE_URL` comes from the Blueprint's internal `finance-db` connection; no app encryption keys or `SECRET_KEY_BASE` are needed.
+5. Run **Render → finance-backup → Trigger Run**, wait for success, and confirm the new `finance-db/` object in R2. Remove any obsolete GitHub backup secrets (`DATABASE_URL` and the four `R2_*` keys); keep the deploy-hook secrets.
+6. Check **Render → Integrations → Notifications**: configure a monitored email or Slack destination for failed cron runs and verify a failure notification reaches the responsible owner. A failed run in the dashboard alone is not an alert.
+
+With `finance-db` set to `ipAllowList: []`, laptop `psql` sessions and all other external database tools stop connecting, even with the correct password. Temporarily add only the tool's source IP under `finance-db` → Access Control when external access is necessary, and remove it afterwards; Render's internal services and backup cron remain connected.
+
+The image's `postgresql-client` is PostgreSQL 17 (Ruby 3.4.9 slim uses Debian 13), which can dump the Postgres 16 server. Use `pg_restore` 17 or newer and a PostgreSQL 17 or newer destination for these archives; dumps are not guaranteed to restore into a server older than the dump client.
 
 ## Uploaded files
 
@@ -82,7 +98,7 @@ Roll back: Render → `finance-web` → Events → pick the previous deploy → 
 
 The `oknola` branch is never rebased. Upstream releases arrive as merges.
 
-1. Back up first: run the "Off-site database backup" workflow by hand (Actions → Off-site database backup → Run workflow) and wait for it to go green.
+1. Back up first: Render → `finance-backup` → Trigger Run, wait for success, and confirm the new dump in R2.
 2. On a branch from `oknola`: `git fetch upstream --tags && git merge vX.Y.Z` (the next stable tag, never `main`). Resolve conflicts in favour of keeping our files and notices.
 3. Run `bin/rails test` (and `bin/rails test:system`) until green; CI repeats both on the PR.
 4. Two-family isolation smoke on a local copy: create two families through the handoff, add an account and a transaction in each, and check neither family can see the other's accounts, transactions, tags or reports.
@@ -94,11 +110,15 @@ The `oknola` branch is never rebased. Upstream releases arrive as merges.
 Two sources, newest first:
 
 - **Render's own backups**: `finance-db` → Recovery. Point-in-time recovery creates a new database; it does not overwrite the old one. Point the services at the new database (each service → Environment → `DATABASE_URL`, or rename in the Blueprint), redeploy, check, then delete the old instance.
-- **The off-site copy** (when Render itself is the problem): download the newest `finance-db/*.dump` from the R2 bucket, then into an empty Postgres 16:
+- **The off-site copy** (when Render itself is the problem): download the newest `finance-db/*.dump` from the R2 bucket, then restore into an empty Postgres 17 or newer using `pg_restore` 17 or newer:
 
   ```bash
   pg_restore --no-owner --no-privileges --dbname="$NEW_DATABASE_URL" finance.dump
   ```
+
+For a restore from a laptop to a Render database, create an empty PostgreSQL 17-or-newer target and temporarily add only the laptop's current public IP (`/32` for IPv4 or `/128` for IPv6) under that target's Access Control. Use that target's External Database URL for `NEW_DATABASE_URL` only during the restore, then remove the temporary IP immediately afterwards, including on failure. Services continue to use the internal connection; never allow `0.0.0.0/0`.
+
+Do not use the existing `finance-db` (PostgreSQL 16) as the destination for this procedure. `pg_restore` 17 into a PostgreSQL 16 server reports an error for `SET transaction_timeout = 0` and exits 1, **while continuing to restore rows by default**. A nonzero exit does not mean nothing changed. If this has happened, read the complete restore stderr and final error count, distinguish that unsupported-setting error from any other errors, and verify schema objects, constraints, indexes and row counts against the source plus application/encrypted-column smoke checks before trusting the result. Do not simply ignore exit 1 or blindly rerun into the partially restored database; prefer a fresh PostgreSQL 17+ target and a clean restore.
 
 A restore is only readable with the same three `ACTIVE_RECORD_ENCRYPTION_*` values that wrote it (bank tokens and API keys are encrypted columns) and the same `SECRET_KEY_BASE` (instance-wide API keys in Settings are encrypted with it). Losing those values loses those columns; keep them in the password manager next to the backup notes.
 
@@ -128,7 +148,7 @@ There is no `bin/rails db:encryption` re-encrypt task; `bin/rails db:encryption:
 
 **`OKNOLA_HANDOFF_SECRET`.** Set the new value in Supabase (Edge Function secrets) and on `finance-web` within the same minute; handoffs fail with 401 in between.
 
-**`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `SENTRY_DSN`, deploy hooks, R2 tokens (backup and storage).** Create the new one, set it on both services (or in GitHub secrets), redeploy, then revoke the old one at the provider. A deploy hook is regenerated in the service's Settings.
+**`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `SENTRY_DSN`, deploy hooks, R2 tokens (backup and storage).** Create the new one, set it on both web/worker services (backup R2 token: only `finance-backup`; deploy hooks: GitHub secrets), redeploy or trigger a backup to verify, then revoke the old one at the provider. A deploy hook is regenerated in the service's Settings.
 
 ## Incident
 
