@@ -93,6 +93,21 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes all_logs, "secret"
   end
 
+  test "malformed UTF-8 POST paths still reach the downstream app" do
+    app_called = false
+    app = ->(_env) { app_called = true; [ 200, {}, [] ] }
+    sanitizer = Oknola::CspReportQuerySanitizer.new(app)
+    env = {
+      "REQUEST_METHOD" => "POST",
+      "PATH_INFO" => "/bad\xFF".dup.force_encoding("UTF-8")
+    }
+
+    response = sanitizer.call(env)
+
+    assert_equal 200, response.first
+    assert app_called
+  end
+
   test "a JSON CSP report does not log document URI query strings" do
     log_messages = []
     report = {
