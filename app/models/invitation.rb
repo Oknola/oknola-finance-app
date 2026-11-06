@@ -15,7 +15,7 @@ class Invitation < ApplicationRecord
   validates :role, presence: true, inclusion: { in: %w[admin member guest] }
   validates :token, presence: true, uniqueness: true
   validate :no_duplicate_pending_invitation_in_family
-  validate :inviter_is_admin
+  validate :inviter_is_admin, on: :create
   validate :no_other_pending_invitation, on: :create
 
   before_validation :normalize_email
@@ -149,6 +149,6 @@ class Invitation < ApplicationRecord
     end
 
     def inviter_is_admin
-      inviter.admin?
+      errors.add(:inviter, I18n.t("invitations.errors.inviter_not_admin")) unless inviter&.admin?
     end
 end

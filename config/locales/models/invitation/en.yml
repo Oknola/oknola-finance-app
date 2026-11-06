@@ -1,0 +1,5 @@
+---
+en:
+  invitations:
+    errors:
+      inviter_not_admin: must be an admin
