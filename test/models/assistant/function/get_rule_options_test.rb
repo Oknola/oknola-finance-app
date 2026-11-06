@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Assistant::Function::GetRuleOptionsTest < ActiveSupport::TestCase
@@ -34,5 +35,8 @@ class Assistant::Function::GetRuleOptionsTest < ActiveSupport::TestCase
 
     category = result[:actions].find { |a| a[:action_type] == "set_transaction_category" }
     assert_match "get_categories", category[:values]
+
+    side = result[:actions].find { |a| a[:action_type] == "set_transaction_side" }
+    assert_equal Oknola::AccountSide::SIDES, side[:values]
   end
 end

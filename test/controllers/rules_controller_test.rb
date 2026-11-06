@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class RulesControllerTest < ActionDispatch::IntegrationTest
@@ -11,6 +12,7 @@ class RulesControllerTest < ActionDispatch::IntegrationTest
   test "should get new" do
     get new_rule_url(resource_type: "transaction")
     assert_response :success
+    assert_select "select[name*='[action_type]'] option[value='set_transaction_side']"
   end
 
   test "should get new with pre-filled name and action" do

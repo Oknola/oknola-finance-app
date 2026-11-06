@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Rule::ActionTest < ActiveSupport::TestCase
@@ -198,6 +199,79 @@ class Rule::ActionTest < ActiveSupport::TestCase
     [ @txn2, @txn3 ].each do |transaction|
       assert_equal merchant.id, transaction.reload.merchant_id
     end
+  end
+
+  test "set_transaction_side sets a transaction to Business" do
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_side",
+      value: "business"
+    )
+
+    assert_equal 1, action.apply(@rule_scope.where(id: @txn1.id))
+    assert_equal "business", @txn1.reload.oknola_side
+    assert_equal "Business", Oknola::Side.for(@txn1)
+  end
+
+  test "set_transaction_side leaves the account default unstored" do
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_side",
+      value: "personal"
+    )
+
+    assert_equal 0, action.apply(@rule_scope.where(id: @txn1.id))
+    assert_nil @txn1.reload.oknola_side
+    assert_equal "Personal", Oknola::Side.for(@txn1)
+  end
+
+  test "set_transaction_side clears a stale override and counts the transaction as modified" do
+    @account.update!(oknola_side: "business")
+    @txn1.update_column(:oknola_side, "personal")
+
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_side",
+      value: "business"
+    )
+
+    assert_equal 1, action.apply(@rule_scope.where(id: @txn1.id))
+    assert_nil @txn1.reload.oknola_side
+    assert_equal "Business", Oknola::Side.for(@txn1)
+  end
+
+  test "set_transaction_side respects locks unless re-applying" do
+    @txn1.lock_attr!(:oknola_side)
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_side",
+      value: "business"
+    )
+    scope = @rule_scope.where(id: @txn1.id)
+
+    assert_equal 0, action.apply(scope)
+    assert_nil @txn1.reload.oknola_side
+
+    assert_equal 1, action.apply(scope, ignore_attribute_locks: true)
+    assert_equal "business", @txn1.reload.oknola_side
+  end
+
+  test "set_transaction_side ignores unknown values" do
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_side",
+      value: "mixed"
+    )
+
+    assert_equal "select", action.executor.type
+    assert_equal [ :oknola_side ], action.claimed_attributes
+    assert_equal [
+      [ I18n.t("oknola.side_switch.business"), "business" ],
+      [ I18n.t("oknola.side_switch.personal"), "personal" ]
+    ], action.options
+    assert_not action.executor.actionable?(action.value)
+    assert_equal 0, action.apply(@rule_scope.where(id: @txn1.id))
+    assert_nil @txn1.reload.oknola_side
   end
 
   test "set_transaction_name" do

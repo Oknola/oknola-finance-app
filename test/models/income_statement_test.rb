@@ -74,6 +74,32 @@ class IncomeStatementTest < ActiveSupport::TestCase
     assert_equal 55, unfiltered_totals.expense_money.amount
   end
 
+  test "new income statement requests reflect a rule-assigned transaction side" do
+    Rails.stubs(:cache).returns(ActiveSupport::Cache::MemoryStore.new)
+    transaction = create_transaction(
+      account: @checking_account,
+      amount: 42,
+      category: @food_category,
+      date: Date.current
+    ).transaction
+    scope = @family.transactions.visible.excluding_pending.where(id: transaction.id)
+    rule = Rule.new(family: @family, resource_type: "transaction")
+    action = Rule::Action.new(rule: rule, action_type: "set_transaction_side", value: "business")
+    personal_statement = -> {
+      IncomeStatement.new(@family, accounts: @family.accounts, side: "personal")
+    }
+    business_statement = -> {
+      IncomeStatement.new(@family, accounts: @family.accounts, side: "business")
+    }
+
+    assert_equal 42, personal_statement.call.totals(transactions_scope: scope, date_range: Period.current_month.date_range).expense_money.amount
+
+    action.apply(scope)
+
+    assert_equal 0, personal_statement.call.totals(transactions_scope: scope, date_range: Period.current_month.date_range).expense_money.amount
+    assert_equal 42, business_statement.call.totals(transactions_scope: scope, date_range: Period.current_month.date_range).expense_money.amount
+  end
+
   test "a new statement invalidates daily series when the family currency changes" do
     statement = IncomeStatement.new(@family)
     period = Period.last_30_days

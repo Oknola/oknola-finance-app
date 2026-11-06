@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Rule::Registry::TransactionResource < Rule::Registry
   CONDITION_FILTER_CLASSES = [
     Rule::ConditionFilter::TransactionName,
@@ -18,6 +19,7 @@ class Rule::Registry::TransactionResource < Rule::Registry
     Rule::ActionExecutor::SetTransactionCategory,
     Rule::ActionExecutor::SetTransactionTags,
     Rule::ActionExecutor::SetTransactionMerchant,
+    Rule::ActionExecutor::SetTransactionSide,
     Rule::ActionExecutor::SetTransactionName,
     Rule::ActionExecutor::SetInvestmentActivityLabel,
     Rule::ActionExecutor::ExcludeTransaction,
