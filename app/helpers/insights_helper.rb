@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 module InsightsHelper
   INSIGHT_ICONS = {
     "spending_anomaly" => "activity",
@@ -112,6 +113,8 @@ module InsightsHelper
     when "net_worth_milestone"
       { text: t("insights.actions.net_worth_milestone"), href: reports_path }
     when "budget_at_risk", "budget_on_track"
+      # Budget insights describe the personal plan, not the business budget.
+      return nil if Current.side == "business"
       return nil unless insight.period_start
       { text: t("insights.actions.budget"), href: budget_path(Budget.date_to_param(insight.period_start)) }
     when "maintained_goal_depleted"
