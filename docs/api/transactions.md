@@ -1,3 +1,4 @@
+<!-- Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 -->
 # Transactions API Documentation
 
 The Transactions API allows external applications to manage financial transactions within Sure. The OpenAPI description is generated directly from executable request specs, ensuring it always reflects the behaviour of the running Rails application.
@@ -74,6 +75,7 @@ A transaction response includes:
   "name": "Grocery shopping",
   "notes": "Weekly groceries",
   "classification": "expense",
+  "oknola_side": "personal",
   "kind": "standard",
   "excluded": false,
   "split_parent": false,
@@ -120,6 +122,21 @@ A transaction response includes:
 ### Linking to a transaction
 
 `id` identifies the transaction in the API. Web routes for a single transaction take the id of its entry instead, so use `entry_id` to link into the app, for example `/transactions/{entry_id}`.
+
+### Business or Personal side
+
+Show and index return `oknola_side` as the effective lowercase side, `business` or `personal`: the transaction override when set, otherwise the account's side.
+
+Both create and update accept `transaction.oknola_side`:
+
+- `"business"` or `"personal"` sets the side. A side matching the account's side is stored as no override (`NULL`).
+- Explicit `null`, an empty string, or whitespace clears the override and inherits the account's side.
+- Omitting the field leaves the override unchanged (new transactions inherit the account's side).
+- Any other value returns HTTP 422 with `error: "validation_failed"`.
+
+For example, `{"transaction":{"oknola_side":null}}` clears an override with `PATCH /api/v1/transactions/{id}`. Split children still cannot be edited directly; use the split editor.
+
+Changing or clearing a side requires account ownership or a `full_control` share as well as a write-enabled API key or OAuth token. Read-only and annotation-only account shares cannot change the side (HTTP 403).
 
 ## Creating transactions
 

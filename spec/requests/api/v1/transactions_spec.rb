@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 # frozen_string_literal: true
 
 require 'swagger_helper'
@@ -37,6 +37,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
   let(:account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Checking Account',
       balance: 1000,
       currency: 'USD',
@@ -178,6 +179,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
               external_id: { type: :string, description: 'Optional external idempotency key scoped to account and source' },
               source: { type: :string, description: 'Optional source namespace for external_id. Requires external_id and defaults to api when external_id is provided' },
               user_modified: { type: :boolean, description: 'Whether provider syncs should preserve user-supplied transaction changes' },
+              oknola_side: { '$ref' => '#/components/schemas/TransactionSideInput' },
               tag_ids: { type: :array, items: { type: :string, format: :uuid }, description: 'Array of tag IDs from the current family' }
             },
             required: %w[account_id date amount name]
@@ -193,6 +195,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
             date: Date.current.to_s,
             amount: 50.00,
             name: 'Test purchase',
+            oknola_side: 'business',
             nature: 'expense',
             category_id: category.id,
             merchant_id: merchant.id
@@ -267,6 +270,16 @@ RSpec.describe 'API V1 Transactions', type: :request do
 
         run_test!
       end
+
+      response '422', 'invalid transaction side' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:body) do
+          { transaction: { account_id: account.id, date: Date.current.to_s, amount: 10, name: 'Purchase', oknola_side: 'invalid' } }
+        end
+
+        run_test!
+      end
     end
   end
 
@@ -318,6 +331,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
               category_id: { type: :string, format: :uuid },
               merchant_id: { type: :string, format: :uuid },
               nature: { type: :string, enum: %w[income expense inflow outflow] },
+              oknola_side: { '$ref' => '#/components/schemas/TransactionSideInput' },
               tag_ids: {
                 type: :array,
                 items: { type: :string, format: :uuid },
@@ -333,6 +347,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
         {
           transaction: {
             name: 'Updated grocery shopping',
+            oknola_side: 'personal',
             notes: 'Weekly groceries'
           }
         }
@@ -365,6 +380,14 @@ RSpec.describe 'API V1 Transactions', type: :request do
           foreign_family.tags.create!(name: 'Foreign tag')
         end
         let(:body) { { transaction: { tag_ids: [ foreign_tag.id ] } } }
+
+        run_test!
+      end
+
+      response '422', 'invalid transaction side' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:body) { { transaction: { oknola_side: 'invalid' } } }
 
         run_test!
       end

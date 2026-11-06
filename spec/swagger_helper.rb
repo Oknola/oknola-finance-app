@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 
 require 'rails_helper'
 
@@ -938,9 +938,15 @@ RSpec.configure do |config|
               pagination: { '$ref' => '#/components/schemas/Pagination' }
             }
           },
+          TransactionSideInput: {
+            type: :string,
+            nullable: true,
+            pattern: '^(business|personal|\s*)$',
+            description: 'business or personal sets the side. Null or blank clears the override and inherits the account side. Omit to leave unchanged.'
+          },
           Transaction: {
             type: :object,
-            required: %w[id entry_id date amount amount_decimal currency name classification kind excluded split_parent account tags created_at updated_at],
+            required: %w[id entry_id date amount amount_decimal currency name oknola_side classification kind excluded split_parent account tags created_at updated_at],
             properties: {
               id: { type: :string, format: :uuid },
               entry_id: {
@@ -960,6 +966,7 @@ RSpec.configure do |config|
               external_id: { type: :string, nullable: true },
               source: { type: :string, nullable: true },
               user_modified: { type: :boolean },
+              oknola_side: { type: :string, enum: %w[business personal], description: 'Effective side: the transaction override, or the account side when there is no override.' },
               classification: { type: :string },
               kind: {
                 type: :string,
