@@ -113,8 +113,9 @@ module InsightsHelper
     when "net_worth_milestone"
       { text: t("insights.actions.net_worth_milestone"), href: reports_path }
     when "budget_at_risk", "budget_on_track"
-      # Budget insights describe the personal plan, not the business budget.
-      return nil if Current.side == "business"
+      # Insights read the personal budget; broadcasts have no side, so only
+      # personal page renders can safely link to it.
+      return nil unless Current.side == "personal"
       return nil unless insight.period_start
       { text: t("insights.actions.budget"), href: budget_path(Budget.date_to_param(insight.period_start)) }
     when "maintained_goal_depleted"

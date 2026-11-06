@@ -179,16 +179,18 @@ class InsightsHelperTest < ActionView::TestCase
     assert_nil insight_action(dangling)
   end
 
-  test "budget insights link outside the business side" do
-    insight = build_insight("budget_at_risk", period_start: Date.current.beginning_of_month)
-    expected_action = {
-      text: I18n.t("insights.actions.budget"),
-      href: budget_path(Budget.date_to_param(insight.period_start))
-    }
+  test "budget insights link only on the personal side" do
+    %w[budget_at_risk budget_on_track].each do |type|
+      insight = build_insight(type, period_start: Date.current.beginning_of_month)
+      expected_action = {
+        text: I18n.t("insights.actions.budget"),
+        href: budget_path(Budget.date_to_param(insight.period_start))
+      }
 
-    Current.set(side: "personal") { assert_equal expected_action, insight_action(insight) }
-    Current.set(side: nil) { assert_equal expected_action, insight_action(insight) }
-    Current.set(side: "business") { assert_nil insight_action(insight) }
+      Current.set(side: "personal") { assert_equal expected_action, insight_action(insight) }
+      Current.set(side: nil) { assert_nil insight_action(insight) }
+      Current.set(side: "business") { assert_nil insight_action(insight) }
+    end
   end
 
   test "maintained reserve metadata and action render in German" do
