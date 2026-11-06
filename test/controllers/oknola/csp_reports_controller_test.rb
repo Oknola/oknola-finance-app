@@ -72,6 +72,48 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/nonce-/, response.headers["Content-Security-Policy-Report-Only"])
   end
 
+  test "a CSP report with a trailing slash does not log the query string" do
+    log_messages = []
+    report = {
+      "csp-report" => {
+        "violated-directive" => "script-src-elem",
+        "blocked-uri" => "https://bank.example/script.js",
+        "document-uri" => "https://finance.oknola.com/accounts"
+      }
+    }
+
+    Rails.logger.stub(:info, ->(message = nil, &block) { log_messages << (message || block&.call) }) do
+      post "#{oknola_csp_reports_path}/?account_id=secret", params: report.to_json, headers: { "CONTENT_TYPE" => "application/csp-report" }
+    end
+
+    assert_response :no_content
+    all_logs = log_messages.compact.join("\n")
+    assert_includes all_logs, "Started POST"
+    assert_includes all_logs, "[CSP] script-src-elem bank.example /accounts"
+    assert_not_includes all_logs, "secret"
+  end
+
+  test "a JSON CSP report does not log document URI query strings" do
+    log_messages = []
+    report = {
+      "csp-report" => {
+        "violated-directive" => "script-src-elem",
+        "blocked-uri" => "https://bank.example/script.js",
+        "document-uri" => "https://finance.oknola.com/accounts?account_id=secret"
+      }
+    }
+
+    Rails.logger.stub(:info, ->(message = nil, &block) { log_messages << (message || block&.call) }) do
+      post oknola_csp_reports_path, params: report.to_json, headers: { "CONTENT_TYPE" => "application/json" }
+    end
+
+    assert_response :no_content
+    all_logs = log_messages.compact.join("\n")
+    assert_includes all_logs, "Parameters:"
+    assert_includes all_logs, "[CSP] script-src-elem bank.example /accounts"
+    assert_not_includes all_logs, "secret"
+  end
+
   test "malformed and oversized CSP reports are ignored" do
     log_messages = []
     oversized_report = {
