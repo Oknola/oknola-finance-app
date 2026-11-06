@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class InsightsHelperTest < ActionView::TestCase
@@ -176,6 +177,20 @@ class InsightsHelperTest < ActionView::TestCase
 
     assert_equal account_path(account), insight_action(resolvable)[:href]
     assert_nil insight_action(dangling)
+  end
+
+  test "budget insights link only on the personal side" do
+    %w[budget_at_risk budget_on_track].each do |type|
+      insight = build_insight(type, period_start: Date.current.beginning_of_month)
+      expected_action = {
+        text: I18n.t("insights.actions.budget"),
+        href: budget_path(Budget.date_to_param(insight.period_start))
+      }
+
+      Current.set(side: "personal") { assert_equal expected_action, insight_action(insight) }
+      Current.set(side: nil) { assert_nil insight_action(insight) }
+      Current.set(side: "business") { assert_nil insight_action(insight) }
+    end
   end
 
   test "maintained reserve metadata and action render in German" do
