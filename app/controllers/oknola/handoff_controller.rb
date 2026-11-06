@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 # Signs Oknola users in to Finance without a Finance password.
 #
 # POST /oknola/handoff is server to server: the Oknola server, holding the
@@ -73,7 +73,9 @@ module Oknola
       user = User.find_by(id: data[:user_id])
       return sign_in_failed unless user&.active?
 
+      csp_nonce = session[:oknola_csp_nonce]
       reset_session
+      session[:oknola_csp_nonce] = csp_nonce if csp_nonce.present?
 
       if user.otp_required?
         session[:mfa_user_id] = user.id

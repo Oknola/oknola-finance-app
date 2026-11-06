@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 %>
 <!DOCTYPE html>
 <html lang="en" class="font-sans">
   <head>
@@ -18,12 +18,12 @@
 
     <script nonce="<%= content_security_policy_nonce %>">
       // Auto-trigger print dialog when page loads
-      window.onload = function() {
+      window.addEventListener("load", function() {
         // Small delay to ensure styles are loaded
         setTimeout(function() {
           window.print();
         }, 500);
-      };
+      });
     </script>
   </body>
 </html>

@@ -7,9 +7,8 @@
 # opaque background. Brandfetch is asked for a 404 rather than its lettermark
 # when it doesn't know the brand, and a failed image removes itself to reveal
 # the fallback.
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class ProviderLogo < ApplicationComponent
-  REMOVE_ON_ERROR = "this.remove()".freeze
-
   def initialize(provider_key:, class_name: "w-8 h-8 rounded-full")
     @provider_key = provider_key
     @class_name = class_name

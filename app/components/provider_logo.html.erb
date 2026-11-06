@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 %>
 <%= tag.span class: class_names("relative block overflow-hidden shrink-0", class_name) do %>
   <%= tag.span class: "absolute inset-0", aria: { hidden: true } do %>
     <%= render DS::FilledIcon.new(
@@ -10,6 +11,7 @@
         ) %>
   <% end %>
   <% if (url = brand_url) %>
-    <%= helpers.image_tag url, class: "absolute inset-0 w-full h-full bg-container", alt: "", loading: "lazy", onerror: ProviderLogo::REMOVE_ON_ERROR %>
+    <%= helpers.image_tag url, class: "absolute inset-0 w-full h-full bg-container", alt: "", loading: "lazy",
+      data: { controller: "oknola-remove-on-error", action: "error->oknola-remove-on-error#remove" } %>
   <% end %>
 <% end %>

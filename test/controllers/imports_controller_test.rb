@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class ImportsControllerTest < ActionDispatch::IntegrationTest
@@ -29,7 +29,7 @@ class ImportsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     assert_select "turbo-frame#modal"
-    assert_select "form[data-turbo-frame=_top] input[type=file][onchange='this.form.requestSubmit()']", count: 2
+    assert_select "form[data-turbo-frame=_top][data-controller=auto-submit-form][data-auto-submit-form-trigger-event-value=change] input[type=file][data-auto-submit-form-target=auto]", count: 2
   end
 
   # DS::Button with an href renders button_to, which POSTs unless given a
