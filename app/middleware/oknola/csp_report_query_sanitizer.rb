@@ -7,7 +7,7 @@ module Oknola
     end
 
     def call(env)
-      if env["REQUEST_METHOD"] == "POST" && env["PATH_INFO"].chomp("/") == PATH
+      if env["REQUEST_METHOD"] == "POST" && ActionDispatch::Journey::Router::Utils.normalize_path(env["PATH_INFO"]) == PATH
         env["QUERY_STRING"] = ""
         env.delete("action_dispatch.request.query_parameters")
       end

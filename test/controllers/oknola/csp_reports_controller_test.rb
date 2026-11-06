@@ -83,7 +83,7 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
     }
 
     Rails.logger.stub(:info, ->(message = nil, &block) { log_messages << (message || block&.call) }) do
-      post "#{oknola_csp_reports_path}/?account_id=secret", params: report.to_json, headers: { "CONTENT_TYPE" => "application/csp-report" }
+      post "/oknola//csp_reports//?account_id=secret", params: report.to_json, headers: { "CONTENT_TYPE" => "application/csp-report" }
     end
 
     assert_response :no_content
