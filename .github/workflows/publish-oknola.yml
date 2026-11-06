@@ -136,20 +136,23 @@ jobs:
         shell: bash
         run: |
           # Render deploy hooks are asynchronous. Give the deployment time to
-          # start before polling the public health endpoint.
+          # start before polling the deployed version.
           sleep 60
 
-          for attempt in {1..24}; do
-            if curl --fail --silent --show-error --max-time 15 "${APP_URL}/up" > /dev/null; then
-              echo "Web service is healthy."
+          for attempt in {1..40}; do
+            if version="$(curl --fail --silent --show-error --max-time 15 "${APP_URL}/oknola/version" && printf '.')" &&
+              [[ "${version}" == "${GITHUB_SHA}." ]]; then
+              echo "Web service reached ${GITHUB_SHA}."
               exit 0
             fi
 
-            echo "Health check attempt ${attempt}/24 failed; retrying in 15 seconds."
-            sleep 15
+            echo "Version check attempt ${attempt}/40 did not match ${GITHUB_SHA}."
+            if (( attempt < 40 )); then
+              sleep 15
+            fi
           done
 
-          echo "Web service did not become healthy in time." >&2
+          echo "Web service did not reach ${GITHUB_SHA}; worker was not deployed." >&2
           exit 1
 
       - name: Deploy worker
