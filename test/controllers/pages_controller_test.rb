@@ -15,6 +15,36 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
   end
 
+  test "dashboard reflects a rule-assigned transaction side on the next request" do
+    Rails.stubs(:cache).returns(ActiveSupport::Cache::MemoryStore.new)
+    @user.update!(preferences: (@user.preferences || {}).merge("oknola_side" => "personal"))
+    account = @family.accounts.create!(
+      name: "Rule side dashboard",
+      balance: 0,
+      currency: @family.currency,
+      accountable: Depository.new
+    )
+    category = @family.categories.create!(name: "Rule side expense")
+    transaction = create_transaction(
+      account: account,
+      amount: 42,
+      category: category,
+      date: Date.current
+    ).transaction
+
+    get root_path
+    assert_response :ok
+    assert_select "#segment_#{category.id}"
+
+    rule = Rule.new(family: @family, resource_type: "transaction")
+    Rule::Action.new(rule: rule, action_type: "set_transaction_side", value: "business")
+      .apply(Transaction.where(id: transaction.id))
+
+    get root_path
+    assert_response :ok
+    assert_select "#segment_#{category.id}", count: 0
+  end
+
   test "dashboard logo has non-empty alt text" do
     get root_path
 
