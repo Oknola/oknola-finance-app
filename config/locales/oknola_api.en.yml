@@ -1,0 +1,6 @@
+en:
+  oknola:
+    api:
+      transactions:
+        invalid_side: "Side must be business, personal, or blank."
+        side_forbidden: "Only the account owner or a full-control user can change the transaction side."

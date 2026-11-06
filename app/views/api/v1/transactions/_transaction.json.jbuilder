@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
+
 json.id transaction.id
 # Web routes for a single transaction (/transactions/:id) take the entry id,
 # not the transaction id, so expose it for clients that link back into the app.
@@ -31,6 +33,7 @@ json.notes transaction.entry.notes
 json.external_id transaction.entry.external_id
 json.source transaction.entry.source
 json.user_modified transaction.entry.user_modified
+json.oknola_side Oknola::Side.for(transaction).downcase
 json.classification transaction.entry.classification
 
 # How budgets and reports treat the row: loan_payment counts as an expense

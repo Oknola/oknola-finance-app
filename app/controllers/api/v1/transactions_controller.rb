@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Api::V1::TransactionsController < Api::V1::BaseController
   include Pagy::Backend
   include Api::V1::TransactionLookup
@@ -9,6 +9,8 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   before_action :ensure_read_scope, only: [ :index, :show ]
   before_action :ensure_write_scope, only: [ :create, :update, :destroy ]
   before_action :set_transaction, only: [ :show, :update, :destroy ]
+
+  include Oknola::ApiTransactionSide
 
   def index
     family = current_resource_owner.family
@@ -322,7 +324,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
     def transaction_params
       params.require(:transaction).permit(
         :date, :amount, :name, :description, :notes, :currency,
-        :category_id, :merchant_id, :nature, :user_modified, tag_ids: []
+        :category_id, :merchant_id, :nature, :user_modified, :oknola_side, tag_ids: []
       )
     end
 
@@ -371,7 +373,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
           category_id: transaction_params[:category_id],
           merchant_id: transaction_params[:merchant_id],
           tag_ids: resolved_tag_ids
-        }
+        }.merge(transaction_side_attributes)
       }
       if idempotency_key_requested?
         entry_params[:external_id] = idempotency_external_id
@@ -392,7 +394,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
           merchant_id: transaction_params[:merchant_id]
           # Note: tag_ids handled separately in update action to distinguish
           # "not provided" from "explicitly set to empty"
-        }.compact_blank
+        }.compact_blank.merge(transaction_side_attributes)
       }
 
       # Only update amount if provided
