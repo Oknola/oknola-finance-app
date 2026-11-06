@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Assistant::Function::CreateRuleTest < ActiveSupport::TestCase
@@ -52,6 +53,25 @@ class Assistant::Function::CreateRuleTest < ActiveSupport::TestCase
 
     assert_not result[:success]
     assert_match "add it in Settings > Rules", result[:problems].join
+  end
+
+  test "accepts transaction side values from the supported side list" do
+    result = @fn.call(
+      "name" => "Business side",
+      "conditions" => [ { "condition_type" => "transaction_name", "operator" => "like", "value" => "coffee" } ],
+      "actions" => [ { "action_type" => "set_transaction_side", "value" => "business" } ]
+    )
+
+    assert result[:success], result.inspect
+    assert_equal "business", @family.rules.find(result[:rule][:id]).actions.first.value
+
+    invalid_result = @fn.call(
+      "name" => "Invalid side",
+      "conditions" => [ { "condition_type" => "transaction_name", "operator" => "like", "value" => "coffee" } ],
+      "actions" => [ { "action_type" => "set_transaction_side", "value" => "Business" } ]
+    )
+
+    assert_equal "invalid_rule", invalid_result[:error]
   end
 
   test "ignores an attempt to create an active rule" do

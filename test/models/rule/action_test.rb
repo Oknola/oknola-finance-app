@@ -225,6 +225,21 @@ class Rule::ActionTest < ActiveSupport::TestCase
     assert_equal "Personal", Oknola::Side.for(@txn1)
   end
 
+  test "set_transaction_side clears a stale override and counts the transaction as modified" do
+    @account.update!(oknola_side: "business")
+    @txn1.update_column(:oknola_side, "personal")
+
+    action = Rule::Action.new(
+      rule: @transaction_rule,
+      action_type: "set_transaction_side",
+      value: "business"
+    )
+
+    assert_equal 1, action.apply(@rule_scope.where(id: @txn1.id))
+    assert_nil @txn1.reload.oknola_side
+    assert_equal "Business", Oknola::Side.for(@txn1)
+  end
+
   test "set_transaction_side respects locks unless re-applying" do
     @txn1.lock_attr!(:oknola_side)
     action = Rule::Action.new(

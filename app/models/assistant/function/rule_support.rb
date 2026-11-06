@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 # Shared plumbing for the rule tools (get_rules, get_rule_options,
 # preview_rule, create_rule, update_rule, apply_rule).
 #
@@ -255,6 +256,7 @@ module Assistant::Function::RuleSupport
       when "set_transaction_merchant" then family.merchants.pluck(:id).map(&:to_s)
       when "transaction_type" then %w[income expense transfer]
       when "set_investment_activity_label" then Transaction::ACTIVITY_LABELS
+      when "set_transaction_side" then Oknola::AccountSide::SIDES
       end
     end
 

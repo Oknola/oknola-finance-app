@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 # GetRuleOptions — the condition types, operators and action types a rule can
 # use, so a client builds a valid definition for preview_rule / create_rule
 # without guessing. Id-valued fields point at the tool that lists the ids
@@ -79,7 +80,7 @@ class Assistant::Function::GetRuleOptions < Assistant::Function
       when "transaction_tag" then "tag id from get_tags"
       when "set_transaction_tags" then "array of tag ids from get_tags"
       when *MERCHANT_KEYS then "merchant id from get_merchants"
-      when "transaction_type", "set_investment_activity_label" then allowed_values(key)
+      when "transaction_type", "set_investment_activity_label", "set_transaction_side" then allowed_values(key)
       when "transaction_amount" then "number (absolute amount, in the account's currency)"
       when "set_transaction_name" then "the new transaction name"
       else "text"
