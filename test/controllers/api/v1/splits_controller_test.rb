@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Api::V1::SplitsControllerTest < ActionDispatch::IntegrationTest
@@ -197,6 +198,33 @@ class Api::V1::SplitsControllerTest < ActionDispatch::IntegrationTest
     post api_v1_transaction_split_url(@transaction), params: halves, headers: api_headers(key), as: :json
     assert_response :forbidden
     assert_not @entry.reload.split_parent?
+  end
+
+  test "a read-only share cannot update or delete a split" do
+    post api_v1_transaction_split_url(@transaction), params: halves, headers: api_headers(@api_key), as: :json
+    assert_response :created
+    original_children = @entry.child_entries.order(:created_at).pluck(:name, :amount)
+
+    member = users(:family_member)
+    share = @account.account_shares.find_or_initialize_by(user: member)
+    share.update!(permission: "read_only")
+    member.api_keys.active.destroy_all
+    key = ApiKey.create!(
+      user: member,
+      name: "Read-only share key",
+      scopes: [ "read_write" ],
+      source: "web",
+      display_key: "share_ro_#{SecureRandom.hex(8)}"
+    )
+    Redis.new.del("api_rate_limit:#{key.id}")
+
+    put api_v1_transaction_split_url(@transaction), params: halves, headers: api_headers(key), as: :json
+    assert_response :forbidden
+    assert_equal original_children, @entry.child_entries.order(:created_at).pluck(:name, :amount)
+
+    delete api_v1_transaction_split_url(@transaction), headers: api_headers(key)
+    assert_response :forbidden
+    assert_equal original_children, @entry.child_entries.order(:created_at).pluck(:name, :amount)
   end
 
   test "rejects a category belonging to another family" do

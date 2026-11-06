@@ -9,6 +9,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   before_action :ensure_read_scope, only: [ :index, :show ]
   before_action :ensure_write_scope, only: [ :create, :update, :destroy ]
   before_action :set_transaction, only: [ :show, :update, :destroy ]
+  before_action :ensure_transaction_account_write_permission, only: [ :update, :destroy ]
 
   include Oknola::ApiTransactionSide
 
@@ -101,7 +102,8 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       return
     end
 
-    account = family.accounts.writable_by(current_resource_owner).find(account_id_param)
+    account = family.accounts.accessible_by(current_resource_owner).find(account_id_param)
+    return unless ensure_account_write_permission(account)
 
     if idempotency_key_requested? && (existing_entry = existing_idempotent_entry(account))
       return render_existing_idempotent_entry(existing_entry)
@@ -236,6 +238,11 @@ class Api::V1::TransactionsController < Api::V1::BaseController
 
     def ensure_write_scope
       authorize_scope!(:write)
+    end
+
+    def ensure_transaction_account_write_permission
+      attributes = transaction_params.keys if action_name == "update"
+      ensure_account_write_permission(@entry.account, attributes: attributes)
     end
 
     def apply_filters(query)

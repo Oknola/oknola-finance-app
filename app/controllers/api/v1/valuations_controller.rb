@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Api::V1::ValuationsController < Api::V1::BaseController
   include Pagy::Backend
 
@@ -9,6 +10,7 @@ class Api::V1::ValuationsController < Api::V1::BaseController
   before_action :ensure_read_scope, only: [ :index, :show ]
   before_action :ensure_write_scope, only: [ :create, :update ]
   before_action :set_valuation, only: [ :show, :update ]
+  before_action -> { ensure_account_write_permission(@entry.account) }, only: [ :update ]
 
   def index
     family = current_resource_owner.family
@@ -84,6 +86,8 @@ class Api::V1::ValuationsController < Api::V1::BaseController
     end
 
     account = current_resource_owner.family.accounts.find(valuation_account_id)
+    return unless ensure_account_write_permission(account)
+
     requested_upsert = upsert_requested?
     existing_write = false
 

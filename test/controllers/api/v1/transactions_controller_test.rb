@@ -629,6 +629,30 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "cannot create a transaction on a read-only shared account" do
+    account = accounts(:depository)
+    key = account_share_api_key(account, "read_only")
+
+    assert_no_difference("@family.entries.count") do
+      post api_v1_transactions_url,
+           params: {
+             transaction: {
+               account_id: account.id,
+               name: "Unauthorized transaction",
+               amount: 25.00,
+               date: Date.current
+             }
+           },
+           headers: api_headers(key)
+    end
+
+    assert_response :forbidden
+    assert_equal(
+      { "error" => "forbidden", "message" => "You do not have write access to this account" },
+      JSON.parse(response.body)
+    )
+  end
+
   test "should reject create with invalid parameters" do
     transaction_params = {
       transaction: {
@@ -789,6 +813,55 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
         params: update_params,
         headers: api_headers(@read_only_api_key)
     assert_response :forbidden
+  end
+
+  test "read-only shared account cannot update or delete a transaction" do
+    account = accounts(:depository)
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    key = account_share_api_key(account, "read_only")
+
+    put api_v1_transaction_url(entry.transaction),
+        params: { transaction: { name: "Changed name" } },
+        headers: api_headers(key)
+    assert_response :forbidden
+    assert_equal "Shared transaction", entry.reload.name
+
+    assert_no_difference("@family.entries.count") do
+      delete api_v1_transaction_url(entry.transaction), headers: api_headers(key)
+    end
+    assert_response :forbidden
+    assert_equal "Shared transaction", entry.reload.name
+  end
+
+  test "read-write shared account may annotate transactions but not change other fields" do
+    account = accounts(:depository)
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    key = account_share_api_key(account, "read_write")
+    category = categories(:one)
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { category_id: category.id } },
+          headers: api_headers(key)
+    assert_response :success
+    assert_equal category.id, entry.transaction.reload.category_id
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { name: "Changed name" } },
+          headers: api_headers(key)
+    assert_response :forbidden
+    assert_equal "Shared transaction", entry.reload.name
+  end
+
+  test "full-control shared account may update a transaction" do
+    account = accounts(:depository)
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    key = account_share_api_key(account, "full_control")
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { name: "Updated by full-control share" } },
+          headers: api_headers(key)
+    assert_response :success
+    assert_equal "Updated by full-control share", entry.reload.name
   end
 
   test "should reject update for non-existent transaction" do
@@ -1116,6 +1189,20 @@ end
 
     def api_headers(api_key)
       { "X-Api-Key" => api_key.display_key }
+    end
+
+    def account_share_api_key(account, permission)
+      user = users(:family_member)
+      share = AccountShare.find_or_initialize_by(account: account, user: user)
+      share.update!(permission: permission)
+      user.api_keys.active.destroy_all
+      ApiKey.create!(
+        user: user,
+        name: "Share permission key",
+        scopes: [ "read_write" ],
+        source: "web",
+        display_key: "share_rw_#{SecureRandom.hex(8)}"
+      ).tap { |key| Redis.new.del("api_rate_limit:#{key.id}") }
     end
 
     def count_db_queries(&block)

@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Api::V1::BaseController < ApplicationController
   include Doorkeeper::Rails::Helpers
+  include Oknola::ApiAccountWritePermission
 
   InvalidFilterError = Class.new(StandardError)
 

@@ -255,6 +255,38 @@ class Api::V1::ImportSessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "import_session_conflict", JSON.parse(response.body)["error"]
   end
 
+  test "cannot publish a session that targets a read-only shared account" do
+    member = users(:family_member)
+    account = accounts(:depository)
+    share = account.account_shares.find_or_initialize_by(user: member)
+    share.update!(permission: "read_only")
+    member.api_keys.active.destroy_all
+    key = ApiKey.create!(
+      user: member,
+      name: "Read-only share key",
+      scopes: [ "read_write" ],
+      source: "web",
+      display_key: "share_ro_#{SecureRandom.hex(8)}"
+    )
+    Redis.new.del("api_rate_limit:#{key.id}")
+    session = build_import_session
+    session.source_mappings.create!(
+      family: @family,
+      source_type: "Account",
+      source_id: "shared-account",
+      target: account
+    )
+
+    post publish_api_v1_import_session_url(session), headers: api_headers(key)
+
+    assert_response :forbidden
+    assert_equal(
+      { "error" => "forbidden", "message" => "You do not have write access to this account" },
+      JSON.parse(response.body)
+    )
+    assert account.persisted?
+  end
+
   test "returns stable error when publish cannot enqueue" do
     session = build_import_session
     session.attach_chunk!(
