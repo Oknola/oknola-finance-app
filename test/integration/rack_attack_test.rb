@@ -93,6 +93,10 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     chat = user.chats.first
     sign_in user
 
+    # Rack::Attack uses fixed minute windows, so keep its Time.now-based period
+    # stable even when this test starts just before a minute boundary.
+    freeze_time(Time.current.change(sec: 59, usec: 900_000), with_usec: true)
+
     with_rack_attack_enabled do
       10.times do
         post chat_messages_url(chat), params: { message: { content: "Hello" } }
