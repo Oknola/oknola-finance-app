@@ -1,9 +1,13 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 empty:
   name: Family
+  auto_sync_on_login: false
 
 dylan_family:
   name: The Dylan Family
+  auto_sync_on_login: false
 
 inactive_trial:
   name: Inactive Trial Family
   created_at: <%= 90.days.ago %>
+  auto_sync_on_login: false

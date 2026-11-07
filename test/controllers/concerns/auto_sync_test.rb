@@ -1,7 +1,9 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require "test_helper"
 
 class AutoSyncTest < ActionDispatch::IntegrationTest
   setup do
+    families(:dylan_family).update!(auto_sync_on_login: true)
     sign_in @user = users(:family_admin)
     @family = @user.family
 
