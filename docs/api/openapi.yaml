@@ -9924,7 +9924,7 @@ paths:
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/TransactionResponse"
+                "$ref": "#/components/schemas/Trade"
         '403':
           description: forbidden - api key missing read_write scope
           content:
