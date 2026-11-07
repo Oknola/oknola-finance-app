@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= render DS::Dialog.new(variant: :drawer) do |dialog| %>
   <% dialog.with_header do %>
     <div>
@@ -55,7 +55,7 @@
                   <span><%= t(".left") %></span>
                 </dd>
               <% else %>
-                <dd class="text-primary flex items-center gap-1 text-green-500 font-medium privacy-sensitive">
+                <dd class="text-primary flex items-center gap-1 text-success font-medium privacy-sensitive">
                   <%= icon "check-circle", size: "sm", color: "success" %>
                   <%= format_money @budget_category.available_to_spend_money %>
                   <span><%= t(".left") %></span>

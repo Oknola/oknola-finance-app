@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# locals: (budget:) %>
 
 <div>
@@ -22,7 +23,7 @@
         <p class="text-secondary"><%= t(".earned", amount: format_money(budget.actual_income_money)) %></p>
         <p class="font-medium">
           <% if budget.remaining_expected_income.negative? %>
-            <span class="text-green-500"><%= t(".over", amount: format_money(budget.remaining_expected_income_money.abs)) %></span>
+            <span class="text-success"><%= t(".over", amount: format_money(budget.remaining_expected_income_money.abs)) %></span>
           <% else %>
             <span class="text-primary"><%= t(".left", amount: format_money(budget.remaining_expected_income_money)) %></span>
           <% end %>
