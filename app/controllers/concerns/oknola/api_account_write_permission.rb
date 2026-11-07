@@ -11,7 +11,11 @@ module Oknola::ApiAccountWritePermission
       return true if permission.in?([ :owner, :full_control ])
       return true if permission == :read_write &&
                      !attributes.nil? &&
-                     (Array(attributes).map(&:to_sym) - AccountShare::ANNOTATE_TRANSACTION_ATTRIBUTES).empty?
+                     (
+                       Array(attributes).map(&:to_sym) -
+                       AccountShare::ANNOTATE_ENTRY_ATTRIBUTES -
+                       AccountShare::ANNOTATE_TRANSACTION_ATTRIBUTES
+                     ).empty?
 
       render_account_write_forbidden
       false
@@ -20,7 +24,7 @@ module Oknola::ApiAccountWritePermission
     def render_account_write_forbidden
       render json: {
         error: "forbidden",
-        message: "You do not have write access to this account"
+        message: t("oknola.api.accounts.write_forbidden")
       }, status: :forbidden
     end
 end

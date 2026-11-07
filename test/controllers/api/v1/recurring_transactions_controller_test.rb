@@ -130,6 +130,46 @@ class Api::V1::RecurringTransactionsControllerTest < ActionDispatch::Integration
     assert_equal "active", recurring_transaction.reload.status
   end
 
+  test "owner may delete a recurring transaction with a read-only destination account" do
+    member = users(:family_member)
+    member.api_keys.active.destroy_all
+    member_key = ApiKey.create!(
+      user: member,
+      name: "Member Read-Write Key",
+      scopes: [ "read_write" ],
+      source: "web",
+      display_key: "member_rw_#{SecureRandom.hex(8)}"
+    )
+    source_account = @family.accounts.create!(
+      owner: member,
+      name: "Member-owned source",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+    destination_account = accounts(:depository)
+    destination_account.account_shares.find_or_initialize_by(user: member)
+      .update!(permission: "read_only")
+    recurring_transaction = @family.recurring_transactions.create!(
+      account: source_account,
+      destination_account: destination_account,
+      name: "Recurring transfer",
+      amount: 20,
+      currency: "USD",
+      expected_day_of_month: 15,
+      last_occurrence_date: Date.current,
+      next_expected_date: Date.current + 1.month,
+      status: "active",
+      manual: true
+    )
+
+    assert_difference("@family.recurring_transactions.count", -1) do
+      delete api_v1_recurring_transaction_url(recurring_transaction), headers: api_headers(member_key)
+    end
+
+    assert_response :success
+  end
+
   test "should return not found for missing recurring transaction" do
     get api_v1_recurring_transaction_url(SecureRandom.uuid), headers: api_headers(@api_key)
 

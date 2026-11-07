@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"

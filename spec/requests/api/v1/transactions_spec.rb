@@ -311,6 +311,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
     patch 'Update a transaction' do
       tags 'Transactions'
       security [ { apiKeyAuth: [] } ]
+      description 'Updates a transaction. For accounts shared with read_write access, only actual changes to notes, category_id, merchant_id, and tag_ids are allowed; user_modified may accompany those annotations. Unchanged protected fields may be echoed in full-object PATCH requests; changing name, description, date, amount, or oknola_side requires owner or full-control access.'
       consumes 'application/json'
       produces 'application/json'
 
@@ -359,6 +360,25 @@ RSpec.describe 'API V1 Transactions', type: :request do
         run_test!
       end
 
+      response '403', 'account share does not permit the requested changes' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:other_user) do
+          family.users.create!(
+            email: 'api-read-only-owner@example.com',
+            password: 'password123',
+            password_confirmation: 'password123'
+          )
+        end
+
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
+
+        run_test!
+      end
+
       response '404', 'transaction not found' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
 
@@ -396,12 +416,32 @@ RSpec.describe 'API V1 Transactions', type: :request do
     delete 'Delete a transaction' do
       tags 'Transactions'
       security [ { apiKeyAuth: [] } ]
+      description 'Deletes a transaction. Requires owner or full-control access to the account, in addition to write scope.'
       produces 'application/json'
 
       let(:id) { another_transaction.id }
 
       response '200', 'transaction deleted' do
         schema '$ref' => '#/components/schemas/DeleteResponse'
+
+        run_test!
+      end
+
+      response '403', 'account share does not permit deletion' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:other_user) do
+          family.users.create!(
+            email: 'api-read-only-owner@example.com',
+            password: 'password123',
+            password_confirmation: 'password123'
+          )
+        end
+
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
 
         run_test!
       end

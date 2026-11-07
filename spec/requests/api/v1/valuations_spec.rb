@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Valuations', type: :request do
@@ -153,6 +154,14 @@ RSpec.describe 'API V1 Valuations', type: :request do
         run_test!
       end
 
+      response '403', 'account share does not permit valuation writes' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        before { account.account_shares.create!(user: user, permission: 'read_only') }
+
+        run_test!
+      end
+
       response '200', 'existing valuation upserted' do
         schema '$ref' => '#/components/schemas/Valuation'
 
@@ -290,6 +299,14 @@ RSpec.describe 'API V1 Valuations', type: :request do
             }
           }
         end
+
+        run_test!
+      end
+
+      response '403', 'account share does not permit valuation updates' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        before { account.account_shares.create!(user: user, permission: 'read_only') }
 
         run_test!
       end

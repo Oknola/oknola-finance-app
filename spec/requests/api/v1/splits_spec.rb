@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require 'swagger_helper'
 
 # Documentation only. Behavioral coverage lives in
@@ -91,6 +92,12 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
         run_test!
       end
 
+      response '403', 'account share does not permit splitting' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        run_test!
+      end
+
       response '422', 'amounts do not sum to the parent, or the transaction cannot be split' do
         let(:split) { { split: { splits: [ { name: 'Too small', amount: '1.0' } ] } } }
         run_test!
@@ -132,6 +139,12 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
         before { transaction.entry.split!([ { name: 'A', amount: 70 }, { name: 'B', amount: 30 } ]) }
         run_test!
       end
+
+      response '403', 'account share does not permit replacing the split' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        run_test!
+      end
     end
 
     delete 'Remove a transaction split' do
@@ -141,6 +154,12 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
 
       response '204', 'split removed' do
         before { transaction.entry.split!([ { name: 'A', amount: 60 }, { name: 'B', amount: 40 } ]) }
+        run_test!
+      end
+
+      response '403', 'account share does not permit removing the split' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+        before { account.account_shares.create!(user: user, permission: 'read_only') }
         run_test!
       end
 

@@ -133,6 +133,8 @@ class Api::V1::TransactionsController < Api::V1::BaseController
     else
       raise
     end
+  rescue ActiveRecord::RecordNotFound
+    raise
   rescue => e
     Rails.logger.error "TransactionsController#create error: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
@@ -241,7 +243,12 @@ class Api::V1::TransactionsController < Api::V1::BaseController
     end
 
     def ensure_transaction_account_write_permission
-      attributes = transaction_params.keys if action_name == "update"
+      if action_name == "update"
+        entry = Entry.find(@entry.id)
+        entry.assign_attributes(entry_params_for_update.slice(:name, :date, :amount, :notes))
+        attributes = entry.changed
+      end
+
       ensure_account_write_permission(@entry.account, attributes: attributes)
     end
 

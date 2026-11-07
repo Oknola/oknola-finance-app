@@ -180,11 +180,7 @@ class Api::V1::RecurringTransactionsController < Api::V1::BaseController
     end
 
     def ensure_recurring_transaction_account_write_permission
-      [ @recurring_transaction.account, @recurring_transaction.destination_account ].compact.each do |account|
-        return false unless ensure_account_write_permission(account)
-      end
-
-      true
+      ensure_account_write_permission(@recurring_transaction.account)
     end
 
     def read_recurring_transactions_scope

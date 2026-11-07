@@ -86,9 +86,10 @@ class Api::V1::ImportSessionsController < Api::V1::BaseController
     def ensure_import_session_account_write_permission
       @import_session.source_mappings
         .where(source_type: "Account", target_type: "Account")
-        .includes(:target)
-        .each do |mapping|
-          return false unless ensure_account_write_permission(mapping.target)
+        .where.not(target_id: Account.where(import_id: @import_session.imports.select(:id)).pluck(:id))
+        .filter_map(&:target)
+        .each do |account|
+          return false unless ensure_account_write_permission(account)
         end
 
       true

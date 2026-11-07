@@ -277,14 +277,69 @@ class Api::V1::ImportSessionsControllerTest < ActionDispatch::IntegrationTest
       target: account
     )
 
-    post publish_api_v1_import_session_url(session), headers: api_headers(key)
+    assert_no_enqueued_jobs do
+      post publish_api_v1_import_session_url(session), headers: api_headers(key)
+    end
 
     assert_response :forbidden
     assert_equal(
       { "error" => "forbidden", "message" => "You do not have write access to this account" },
       JSON.parse(response.body)
     )
-    assert account.persisted?
+  end
+
+  test "member can retry publishing after an earlier chunk created its mapped account" do
+    member = users(:family_member)
+    key = member_api_key(member)
+    session = build_import_session
+    attach_publishable_chunks(session)
+    session.update!(status: "failed")
+    session.imports.first.update!(status: "complete")
+    session.imports.second.update!(status: "failed")
+    created_by_chunk = @family.accounts.create!(
+      import: session.imports.first,
+      owner: @user,
+      name: "Account created by earlier chunk",
+      balance: 100,
+      currency: "USD",
+      accountable: Depository.new
+    )
+    session.source_mappings.create!(
+      family: @family,
+      source_type: "Account",
+      source_id: "api-acct-1",
+      target: created_by_chunk
+    )
+
+    post publish_api_v1_import_session_url(session), headers: api_headers(key)
+
+    assert_response :accepted
+  end
+
+  test "owner can retry publishing when a mapped target account was deleted" do
+    session = build_import_session
+    attach_publishable_chunks(session)
+    session.update!(status: "failed")
+    session.imports.first.update!(status: "complete")
+    session.imports.second.update!(status: "failed")
+    deleted_account = @family.accounts.create!(
+      owner: @user,
+      name: "Deleted mapped account",
+      balance: 100,
+      currency: "USD",
+      accountable: Depository.new
+    )
+    session.source_mappings.create!(
+      family: @family,
+      source_type: "Account",
+      source_id: "deleted-account",
+      target: deleted_account
+    )
+    deleted_account.destroy!
+
+    post publish_api_v1_import_session_url(session), headers: api_headers(@api_key)
+
+    assert_response :accepted
   end
 
   test "returns stable error when publish cannot enqueue" do
@@ -325,6 +380,34 @@ class Api::V1::ImportSessionsControllerTest < ActionDispatch::IntegrationTest
   private
     def build_import_session
       @family.import_sessions.create!(expected_chunks: 2)
+    end
+
+    def attach_publishable_chunks(session)
+      session.attach_chunk!(
+        sequence: 1,
+        content: build_ndjson(entity_records),
+        filename: "entities.ndjson",
+        content_type: "application/x-ndjson"
+      )
+      session.attach_chunk!(
+        sequence: 2,
+        content: build_ndjson(transaction_records),
+        filename: "transactions.ndjson",
+        content_type: "application/x-ndjson"
+      )
+    end
+
+    def member_api_key(member)
+      member.api_keys.active.destroy_all
+      key = ApiKey.create!(
+        user: member,
+        name: "Member Read-Write Key",
+        scopes: [ "read_write" ],
+        source: "web",
+        display_key: "member_rw_#{SecureRandom.hex(8)}"
+      )
+      Redis.new.del("api_rate_limit:#{key.id}")
+      key
     end
 
     def entity_records

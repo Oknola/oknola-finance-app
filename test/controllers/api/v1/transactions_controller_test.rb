@@ -329,6 +329,23 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @account.id, response_data["account"]["id"]
   end
 
+  test "should return not found when creating a transaction on a missing account" do
+    assert_no_difference "Entry.count" do
+      post api_v1_transactions_url,
+           params: {
+             transaction: {
+               account_id: SecureRandom.uuid,
+               name: "Missing account transaction",
+               amount: 25.00,
+               date: Date.current
+             }
+           },
+           headers: api_headers(@api_key)
+    end
+
+    assert_response :not_found
+  end
+
   test "should return 422 when creating a transaction with a foreign tag" do
     foreign_tag = families(:empty).tags.create!(name: "Foreign API tag")
 
@@ -840,16 +857,46 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     category = categories(:one)
 
     patch api_v1_transaction_url(entry.transaction),
-          params: { transaction: { category_id: category.id } },
+          params: {
+            transaction: {
+              name: entry.name,
+              date: entry.date.to_s,
+              amount: entry.amount,
+              notes: entry.notes,
+              category_id: category.id
+            }
+          },
+          headers: api_headers(key)
+    assert_response :success
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { notes: "Shared note" } },
+          headers: api_headers(key)
+    assert_response :success
+    assert_equal "Shared note", entry.reload.notes
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { category_id: category.id, user_modified: true } },
           headers: api_headers(key)
     assert_response :success
     assert_equal category.id, entry.transaction.reload.category_id
+    assert entry.reload.user_modified?
 
-    patch api_v1_transaction_url(entry.transaction),
-          params: { transaction: { name: "Changed name" } },
-          headers: api_headers(key)
-    assert_response :forbidden
-    assert_equal "Shared transaction", entry.reload.name
+    {
+      { name: "Changed name" } => { name: "Shared transaction" },
+      { description: "Changed description" } => { name: "Shared transaction" },
+      { amount: 26 } => { amount: BigDecimal("25") },
+      { date: (entry.date + 1.day).to_s } => { date: entry.date }
+    }.each do |params, original_attributes|
+      patch api_v1_transaction_url(entry.transaction),
+            params: { transaction: params },
+            headers: api_headers(key)
+      assert_response :forbidden
+
+      original_attributes.each do |attribute, value|
+        assert_equal value, entry.reload.public_send(attribute)
+      end
+    end
   end
 
   test "full-control shared account may update a transaction" do
