@@ -189,7 +189,7 @@ class Oknola::ApiTransactionSidesTest < ActionDispatch::IntegrationTest
         @entry.transaction.update!(oknola_side: "personal")
         patch_transaction(oknola_side: side)
 
-        if permission == "full_control"
+        if permission == "full_control" || (permission == "read_write" && side == "personal")
           assert_response :success
           if side == "personal"
             assert_equal side, @entry.transaction.reload.oknola_side

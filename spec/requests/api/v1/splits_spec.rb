@@ -37,9 +37,18 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
 
   let(:'X-Api-Key') { api_key.plain_key }
 
+  let(:other_user) do
+    family.users.create!(
+      email: 'api-split-owner@example.com',
+      password: 'password123',
+      password_confirmation: 'password123'
+    )
+  end
+
   let(:account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Checking Account',
       balance: 1000,
       currency: 'USD',
@@ -94,7 +103,10 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
 
       response '403', 'account share does not permit splitting' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
-        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
         run_test!
       end
 
@@ -142,7 +154,10 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
 
       response '403', 'account share does not permit replacing the split' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
-        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
         run_test!
       end
     end
@@ -159,7 +174,10 @@ RSpec.describe 'API V1 Transaction Split', type: :request do
 
       response '403', 'account share does not permit removing the split' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
-        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
         run_test!
       end
 

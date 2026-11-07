@@ -899,6 +899,39 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "read-write shared account may echo the effective transaction side but not change it" do
+    account = accounts(:depository)
+    account.update!(oknola_side: "business")
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    entry.transaction.update!(oknola_side: nil)
+    key = account_share_api_key(account, "read_write")
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: {
+            transaction: {
+              name: entry.name,
+              date: entry.date.to_s,
+              amount: entry.amount,
+              notes: entry.notes,
+              oknola_side: "business"
+            }
+          },
+          headers: api_headers(key)
+    assert_response :success
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { oknola_side: "" } },
+          headers: api_headers(key)
+    assert_response :success
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { oknola_side: "personal" } },
+          headers: api_headers(key)
+    assert_response :forbidden
+    assert_nil entry.transaction.reload.oknola_side
+    assert_equal "business", Oknola::Side.for(entry.transaction).downcase
+  end
+
   test "full-control shared account may update a transaction" do
     account = accounts(:depository)
     entry = create_transaction(account: account, amount: 25, name: "Shared transaction")

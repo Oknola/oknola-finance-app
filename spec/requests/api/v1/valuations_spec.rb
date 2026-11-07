@@ -34,9 +34,18 @@ RSpec.describe 'API V1 Valuations', type: :request do
 
   let(:'X-Api-Key') { api_key.plain_key }
 
+  let(:other_user) do
+    family.users.create!(
+      email: 'api-valuation-owner@example.com',
+      password: 'password123',
+      password_confirmation: 'password123'
+    )
+  end
+
   let(:account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Investment Account',
       balance: 10000,
       currency: 'USD',
@@ -157,7 +166,10 @@ RSpec.describe 'API V1 Valuations', type: :request do
       response '403', 'account share does not permit valuation writes' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
 
-        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
 
         run_test!
       end
@@ -314,7 +326,10 @@ RSpec.describe 'API V1 Valuations', type: :request do
           }
         end
 
-        before { account.account_shares.create!(user: user, permission: 'read_only') }
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
 
         run_test!
       end
