@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# locals: (import:) %>
 
 <%= styled_form_with model: @import,
@@ -16,7 +17,7 @@
                         { label: t(".rows_to_skip_label", default: "Skip first n rows"), min: 0, step: 1, data: { action: "change->import#refreshForm" } } %>
 
   <%# Date Configuration %>
-  <div class="flex items-center gap-4">
+  <div class="flex flex-wrap items-center gap-4">
     <%= form.select :date_col_label,
                     import.csv_headers,
                     { label: t(".date_label"), prompt: t(".select_column") },
@@ -28,7 +29,7 @@
   </div>
 
   <%# Amount Configuration %>
-  <div class="flex items-center gap-4">
+  <div class="flex flex-wrap items-center gap-4">
     <%= form.select :amount_col_label,
                     import.csv_headers,
                     { label: t(".amount_label"), container_class: "w-2/5", prompt: t(".select_column") },

@@ -1,9 +1,10 @@
-<%# locals: (weight:, color:) %>
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
+<%# locals: (weight:, color:, hide_bar_on_mobile: false) %>
 
 <% effective_weight = weight.presence || 0 %>
 
 <div class="w-full flex items-center justify-between gap-2">
-  <div class="flex gap-[3px]">
+  <div class="<%= "max-sm:hidden" if hide_bar_on_mobile %> flex gap-[3px]">
     <% 5.times do |i| %>
       <div class="w-0.5 h-2.5 rounded-lg <%= i < (effective_weight / 20.0).ceil ? "" : "opacity-20" %>" style="background-color: <%= color %>;"></div>
     <% end %>
