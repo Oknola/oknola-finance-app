@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Api::V1::TradesControllerTest < ActionDispatch::IntegrationTest
@@ -707,6 +708,51 @@ class Api::V1::TradesControllerTest < ActionDispatch::IntegrationTest
       params: { trade: { notes: "Test" } },
       headers: api_headers(read_only_api_key)
     assert_response :forbidden
+  end
+
+  test "read-only shared account cannot create, update, or delete trades" do
+    member = users(:family_member)
+    share = @investment_account.account_shares.find_or_initialize_by(user: member)
+    share.update!(permission: "read_only")
+    member.api_keys.active.destroy_all
+    key = ApiKey.create!(
+      user: member,
+      name: "Read-only share key",
+      scopes: [ "read_write" ],
+      source: "web",
+      key: ApiKey.generate_secure_key
+    )
+    trade = @investment_account.trades.first
+    assert trade, "Expected an investment trade fixture"
+
+    assert_no_difference [ "Entry.count", "Trade.count" ] do
+      post "/api/v1/trades",
+           params: {
+             trade: {
+               account_id: @investment_account.id,
+               type: "buy",
+               date: Date.current,
+               qty: 1,
+               price: 10,
+               ticker: "SHARE"
+             }
+           },
+           headers: api_headers(key)
+    end
+    assert_response :forbidden
+
+    original_notes = trade.entry.notes
+    put api_v1_trade_url(trade),
+        params: { trade: { notes: "Unauthorized edit" } },
+        headers: api_headers(key)
+    assert_response :forbidden
+    assert_equal original_notes, trade.entry.reload.notes
+
+    assert_no_difference("Trade.count") do
+      delete api_v1_trade_url(trade), headers: api_headers(key)
+    end
+    assert_response :forbidden
+    assert trade.reload.persisted?
   end
 
   test "should reject update for non-existent trade" do

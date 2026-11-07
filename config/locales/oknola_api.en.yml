@@ -1,6 +1,9 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 en:
   oknola:
     api:
+      accounts:
+        write_forbidden: "You do not have write access to this account"
       transactions:
         invalid_side: "Side must be business, personal, or blank."
         side_forbidden: "Only the account owner or a full-control user can change the transaction side."

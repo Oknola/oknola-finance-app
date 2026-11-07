@@ -1302,6 +1302,72 @@ class Api::V1::ImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "importing", json_response["data"]["status"]
   end
 
+  test "cannot create or publish an import for a read-only shared account" do
+    member = users(:family_member)
+    share = @account.account_shares.find_or_initialize_by(user: member)
+    share.update!(permission: "read_only")
+    member.api_keys.active.destroy_all
+    key = ApiKey.create!(
+      user: member,
+      name: "Read-only share key",
+      scopes: [ "read_write" ],
+      source: "web",
+      display_key: "share_ro_#{SecureRandom.hex(8)}"
+    )
+    Redis.new.del("api_rate_limit:#{key.id}")
+    csv_content = "date,amount,name\n2023-01-01,-10.00,Shared import row"
+
+    assert_no_difference [ "Import.count", "Entry.count" ] do
+      post api_v1_imports_url,
+           params: {
+             raw_file_content: csv_content,
+             date_col_label: "date",
+             amount_col_label: "amount",
+             name_col_label: "name",
+             account_id: @account.id,
+             date_format: "%Y-%m-%d",
+             publish: "true"
+           },
+           headers: api_headers(key)
+    end
+
+    assert_response :forbidden
+    assert_equal "forbidden", JSON.parse(response.body)["error"]
+  end
+
+  test "cannot publish a QIF import that names a read-only shared account" do
+    member = users(:family_member)
+    @account.account_shares.find_or_initialize_by(user: member).update!(permission: "read_only")
+    member.api_keys.active.destroy_all
+    key = ApiKey.create!(
+      user: member,
+      name: "Read-only QIF share key",
+      scopes: [ "read_write" ],
+      source: "web",
+      display_key: "qif_share_ro_#{SecureRandom.hex(8)}"
+    )
+    Redis.new.del("api_rate_limit:#{key.id}")
+    qif_content = <<~QIF
+      !Account
+      N#{@account.name}
+      TBank
+      ^
+      !Type:Bank
+      D1/ 1'24
+      U-25.00
+      T-25.00
+      PCoffee Shop
+      ^
+    QIF
+
+    post api_v1_imports_url,
+         params: { type: "QifImport", raw_file_content: qif_content, publish: "true" },
+         headers: api_headers(key)
+
+    assert_response :forbidden
+    assert_equal "forbidden", JSON.parse(response.body)["error"]
+  end
+
   test "should not create import for account in another family" do
     other_family = Family.create!(name: "Other Family", currency: "USD", locale: "en")
     other_depository = Depository.create!(subtype: "checking")

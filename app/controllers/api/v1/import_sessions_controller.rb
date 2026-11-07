@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Api::V1::ImportSessionsController < Api::V1::BaseController
   before_action :ensure_read_scope, only: [ :show ]
   before_action :ensure_write_scope, only: [ :create, :create_chunk, :publish ]
   # Import sessions only carry Sure imports, which write family configuration.
   before_action :reject_guest_writes!, only: [ :create, :create_chunk, :publish ]
   before_action :set_import_session, only: [ :show, :create_chunk, :publish ]
+  before_action :ensure_import_session_account_write_permission, only: :publish
 
   def create
     @import_session = ImportSession.create_or_find_for!(
@@ -79,6 +81,18 @@ class Api::V1::ImportSessionsController < Api::V1::BaseController
 
     def ensure_write_scope
       authorize_scope!(:write)
+    end
+
+    def ensure_import_session_account_write_permission
+      @import_session.source_mappings
+        .where(source_type: "Account", target_type: "Account")
+        .where.not(target_id: Account.where(import_id: @import_session.imports.select(:id)).pluck(:id))
+        .filter_map(&:target)
+        .each do |account|
+          return false unless ensure_account_write_permission(account)
+        end
+
+      true
     end
 
     def expected_chunks_param

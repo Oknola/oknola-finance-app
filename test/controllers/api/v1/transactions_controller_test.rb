@@ -329,6 +329,23 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @account.id, response_data["account"]["id"]
   end
 
+  test "should return not found when creating a transaction on a missing account" do
+    assert_no_difference "Entry.count" do
+      post api_v1_transactions_url,
+           params: {
+             transaction: {
+               account_id: SecureRandom.uuid,
+               name: "Missing account transaction",
+               amount: 25.00,
+               date: Date.current
+             }
+           },
+           headers: api_headers(@api_key)
+    end
+
+    assert_response :not_found
+  end
+
   test "should return 422 when creating a transaction with a foreign tag" do
     foreign_tag = families(:empty).tags.create!(name: "Foreign API tag")
 
@@ -629,6 +646,30 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "cannot create a transaction on a read-only shared account" do
+    account = accounts(:depository)
+    key = account_share_api_key(account, "read_only")
+
+    assert_no_difference("@family.entries.count") do
+      post api_v1_transactions_url,
+           params: {
+             transaction: {
+               account_id: account.id,
+               name: "Unauthorized transaction",
+               amount: 25.00,
+               date: Date.current
+             }
+           },
+           headers: api_headers(key)
+    end
+
+    assert_response :forbidden
+    assert_equal(
+      { "error" => "forbidden", "message" => "You do not have write access to this account" },
+      JSON.parse(response.body)
+    )
+  end
+
   test "should reject create with invalid parameters" do
     transaction_params = {
       transaction: {
@@ -789,6 +830,118 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
         params: update_params,
         headers: api_headers(@read_only_api_key)
     assert_response :forbidden
+  end
+
+  test "read-only shared account cannot update or delete a transaction" do
+    account = accounts(:depository)
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    key = account_share_api_key(account, "read_only")
+
+    put api_v1_transaction_url(entry.transaction),
+        params: { transaction: { name: "Changed name" } },
+        headers: api_headers(key)
+    assert_response :forbidden
+    assert_equal "Shared transaction", entry.reload.name
+
+    assert_no_difference("@family.entries.count") do
+      delete api_v1_transaction_url(entry.transaction), headers: api_headers(key)
+    end
+    assert_response :forbidden
+    assert_equal "Shared transaction", entry.reload.name
+  end
+
+  test "read-write shared account may annotate transactions but not change other fields" do
+    account = accounts(:depository)
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    key = account_share_api_key(account, "read_write")
+    category = categories(:one)
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: {
+            transaction: {
+              name: entry.name,
+              date: entry.date.to_s,
+              amount: entry.amount,
+              notes: entry.notes,
+              category_id: category.id
+            }
+          },
+          headers: api_headers(key)
+    assert_response :success
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { notes: "Shared note" } },
+          headers: api_headers(key)
+    assert_response :success
+    assert_equal "Shared note", entry.reload.notes
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { category_id: category.id, user_modified: true } },
+          headers: api_headers(key)
+    assert_response :success
+    assert_equal category.id, entry.transaction.reload.category_id
+    assert entry.reload.user_modified?
+
+    {
+      { name: "Changed name" } => { name: "Shared transaction" },
+      { description: "Changed description" } => { name: "Shared transaction" },
+      { amount: 26 } => { amount: BigDecimal("25") },
+      { date: (entry.date + 1.day).to_s } => { date: entry.date }
+    }.each do |params, original_attributes|
+      patch api_v1_transaction_url(entry.transaction),
+            params: { transaction: params },
+            headers: api_headers(key)
+      assert_response :forbidden
+
+      original_attributes.each do |attribute, value|
+        assert_equal value, entry.reload.public_send(attribute)
+      end
+    end
+  end
+
+  test "read-write shared account may echo the effective transaction side but not change it" do
+    account = accounts(:depository)
+    account.update!(oknola_side: "business")
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    entry.transaction.update!(oknola_side: nil)
+    key = account_share_api_key(account, "read_write")
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: {
+            transaction: {
+              name: entry.name,
+              date: entry.date.to_s,
+              amount: entry.amount,
+              notes: entry.notes,
+              oknola_side: "business"
+            }
+          },
+          headers: api_headers(key)
+    assert_response :success
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { oknola_side: "" } },
+          headers: api_headers(key)
+    assert_response :success
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { oknola_side: "personal" } },
+          headers: api_headers(key)
+    assert_response :forbidden
+    assert_nil entry.transaction.reload.oknola_side
+    assert_equal "business", Oknola::Side.for(entry.transaction).downcase
+  end
+
+  test "full-control shared account may update a transaction" do
+    account = accounts(:depository)
+    entry = create_transaction(account: account, amount: 25, name: "Shared transaction")
+    key = account_share_api_key(account, "full_control")
+
+    patch api_v1_transaction_url(entry.transaction),
+          params: { transaction: { name: "Updated by full-control share" } },
+          headers: api_headers(key)
+    assert_response :success
+    assert_equal "Updated by full-control share", entry.reload.name
   end
 
   test "should reject update for non-existent transaction" do
@@ -1116,6 +1269,20 @@ end
 
     def api_headers(api_key)
       { "X-Api-Key" => api_key.display_key }
+    end
+
+    def account_share_api_key(account, permission)
+      user = users(:family_member)
+      share = AccountShare.find_or_initialize_by(account: account, user: user)
+      share.update!(permission: permission)
+      user.api_keys.active.destroy_all
+      ApiKey.create!(
+        user: user,
+        name: "Share permission key",
+        scopes: [ "read_write" ],
+        source: "web",
+        display_key: "share_rw_#{SecureRandom.hex(8)}"
+      ).tap { |key| Redis.new.del("api_rate_limit:#{key.id}") }
     end
 
     def count_db_queries(&block)

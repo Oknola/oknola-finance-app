@@ -74,6 +74,9 @@ class Api::V1::ImportsController < Api::V1::BaseController
     # 2. Build the import object with permitted config attributes
     @import = family.imports.build(import_config_params.merge(type: type))
     @import.account_id = params[:account_id] if params[:account_id].present?
+    if params[:account_id].present? && (account = family.accounts.find_by(id: params[:account_id]))
+      return unless ensure_account_write_permission(account)
+    end
 
     # 3. Attach the uploaded file if present (with validation)
     if params[:file].present?
@@ -121,6 +124,8 @@ class Api::V1::ImportsController < Api::V1::BaseController
       # For API simplicity, if enough info is provided, we might want to trigger processing
 
       if @import.configured? && params[:publish] == "true"
+        return render_account_write_forbidden unless @import.accounts_writable_by?(current_resource_owner)
+
         if current_resource_owner.guest? && @import.creates_categories_or_tags?
           return render_json({ error: "forbidden", message: "Guests cannot create categories or tags", import_id: @import.id }, status: :forbidden)
         end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Api::V1::RecurringTransactionsController < Api::V1::BaseController
   include Pagy::Backend
 
@@ -12,6 +13,8 @@ class Api::V1::RecurringTransactionsController < Api::V1::BaseController
   before_action :ensure_write_scope, only: %i[create update destroy]
   before_action :set_readable_recurring_transaction, only: :show
   before_action :set_writable_recurring_transaction, only: %i[update destroy]
+  before_action :ensure_create_account_write_permission, only: :create
+  before_action :ensure_recurring_transaction_account_write_permission, only: %i[update destroy]
 
   def index
     return render_invalid_account_filter if params[:account_id].present? && !valid_uuid?(params[:account_id])
@@ -146,7 +149,7 @@ class Api::V1::RecurringTransactionsController < Api::V1::BaseController
     end
 
     def set_writable_recurring_transaction
-      @recurring_transaction = find_recurring_transaction(write_recurring_transactions_scope)
+      @recurring_transaction = find_recurring_transaction(read_recurring_transactions_scope)
     end
 
     def find_recurring_transaction(scope)
@@ -163,14 +166,27 @@ class Api::V1::RecurringTransactionsController < Api::V1::BaseController
       authorize_scope!(:write)
     end
 
-    def read_recurring_transactions_scope
-      current_resource_owner.family.recurring_transactions.accessible_by(current_resource_owner)
+    def ensure_create_account_write_permission
+      return true unless params.key?(:recurring_transaction)
+
+      account_id = recurring_transaction_input[:account_id]
+      return true if account_id.blank?
+      raise ActiveRecord::RecordNotFound unless valid_uuid?(account_id)
+
+      account = current_resource_owner.family.accounts.accessible_by(current_resource_owner).find_by(id: account_id)
+      raise ActiveRecord::RecordNotFound unless account
+
+      ensure_account_write_permission(account)
     end
 
-    def write_recurring_transactions_scope
-      scope = current_resource_owner.family.recurring_transactions
-      writable_account_ids = current_resource_owner.family.accounts.writable_by(current_resource_owner).select(:id)
-      scope.where(account_id: writable_account_ids).or(scope.where(account_id: nil))
+    def ensure_recurring_transaction_account_write_permission
+      return true if @recurring_transaction.account_id.nil?
+
+      ensure_account_write_permission(@recurring_transaction.account)
+    end
+
+    def read_recurring_transactions_scope
+      current_resource_owner.family.recurring_transactions.accessible_by(current_resource_owner)
     end
 
     def apply_filters(query)

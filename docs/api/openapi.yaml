@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 ---
 openapi: 3.0.3
 info:
@@ -9529,6 +9529,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Split"
+        '403':
+          description: account share does not permit splitting
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '422':
           description: amounts do not sum to the parent, or the transaction cannot
             be split
@@ -9571,6 +9577,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Split"
+        '403':
+          description: account share does not permit replacing the split
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
       requestBody:
         content:
           application/json:
@@ -9586,6 +9598,8 @@ paths:
       responses:
         '204':
           description: split removed
+        '403':
+          description: account share does not permit removing the split
         '404':
           description: transaction is not split
   "/api/v1/syncs":
@@ -10406,6 +10420,11 @@ paths:
       - Transactions
       security:
       - apiKeyAuth: []
+      description: Updates a transaction. For accounts shared with read_write access,
+        only actual changes to notes, category_id, merchant_id, and tag_ids are allowed;
+        user_modified may accompany those annotations. Unchanged protected fields
+        may be echoed in full-object PATCH requests; changing name, description, date,
+        amount, or oknola_side requires owner or full-control access.
       parameters: []
       responses:
         '200':
@@ -10414,6 +10433,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Transaction"
+        '403':
+          description: account share does not permit the requested changes
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '404':
           description: transaction not found
           content:
@@ -10483,6 +10508,8 @@ paths:
       - Transactions
       security:
       - apiKeyAuth: []
+      description: Deletes a transaction. Requires owner or full-control access to
+        the account, in addition to write scope.
       responses:
         '200':
           description: transaction deleted
@@ -10490,6 +10517,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/DeleteResponse"
+        '403':
+          description: account share does not permit deletion
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '404':
           description: transaction not found
           content:
@@ -10776,6 +10809,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Valuation"
+        '403':
+          description: account share does not permit valuation writes
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '200':
           description: existing valuation upserted
           content:
@@ -10877,6 +10916,12 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Valuation"
+        '403':
+          description: account share does not permit valuation updates
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '422':
           description: validation error - only one of amount/date provided
           content:

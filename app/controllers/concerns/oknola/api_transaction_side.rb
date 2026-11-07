@@ -10,6 +10,10 @@ module Oknola::ApiTransactionSide
 
     def authorize_transaction_side_update
       return unless params[:transaction]&.key?(:oknola_side)
+      transaction = @entry.transaction
+      side = params.dig(:transaction, :oknola_side)
+      return if (side.present? && side == Oknola::Side.for(transaction).downcase) ||
+                (side.blank? && transaction.oknola_side.blank?)
       return if @entry.account.permission_for(current_resource_owner).in?([ :owner, :full_control ])
 
       render json: { error: "forbidden", message: t("oknola.api.transactions.side_forbidden") },

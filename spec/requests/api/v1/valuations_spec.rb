@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Valuations', type: :request do
@@ -33,9 +34,18 @@ RSpec.describe 'API V1 Valuations', type: :request do
 
   let(:'X-Api-Key') { api_key.plain_key }
 
+  let(:other_user) do
+    family.users.create!(
+      email: 'api-valuation-owner@example.com',
+      password: 'password123',
+      password_confirmation: 'password123'
+    )
+  end
+
   let(:account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Investment Account',
       balance: 10000,
       currency: 'USD',
@@ -149,6 +159,17 @@ RSpec.describe 'API V1 Valuations', type: :request do
 
       response '201', 'valuation created' do
         schema '$ref' => '#/components/schemas/Valuation'
+
+        run_test!
+      end
+
+      response '403', 'account share does not permit valuation writes' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
+        end
 
         run_test!
       end
@@ -289,6 +310,25 @@ RSpec.describe 'API V1 Valuations', type: :request do
               notes: 'Quarterly valuation update'
             }
           }
+        end
+
+        run_test!
+      end
+
+      response '403', 'account share does not permit valuation updates' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:body) do
+          {
+            valuation: {
+              notes: 'Quarterly valuation update'
+            }
+          }
+        end
+
+        before do
+          account.update!(owner: other_user)
+          account.account_shares.create!(user: user, permission: 'read_only')
         end
 
         run_test!

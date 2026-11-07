@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 class Api::V1::TradesController < Api::V1::BaseController
   include Pagy::Backend
 
   before_action :ensure_read_scope, only: [ :index, :show ]
   before_action :ensure_write_scope, only: [ :create, :update, :destroy ]
   before_action :set_trade, only: [ :show, :update, :destroy ]
+  before_action -> { ensure_account_write_permission(@entry.account) }, only: [ :update, :destroy ]
 
   def index
     family = current_resource_owner.family
@@ -40,6 +42,7 @@ class Api::V1::TradesController < Api::V1::BaseController
     end
 
     account = current_resource_owner.family.accounts.visible.find(trade_params[:account_id])
+    return unless ensure_account_write_permission(account)
 
     unless account.supports_trades?
       return render_validation_error(

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Api::V1::RecurringTransactionsControllerTest < ActionDispatch::IntegrationTest
@@ -69,7 +70,7 @@ class Api::V1::RecurringTransactionsControllerTest < ActionDispatch::Integration
     assert_equal @merchant.id, response_data["merchant"]["id"]
   end
 
-  test "should not mutate recurring transaction on read only shared account" do
+  test "read-only shared account cannot update or delete recurring transactions" do
     member = users(:family_member)
     member.api_keys.active.destroy_all
     member_api_key = ApiKey.create!(
@@ -96,19 +97,77 @@ class Api::V1::RecurringTransactionsControllerTest < ActionDispatch::Integration
     get api_v1_recurring_transaction_url(recurring_transaction), headers: api_headers(member_api_key)
     assert_response :success
 
+    assert_no_difference("@family.recurring_transactions.count") do
+      post api_v1_recurring_transactions_url,
+           params: {
+             recurring_transaction: {
+               account_id: read_only_account.id,
+               name: "Unauthorized recurring transaction",
+               amount: 10,
+               currency: "USD",
+               last_occurrence_date: Date.current,
+               next_expected_date: Date.current + 1.month
+             }
+           },
+           headers: api_headers(member_api_key)
+    end
+    assert_response :forbidden
+
     patch api_v1_recurring_transaction_url(recurring_transaction),
           params: { recurring_transaction: { status: "inactive" } },
           headers: api_headers(member_api_key)
-    assert_response :not_found
+    assert_response :forbidden
     response_data = JSON.parse(response.body)
-    assert_equal "record_not_found", response_data["error"]
+    assert_equal "forbidden", response_data["error"]
+    assert_equal "active", recurring_transaction.reload.status
 
     assert_no_difference("@family.recurring_transactions.count") do
       delete api_v1_recurring_transaction_url(recurring_transaction), headers: api_headers(member_api_key)
     end
-    assert_response :not_found
+    assert_response :forbidden
     response_data = JSON.parse(response.body)
-    assert_equal "record_not_found", response_data["error"]
+    assert_equal "forbidden", response_data["error"]
+    assert_equal "active", recurring_transaction.reload.status
+  end
+
+  test "owner may delete a recurring transaction with a read-only destination account" do
+    member = users(:family_member)
+    member.api_keys.active.destroy_all
+    member_key = ApiKey.create!(
+      user: member,
+      name: "Member Read-Write Key",
+      scopes: [ "read_write" ],
+      source: "web",
+      display_key: "member_rw_#{SecureRandom.hex(8)}"
+    )
+    source_account = @family.accounts.create!(
+      owner: member,
+      name: "Member-owned source",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+    destination_account = accounts(:depository)
+    destination_account.account_shares.find_or_initialize_by(user: member)
+      .update!(permission: "read_only")
+    recurring_transaction = @family.recurring_transactions.create!(
+      account: source_account,
+      destination_account: destination_account,
+      name: "Recurring transfer",
+      amount: 20,
+      currency: "USD",
+      expected_day_of_month: 15,
+      last_occurrence_date: Date.current,
+      next_expected_date: Date.current + 1.month,
+      status: "active",
+      manual: true
+    )
+
+    assert_difference("@family.recurring_transactions.count", -1) do
+      delete api_v1_recurring_transaction_url(recurring_transaction), headers: api_headers(member_key)
+    end
+
+    assert_response :success
   end
 
   test "should return not found for missing recurring transaction" do
@@ -328,6 +387,34 @@ class Api::V1::RecurringTransactionsControllerTest < ActionDispatch::Integration
     response_data = JSON.parse(response.body)
     assert_equal "inactive", response_data["status"]
     assert_equal 16, response_data["expected_day_of_month"]
+  end
+
+  test "accountless recurring transaction can be updated and deleted" do
+    recurring_transaction = @family.recurring_transactions.create!(
+      account: nil,
+      merchant: @merchant,
+      amount: 19.99,
+      currency: "USD",
+      expected_day_of_month: 15,
+      last_occurrence_date: Date.new(2026, 4, 15),
+      next_expected_date: Date.new(2026, 5, 15),
+      status: "active",
+      occurrence_count: 3,
+      manual: true
+    )
+
+    patch api_v1_recurring_transaction_url(recurring_transaction),
+          params: { recurring_transaction: { status: "inactive" } },
+          headers: api_headers(@api_key)
+
+    assert_response :success
+    assert_equal "inactive", recurring_transaction.reload.status
+
+    assert_difference("@family.recurring_transactions.count", -1) do
+      delete api_v1_recurring_transaction_url(recurring_transaction), headers: api_headers(@api_key)
+    end
+
+    assert_response :success
   end
 
   # The API writes "active" onto any writable series, a detected one included.

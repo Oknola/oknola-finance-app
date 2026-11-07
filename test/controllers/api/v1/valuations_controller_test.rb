@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 # frozen_string_literal: true
 
 require "test_helper"
@@ -317,6 +318,32 @@ class Api::V1::ValuationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "read-only shared account cannot create or update valuations" do
+    entry = @valuation.entry
+    account = entry.account
+    key = account_share_api_key(account, "read_only")
+    original_amount = entry.amount
+
+    put api_v1_valuation_url(entry),
+        params: { valuation: { amount: original_amount + 100 } },
+        headers: api_headers(key)
+    assert_response :forbidden
+    assert_equal original_amount, entry.reload.amount
+
+    assert_no_difference("@family.entries.valuations.count") do
+      post api_v1_valuations_url,
+           params: {
+             valuation: {
+               account_id: account.id,
+               amount: original_amount + 200,
+               date: Date.current
+             }
+           },
+           headers: api_headers(key)
+    end
+    assert_response :forbidden
+  end
+
   test "should reject update for non-existent valuation" do
     put api_v1_valuation_url(999999),
         params: { valuation: { amount: 15000.00 } },
@@ -367,6 +394,20 @@ class Api::V1::ValuationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+    def account_share_api_key(account, permission)
+      user = users(:family_member)
+      share = AccountShare.find_or_initialize_by(account: account, user: user)
+      share.update!(permission: permission)
+      user.api_keys.active.destroy_all
+      ApiKey.create!(
+        user: user,
+        name: "Share permission key",
+        scopes: [ "read_write" ],
+        source: "web",
+        display_key: "share_rw_#{SecureRandom.hex(8)}"
+      ).tap { |key| Redis.new.del("api_rate_limit:#{key.id}") }
+    end
 
     def api_headers(api_key)
       { "X-Api-Key" => api_key.plain_key }
