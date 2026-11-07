@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Imports', type: :request do
@@ -36,7 +38,7 @@ RSpec.describe 'API V1 Imports', type: :request do
     ApiKey.new(
       user: user,
       name: 'No Read Docs Key',
-      key: key,
+      display_key: key,
       scopes: %w[write],
       source: 'web'
     ).tap { |api_key| api_key.save!(validate: false) }
@@ -47,6 +49,7 @@ RSpec.describe 'API V1 Imports', type: :request do
   let(:account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Test Checking',
       balance: 1000,
       currency: 'USD',
