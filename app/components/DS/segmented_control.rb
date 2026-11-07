@@ -16,7 +16,7 @@ class DS::SegmentedControl < DesignSystemComponent
     # canonical outline from the base-layer button rule (it's an idempotent
     # duplicate there).
     classes = class_names(
-      "segmented-control__segment focus-ring max-lg:min-w-11 max-lg:min-h-11",
+      "segmented-control__segment focus-ring max-lg:min-w-11 max-lg:min-h-11 max-lg:shrink-0",
       ("flex-1" if full_width),
       ("segmented-control__segment--active" if active),
       opts.delete(:class)
