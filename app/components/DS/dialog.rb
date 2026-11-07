@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 class DS::Dialog < DesignSystemComponent
   renders_one :header, ->(title: nil, subtitle: nil, custom_header: false, **opts, &block) do
     content_tag(:header, class: "px-4 flex flex-col gap-2", **opts) do
@@ -168,7 +169,7 @@ class DS::Dialog < DesignSystemComponent
     render DS::Button.new(
       variant: "icon",
       size: :sm,
-      class: "ml-auto shrink-0",
+      class: "ml-auto shrink-0 max-lg:min-h-11 max-lg:min-w-11",
       icon: "x",
       title: I18n.t("ds.dialog.close"),
       aria_label: I18n.t("ds.dialog.close"),
