@@ -62,7 +62,7 @@ en:
       accounts: Accounts
       financekit_accounts:
         title: Apple Wallet
-        description: Manage Apple Wallet connections and sync in the Sure iOS app.
+        description: Manage Apple Wallet connections and sync in the Finance iOS app.
       cancel_sync: Cancel sync
       manual_accounts:
         other_accounts: Other accounts
