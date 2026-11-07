@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 %>
 <div class="bg-container rounded-xl p-6 space-y-6">
   <div class="text-center space-y-2">
     <div class="mx-auto w-12 h-12 rounded-full bg-destructive-surface flex items-center justify-center mb-4">
@@ -15,7 +16,7 @@
   <div class="text-center">
     <%= render DS::Link.new(
       text: t("doorkeeper.authorizations.error.go_back"),
-      href: "javascript:history.back()",
+      href: root_path,
       variant: :secondary
     ) %>
   </div>

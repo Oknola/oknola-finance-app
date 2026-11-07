@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 %>
 <%# locals: (provider_key:, last_synced_at: nil) %>
 <% recently_synced = last_synced_at.present? && last_synced_at > 60.seconds.ago %>
 <% button_label = recently_synced ? t("settings.providers.recently_synced") : t("settings.providers.sync_provider") %>
@@ -11,5 +12,8 @@
       title: button_label,
       aria: { label: button_label },
       class: "disabled:opacity-40 disabled:cursor-not-allowed",
-      form: { onclick: "event.stopPropagation()", class: "inline-flex" }
+      form: {
+        data: { controller: "oknola-stop-click", action: "click->oknola-stop-click#stop" },
+        class: "inline-flex"
+      }
     ) %>

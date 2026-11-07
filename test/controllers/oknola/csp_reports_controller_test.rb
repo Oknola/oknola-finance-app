@@ -1,28 +1,47 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
   setup { ensure_tailwind_build }
 
-  test "HTML pages use report-only CSP and nonce every inline script" do
+  test "HTML pages use enforcing CSP and nonce every inline script" do
     get new_session_path
     assert_response :success
-    sign_in_nonce = assert_report_only_policy_and_inline_nonces
+    sign_in_nonce = assert_enforced_policy_and_inline_nonces
 
     get new_session_path
     assert_response :success
-    assert_equal sign_in_nonce, assert_report_only_policy_and_inline_nonces
+    assert_equal sign_in_nonce, assert_enforced_policy_and_inline_nonces
 
     other_session = open_session
     other_session.get new_session_path
     assert_equal 200, other_session.response.status
-    other_nonce = other_session.response.headers["Content-Security-Policy-Report-Only"][/nonce-([^']+)/, 1]
+    other_nonce = other_session.response.headers["Content-Security-Policy"][/nonce-([^']+)/, 1]
     assert_not_equal sign_in_nonce, other_nonce
 
     sign_in users(:family_admin)
     get root_path
 
     assert_response :success
-    assert_report_only_policy_and_inline_nonces
+    assert_equal sign_in_nonce, assert_enforced_policy_and_inline_nonces
+
+    session = users(:family_admin).sessions.order(:created_at).last
+    delete session_path(session)
+    get new_session_path
+
+    assert_response :success
+    assert_equal sign_in_nonce, assert_enforced_policy_and_inline_nonces
+  end
+
+  test "turbo stream responses receive an enforcing CSP nonce" do
+    sign_in users(:family_admin)
+
+    post categories_path(format: :turbo_stream), params: {
+      category: { name: "CSP Turbo Stream", color: Category::COLORS.first }
+    }
+
+    assert_response :success
+    assert_match(/script-src[^;]*nonce-/, response.headers["Content-Security-Policy"])
   end
 
   test "non-HTML responses do not create a CSP nonce session" do
@@ -31,19 +50,22 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal 401, client.response.status
     refute_includes client.response.headers.fetch("Set-Cookie", ""), Rails.application.config.session_options[:key]
-    assert_no_match(/nonce-/, client.response.headers["Content-Security-Policy-Report-Only"])
+    assert_no_match(/nonce-/, client.response.headers["Content-Security-Policy"])
   end
 
-  test "connect-src includes the configured PostHog host when enabled" do
+  test "PostHog script and connect sources include the loader host when enabled" do
     get new_session_path
 
-    policy = response.headers["Content-Security-Policy-Report-Only"]
+    policy = response.headers["Content-Security-Policy"]
     connect_src = policy.split(";").find { |directive| directive.strip.start_with?("connect-src") }
-    assert connect_src.present?
+    script_src = policy.split(";").find { |directive| directive.strip.start_with?("script-src") }
     posthog = Rails.configuration.x.posthog
 
     if posthog.api_key.present?
+      loader_host = posthog.host.sub(%r{\.i\.posthog\.com(?=[:/]|$)}, "-assets.i.posthog.com")
       assert_includes connect_src, posthog.host
+      assert_includes connect_src, loader_host
+      assert_includes script_src, loader_host
     else
       assert_not_includes connect_src, posthog.host
     end
@@ -69,7 +91,7 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes all_logs, "?account_id=secret"
     assert_not_includes all_logs, "account_id"
     refute_includes response.headers.fetch("Set-Cookie", ""), Rails.application.config.session_options[:key]
-    assert_no_match(/nonce-/, response.headers["Content-Security-Policy-Report-Only"])
+    assert_no_match(/nonce-/, response.headers["Content-Security-Policy"])
   end
 
   test "a CSP report with a trailing slash does not log the query string" do
@@ -192,10 +214,10 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
-    def assert_report_only_policy_and_inline_nonces
-      policy = response.headers["Content-Security-Policy-Report-Only"]
+    def assert_enforced_policy_and_inline_nonces
+      policy = response.headers["Content-Security-Policy"]
       assert policy.present?
-      assert_nil response.headers["Content-Security-Policy"]
+      assert_nil response.headers["Content-Security-Policy-Report-Only"]
       assert_match(/script-src[^;]*nonce-/, policy)
 
       directives = policy.split(";").to_h do |directive|
@@ -207,12 +229,17 @@ class Oknola::CspReportsControllerTest < ActionDispatch::IntegrationTest
       assert_equal [ "'none'" ], directives["object-src"]
       assert_equal [ "'none'" ], directives["frame-ancestors"]
       assert_includes directives["style-src"], "'unsafe-inline'"
+      assert_not_includes directives["script-src"], "'unsafe-inline'"
+      assert_not_includes directives["script-src"], "'unsafe-eval'"
       assert_includes directives["img-src"], "data:"
       assert_includes directives["img-src"], "https:"
+      assert_includes directives["img-src"], "blob:"
       assert_includes directives["font-src"], "data:"
       assert_includes directives["script-src"], "https://cdn.plaid.com"
       assert_includes directives["frame-src"], "https://cdn.plaid.com"
-      assert_includes directives["connect-src"], "https://cdn.plaid.com"
+      assert_includes directives["connect-src"], "https://*.plaid.com"
+      assert_not_includes directives["connect-src"], "https://cdn.plaid.com"
+      assert_not_includes directives.keys, "form-action"
       assert_includes directives["report-uri"], "/oknola/csp_reports"
 
       nonce = policy[/nonce-([^']+)/, 1]

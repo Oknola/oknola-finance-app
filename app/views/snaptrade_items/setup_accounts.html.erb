@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 %>
 <% content_for :title, t("snaptrade_items.setup_accounts.title", default: "Set Up SnapTrade Accounts") %>
 
 <%= render DS::Dialog.new(disable_click_outside: true) do |dialog| %>
@@ -139,7 +140,7 @@
                       <% end %>
                     </label>
                   </div>
-                  <div class="mt-3 pl-7" onclick="event.stopPropagation();">
+                  <div class="mt-3 pl-7" data-controller="oknola-stop-click" data-action="click->oknola-stop-click#stop">
                     <%= render DS::Select.new(
                       form: form,
                       method: "account_types[#{snaptrade_account.id}]",
@@ -154,7 +155,6 @@
                            id="sync_start_<%= snaptrade_account.id %>"
                            name="sync_start_dates[<%= snaptrade_account.id %>]"
                            value="<%= snaptrade_account.sync_start_date %>"
-                           onclick="event.stopPropagation();"
                            autocomplete="off"
                            class="bg-container border border-primary rounded px-2 py-1 text-sm text-primary">
                     <p class="text-xs text-secondary mt-1">

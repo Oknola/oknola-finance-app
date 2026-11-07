@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0 %>
 <% content_for :title, t(".page_title") %>
 
 <div class="flex items-center justify-center h-full p-4 sm:p-6 lg:p-8">
@@ -38,13 +39,12 @@
       <div class="pt-6 border-t border-primary">
         <div class="text-center space-y-3">
           <p class="text-sm text-subdued"><%= t(".refresh_hint") %></p>
-          <%= render DS::Button.new(
+          <%= render DS::Link.new(
             text: t(".refresh_page"),
             variant: "secondary",
             icon: "refresh-cw",
-            type: "button",
-            full_width: true,
-            onclick: "window.location.reload()"
+            href: request.path,
+            full_width: true
           ) %>
         </div>
       </div>

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class ProviderLogoTest < ViewComponent::TestCase
@@ -12,7 +13,7 @@ class ProviderLogoTest < ViewComponent::TestCase
     render_inline(ProviderLogo.new(provider_key: :example))
 
     assert_selector "img[src='https://cdn.brandfetch.io/example.com/icon/fallback/404/w/40/h/40?c=test-client-id']"
-    assert_selector "img[onerror='#{ProviderLogo::REMOVE_ON_ERROR}']"
+    assert_selector "img[data-controller='oknola-remove-on-error'][data-action='error->oknola-remove-on-error#remove']"
     assert_selector "span[aria-hidden='true'] + img"
   end
 

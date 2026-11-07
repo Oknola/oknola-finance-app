@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-06, AGPL-3.0
 require "test_helper"
 
 class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
@@ -167,6 +167,9 @@ class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "session signs the user in and sets the embedded flag" do
+    get new_session_path
+    csp_nonce = response.headers["Content-Security-Policy"][/nonce-([^']+)/, 1]
+    assert csp_nonce.present?
     handoff
     code = response.parsed_body["code"]
 
@@ -177,6 +180,7 @@ class Oknola::HandoffControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/"
     assert session[:oknola_embedded]
     assert cookies[:session_token].present?
+    assert_equal csp_nonce, response.headers["Content-Security-Policy"][/nonce-([^']+)/, 1]
   end
 
   test "session redirects to the route bound at handoff" do

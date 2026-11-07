@@ -1,3 +1,4 @@
+// Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 // Configure your import map in config/importmap.rb. Read more: https://github.com/rails/importmap-rails
 import "@hotwired/turbo-rails";
 import "controllers";
@@ -81,3 +82,13 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// WebKit hides the nonce on Turbo's cached snapshots, so restored inline scripts would be blocked.
+document.addEventListener("turbo:before-render", ({ detail: { newBody } }) => {
+  const nonce = document.querySelector('meta[name="csp-nonce"]')?.content;
+  if (nonce) {
+    newBody.querySelectorAll('script[nonce=""]').forEach((script) => {
+      script.setAttribute("nonce", nonce);
+    });
+  }
+});
