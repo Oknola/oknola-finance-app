@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Trades', type: :request do
@@ -36,6 +38,7 @@ RSpec.describe 'API V1 Trades', type: :request do
   let(:account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Investment Account',
       balance: 50_000,
       currency: 'USD',
@@ -259,6 +262,7 @@ RSpec.describe 'API V1 Trades', type: :request do
         let(:checking_account) do
           Account.create!(
             family: family,
+            owner: user,
             name: 'Checking',
             balance: 1000,
             currency: 'USD',
@@ -406,7 +410,7 @@ RSpec.describe 'API V1 Trades', type: :request do
       end
 
       response '201', 'deposit created' do
-        schema '$ref' => '#/components/schemas/TransactionResponse'
+        schema '$ref' => '#/components/schemas/Transaction'
 
         let(:body) do
           {
@@ -424,7 +428,7 @@ RSpec.describe 'API V1 Trades', type: :request do
       end
 
       response '201', 'withdrawal created' do
-        schema '$ref' => '#/components/schemas/TransactionResponse'
+        schema '$ref' => '#/components/schemas/Transaction'
 
         let(:body) do
           {
@@ -442,7 +446,7 @@ RSpec.describe 'API V1 Trades', type: :request do
       end
 
       response '201', 'trade created' do
-        schema '$ref' => '#/components/schemas/TransactionResponse'
+        schema '$ref' => '#/components/schemas/Trade'
 
         let(:body) do
           {
@@ -568,6 +572,7 @@ RSpec.describe 'API V1 Trades', type: :request do
       response '403', 'forbidden - api key missing read_write scope' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
 
+        let(:id) { trade.id }
         let(:read_only_api_key) do
           key = ApiKey.generate_secure_key
           ApiKey.create!(
@@ -617,6 +622,7 @@ RSpec.describe 'API V1 Trades', type: :request do
       response '403', 'forbidden - api key missing read_write scope' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
 
+        let(:id) { trade.id }
         let(:read_only_api_key) do
           key = ApiKey.generate_secure_key
           ApiKey.create!(

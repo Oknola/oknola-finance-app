@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Accounts', type: :request do
@@ -38,7 +40,7 @@ RSpec.describe 'API V1 Accounts', type: :request do
     ApiKey.new(
       user: user,
       name: 'No Read Docs Key',
-      key: key,
+      display_key: key,
       scopes: %w[write],
       source: 'web'
     ).tap { |api_key| api_key.save!(validate: false) }
@@ -49,6 +51,7 @@ RSpec.describe 'API V1 Accounts', type: :request do
   let!(:checking_account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Checking Account',
       balance: 1500.50,
       currency: 'USD',
@@ -59,6 +62,7 @@ RSpec.describe 'API V1 Accounts', type: :request do
   let!(:savings_account) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Savings Account',
       balance: 10000.00,
       currency: 'USD',
@@ -69,6 +73,7 @@ RSpec.describe 'API V1 Accounts', type: :request do
   let!(:credit_card) do
     Account.create!(
       family: family,
+      owner: user,
       name: 'Credit Card',
       balance: -500.00,
       currency: 'USD',
