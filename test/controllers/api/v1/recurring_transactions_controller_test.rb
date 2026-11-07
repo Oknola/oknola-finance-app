@@ -389,6 +389,34 @@ class Api::V1::RecurringTransactionsControllerTest < ActionDispatch::Integration
     assert_equal 16, response_data["expected_day_of_month"]
   end
 
+  test "accountless recurring transaction can be updated and deleted" do
+    recurring_transaction = @family.recurring_transactions.create!(
+      account: nil,
+      merchant: @merchant,
+      amount: 19.99,
+      currency: "USD",
+      expected_day_of_month: 15,
+      last_occurrence_date: Date.new(2026, 4, 15),
+      next_expected_date: Date.new(2026, 5, 15),
+      status: "active",
+      occurrence_count: 3,
+      manual: true
+    )
+
+    patch api_v1_recurring_transaction_url(recurring_transaction),
+          params: { recurring_transaction: { status: "inactive" } },
+          headers: api_headers(@api_key)
+
+    assert_response :success
+    assert_equal "inactive", recurring_transaction.reload.status
+
+    assert_difference("@family.recurring_transactions.count", -1) do
+      delete api_v1_recurring_transaction_url(recurring_transaction), headers: api_headers(@api_key)
+    end
+
+    assert_response :success
+  end
+
   # The API writes "active" onto any writable series, a detected one included.
   test "should link a detected bill's past payments when activating it" do
     paid_on = Date.current.beginning_of_month + 8.days - 2.months

@@ -306,6 +306,14 @@ RSpec.describe 'API V1 Valuations', type: :request do
       response '403', 'account share does not permit valuation updates' do
         schema '$ref' => '#/components/schemas/ErrorResponse'
 
+        let(:body) do
+          {
+            valuation: {
+              notes: 'Quarterly valuation update'
+            }
+          }
+        end
+
         before { account.account_shares.create!(user: user, permission: 'read_only') }
 
         run_test!

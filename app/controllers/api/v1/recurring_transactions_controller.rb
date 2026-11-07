@@ -180,6 +180,8 @@ class Api::V1::RecurringTransactionsController < Api::V1::BaseController
     end
 
     def ensure_recurring_transaction_account_write_permission
+      return true if @recurring_transaction.account_id.nil?
+
       ensure_account_write_permission(@recurring_transaction.account)
     end
 
