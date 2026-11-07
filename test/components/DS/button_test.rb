@@ -2,10 +2,10 @@
 require "test_helper"
 
 class DS::ButtonTest < ViewComponent::TestCase
-  test "text buttons meet the mobile target height" do
-    render_inline(DS::Button.new(text: "Save"))
+  test "text buttons meet the mobile target size" do
+    render_inline(DS::Button.new(text: "+", size: :sm))
 
-    assert_selector "button[class*='max-lg:min-h-11']"
+    assert_selector "button[class*='max-lg:min-w-11'][class*='max-lg:min-h-11']"
   end
 
   test "icon buttons meet the mobile target size" do

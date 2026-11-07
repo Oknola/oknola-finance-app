@@ -61,13 +61,13 @@ class DS::Buttonish < DesignSystemComponent
   SIZES = {
     sm: {
       container_classes: "px-2 py-1",
-      icon_container_classes: "items-center justify-center w-7 h-7 max-lg:min-w-11 pointer-coarse:w-11 pointer-coarse:h-11",
+      icon_container_classes: "items-center justify-center w-7 h-7 pointer-coarse:w-11 pointer-coarse:h-11",
       radius_classes: "rounded-md",
       text_classes: "text-sm"
     },
     md: {
       container_classes: "px-3 py-2",
-      icon_container_classes: "items-center justify-center w-9 h-9 max-lg:min-w-11 pointer-coarse:w-11 pointer-coarse:h-11",
+      icon_container_classes: "items-center justify-center w-9 h-9 pointer-coarse:w-11 pointer-coarse:h-11",
       radius_classes: "rounded-lg",
       text_classes: "text-sm"
     },
@@ -107,7 +107,7 @@ class DS::Buttonish < DesignSystemComponent
       # `aria-disabled` to stay clickable/focusable (e.g. submit buttons whose
       # click handler surfaces validation errors — a truly disabled default
       # submit would also swallow Enter-key implicit submission).
-      "font-medium whitespace-nowrap focus-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed aria-disabled:opacity-50 max-lg:min-h-11",
+      "font-medium whitespace-nowrap focus-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed aria-disabled:opacity-50 max-lg:min-w-11 max-lg:min-h-11",
       merged_base_classes,
       full_width ? "w-full justify-center" : nil,
       container_size_classes,
