@@ -2,9 +2,19 @@
 require "application_system_test_case"
 
 class Oknola::MobileTargetsTest < ApplicationSystemTestCase
+  include EntriesTestHelper
+
   test "mobile controls fit in plain and embedded layouts" do
     user = users(:family_admin)
     user.update!(preferences: (user.preferences || {}).merge("preview_features_enabled" => true))
+    12.times do |index|
+      create_transaction(
+        account: accounts(:depository),
+        category: categories(:food_and_drink),
+        name: "Mobile target #{index}",
+        date: Date.current - index.days
+      )
+    end
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 375, height: 812, deviceScaleFactor: 1, mobile: true)
     sign_in user
 
@@ -29,6 +39,12 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       assert_target "[aria-label='Choose Business or Personal'] button", count: 2
       assert_target "button[data-dashboard-section-target='button']"
       assert_target "a[href='#{new_account_path}']", count: 1
+      if embedded
+        assert_target "nav[data-oknola-nav] a[aria-label]"
+      else
+        assert_target "nav[data-viewport-target='bottomNav'] a"
+        assert_target "nav.relative a:has(> img[src*='logomark-color'])", count: 1
+      end
       assert_no_horizontal_scroll
 
       visit new_transaction_path
@@ -38,12 +54,36 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
 
       visit settings_providers_path
       assert_target "[data-providers-filter-target='chip'][data-kind='all']"
+      assert_target "#mobile-settings-nav a[href]"
+      assert_target "#mobile-settings-nav button[type='submit']"
+      assert_no_horizontal_scroll
+
+      visit account_path(accounts(:depository), tab: "transactions")
+      assert_target "[role='tablist'] [role='tab']"
+      assert_no_horizontal_scroll
+
+      visit transactions_path
+      assert_target "#transactions [id*='category_menu_'] [data-DS--popover-target='button']"
+      assert_target "nav:has(select#per_page) a[data-turbo-frame='_top']"
+      assert_target "nav:has(select#per_page) select#per_page"
+      assert_target "#transaction-filters-button"
+      find("#transaction-filters-button").click
+      assert_target "#transaction-filters-menu [role='tab']"
+      assert_no_horizontal_scroll
+
+      visit transactions_path(q: { search: "Mobile target" })
+      assert_target "#transaction-search-filters button"
       assert_no_horizontal_scroll
 
       visit reports_path
       assert_target ".segmented-control.overflow-x-auto .segmented-control__segment", count: 5
+      assert_target "[data-section-key] [data-reports-section-target='button']"
       assert_no_horizontal_scroll
       assert_report_segments_do_not_overlap
+
+      visit insights_path
+      assert_target "#insights-refresh a, #insights-refresh button"
+      assert_no_horizontal_scroll
     end
   ensure
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride") if page&.driver

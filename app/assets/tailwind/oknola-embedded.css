@@ -21,3 +21,9 @@ html[data-embedded="true"] [data-testid="user-menu"] {
 [data-theme="dark"] .scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-gray-400);
 }
+
+@media (max-width: 1023px) {
+  summary {
+    min-height: 44px;
+  }
+}
