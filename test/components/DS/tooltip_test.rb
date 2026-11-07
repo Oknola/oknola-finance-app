@@ -1,10 +1,11 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require "test_helper"
 
 class DS::TooltipTest < ViewComponent::TestCase
   test "defaults to the inverse surface with an icon trigger" do
     render_inline(DS::Tooltip.new(text: "Helpful hint"))
 
-    assert_selector "button[aria-describedby]"
+    assert_selector "button[aria-describedby][class*='max-lg:min-w-11'][class*='max-lg:min-h-11']"
     assert_selector "[role=tooltip].bg-inverse", visible: :all, text: "Helpful hint"
     assert_selector "[role=tooltip] .text-inverse", visible: :all
   end

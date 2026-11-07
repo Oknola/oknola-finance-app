@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 ---
 en:
   goals:
@@ -18,7 +19,7 @@ en:
       subtitle: Save toward what matters.
       new_goal: New goal
       empty_filtered: No goals match.
-      pending_pledges_callout: You have pending pledges. Sure will confirm them on the next sync.
+      pending_pledges_callout: You have pending pledges. Finance will confirm them on the next sync.
       kpi:
         contributed_label: Contributed · last 30d
         velocity_delta_up: "↑ %{percent}%% vs. prior 30d"
@@ -166,7 +167,7 @@ en:
           zero: "Pending: %{amount} into %{account} · expires today"
           one: "Pending: %{amount} into %{account} · 1 day left"
           other: "Pending: %{amount} into %{account} · %{count} days left"
-        body_transfer: Auto-confirms when Sure spots a matching deposit on the next sync.
+        body_transfer: Auto-confirms when Finance spots a matching deposit on the next sync.
         body_manual: Confirms on your next manual balance edit.
         pledged_at: "Pledged %{time_ago} ago"
         extend: Extend 7 days
@@ -245,7 +246,7 @@ en:
         cta: Set target date
       empty:
         heading: No deposits yet
-        body: Make a transfer into your linked account. Sure will catch it on the next sync. Or update your manual account balance.
+        body: Make a transfer into your linked account. Finance will catch it on the next sync. Or update your manual account balance.
     errors:
       not_found: This goal couldn't be found. It may have been deleted.
     states:

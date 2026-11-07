@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= form_with url: transactions_path,
               id: "transactions-search",
               scope: :q,
@@ -34,7 +35,7 @@
     <%= button_tag type: "button",
         id: "toggle-checkboxes-button",
         aria: { label: t(".toggle_selection_checkboxes") },
-        class: "lg:hidden font-medium whitespace-nowrap inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-primary border border-secondary hover:bg-surface-hover",
+        class: "lg:hidden font-medium whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm text-primary border border-secondary hover:bg-surface-hover max-lg:min-h-11 max-lg:min-w-11",
         data: {
           action: "click->checkbox-toggle#toggle",
           checkbox_toggle_target: "toggleButton"

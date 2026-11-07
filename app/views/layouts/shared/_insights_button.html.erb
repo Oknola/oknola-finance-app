@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# Preview-gated. Gating the whole block (rather than just the
     link) also keeps the unread COUNT off every page render for
     users who haven't opted in. No preview dot on the icon: the
@@ -7,7 +8,7 @@
         and deliberately skips prefetch requests, so a prefetched
         response served on click would never clear the badge. %>
     <%= link_to insights_path,
-        class: "relative inline-flex items-center justify-center w-9 h-9 pointer-coarse:w-11 pointer-coarse:h-11 rounded-lg text-secondary hover:text-primary hover:bg-container-inset-hover transition-colors focus-ring",
+        class: "relative inline-flex items-center justify-center w-9 h-9 max-lg:w-11 max-lg:h-11 pointer-coarse:w-11 pointer-coarse:h-11 rounded-lg text-secondary hover:text-primary hover:bg-container-inset-hover transition-colors focus-ring",
         aria: { label: t("layouts.application.insights") },
         data: { turbo_prefetch: false } do %>
     <%# `as: :span` + `html_class:` so the tooltip trigger fills this

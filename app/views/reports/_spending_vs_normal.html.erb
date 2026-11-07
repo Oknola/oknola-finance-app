@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# locals: (comparison:, start_date:, end_date:) %>
 <%
   whole = ->(amount) { Money.new(amount, Current.family.currency).format(precision: 0) }
@@ -54,7 +55,7 @@
             <% changes.each do |change| %>
               <li>
                 <%= link_to change[:href],
-                      class: "grid grid-cols-[minmax(0,9rem)_1fr_5rem] items-center gap-2 rounded-md px-1 py-1 hover:bg-container-inset text-sm" do %>
+                      class: "grid grid-cols-[minmax(0,9rem)_1fr_5rem] items-center gap-2 rounded-md px-1 py-1 hover:bg-container-inset text-sm max-lg:min-h-11" do %>
                   <span class="truncate text-primary"><%= change[:row].category.name %></span>
                   <span class="grid grid-cols-2 h-3" aria-hidden="true">
                     <span class="flex justify-end">

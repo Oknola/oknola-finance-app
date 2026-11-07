@@ -1,4 +1,4 @@
-/* Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 */
+/* Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 */
 html[data-embedded="true"] nav[data-oknola-nav] {
   position: fixed;
   z-index: 30;
@@ -55,21 +55,13 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
 }
 
 @media (max-width: 1023px) {
-  /* Phones: one row along the bottom. Buttons share the width but never shrink below their
-     label; if they still don't fit (seven items on a narrow phone) the row scrolls sideways. */
+  /* Phones: keep every navigation target visible without horizontal scrolling. */
   html[data-embedded="true"] nav[data-oknola-nav] {
     left: calc(env(safe-area-inset-left) + 8px);
     right: calc(env(safe-area-inset-right) + 8px);
     bottom: calc(env(safe-area-inset-bottom) + 8px);
-    gap: 2px;
-    padding: 6px 4px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  html[data-embedded="true"] nav[data-oknola-nav]::-webkit-scrollbar {
-    display: none;
+    gap: 0;
+    padding: 6px 2px;
   }
 
   html[data-embedded="true"] [data-controller~="app-layout"]:has(> [data-app-layout-target="mobileSidebar"]:not(.hidden)) > nav[data-oknola-nav] {
@@ -78,10 +70,14 @@ html[data-embedded="true"] nav[data-oknola-nav] a[aria-current="page"] {
   }
 
   html[data-embedded="true"] nav[data-oknola-nav] a {
-    flex: 1 0 auto;
-    min-width: 48px;
+    flex: 1 1 0;
+    min-width: 44px;
     height: 52px;
-    padding: 0 4px;
+    padding: 0 2px;
+  }
+
+  html[data-embedded="true"] nav[data-oknola-nav] .oknola-nav-label {
+    font-size: 9px;
   }
 
   /* Scroll room under the page so its last rows clear the bar: 8 + 66 (bar) + 8 */

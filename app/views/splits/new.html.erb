@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= render DS::Dialog.new(variant: "modal") do |dialog| %>
   <% dialog.with_header do %>
     <div class="flex items-start justify-between gap-4">
@@ -53,7 +54,7 @@
 
       <%# Add split button %>
       <button type="button"
-              class="flex items-center justify-center gap-1.5 w-full py-2 text-sm font-medium text-secondary hover:text-primary border border-dashed border-secondary hover:border-primary rounded-lg transition-colors"
+              class="flex items-center justify-center gap-1.5 w-full py-2 text-sm font-medium text-secondary hover:text-primary border border-dashed border-secondary hover:border-primary rounded-lg transition-colors max-lg:min-h-11"
               data-action="click->split-transaction#addRow">
         <%= icon "plus", size: "sm" %>
         <%= t("splits.new.add_row") %>

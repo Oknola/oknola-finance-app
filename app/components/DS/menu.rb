@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+
 # `DS::Menu` is a strict action-list primitive. Children are `DS::MenuItem`
 # (link / button / divider) only; the container announces as `role="menu"`,
 # items as `role="menuitem"`, dividers as `role="separator"`. Arrow Up/Down
@@ -14,6 +16,7 @@ class DS::Menu < DesignSystemComponent
 
   renders_one :button, ->(**button_options, &block) do
     options_with_target = button_options.deep_dup
+    options_with_target[:class] = class_names(options_with_target[:class], "max-lg:min-h-11")
     options_with_target[:data] = (options_with_target[:data] || {}).merge(DS__menu_target: "button")
     options_with_target[:aria] = (options_with_target[:aria] || {}).merge(
       haspopup: "menu",

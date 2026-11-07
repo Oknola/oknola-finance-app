@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= content_for :page_title, t(".page_title") %>
 
 <% if Current.user.ai_enabled? %>
@@ -28,7 +29,7 @@
                          open: @family.errors[:ai_prompt_chat_system].present? } do %>
       <%= render "settings/ai_prompts/prompt_field",
                  form: form, family: @family,
-                 prompts: [ { key: :chat_system, label: t(".main_system_prompt.label") } ],
+                 prompts: [ { key: :chat_system, label: t("settings.ai_prompts.show.main_system_prompt.label") } ],
                  textarea_id: "family_ai_prompt_chat_system" %>
     <% end %>
 
@@ -67,7 +68,7 @@
                          open: @family.errors[:ai_prompt_insight_dig_in].present? } do %>
       <%= render "settings/ai_prompts/prompt_field",
                  form: form, family: @family,
-                 prompts: [ { key: :insight_dig_in, label: t(".insight_dig_in.label") } ],
+                 prompts: [ { key: :insight_dig_in, label: t("settings.ai_prompts.show.insight_dig_in.label") } ],
                  textarea_id: "family_ai_prompt_insight_dig_in" %>
     <% end %>
 

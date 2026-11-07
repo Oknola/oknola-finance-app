@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 class DS::Tabs::Nav < DesignSystemComponent
   erb_template <<~ERB
     <%# Neutral `<div>` host for `role="tablist"`. Per ARIA-in-HTML,
@@ -8,7 +9,7 @@ class DS::Tabs::Nav < DesignSystemComponent
         (ArrowLeft/Right, Home, End, Enter/Space) is driven by the
         Stimulus controller with the manual-activation pattern
         (focus moves first, activate on Enter/Space). %>
-    <%= tag.div class: classes,
+    <%= tag.div class: class_names("max-lg:min-w-0 max-lg:overflow-x-auto", classes),
                 role: "tablist",
                 "aria-orientation": "horizontal" do %>
       <% btns.each do |btn| %>
@@ -22,7 +23,7 @@ class DS::Tabs::Nav < DesignSystemComponent
     content_tag(
       :button, label, id: "#{dom_prefix}-tab-#{id}",
       type: "button",
-      class: class_names("focus-ring", btn_classes, is_active ? active_btn_classes : inactive_btn_classes, classes),
+      class: class_names("focus-ring max-lg:min-h-11 max-lg:min-w-11 max-lg:shrink-0 max-lg:whitespace-nowrap", btn_classes, is_active ? active_btn_classes : inactive_btn_classes, classes),
       role: "tab",
       "aria-selected": is_active.to_s,
       "aria-controls": "#{dom_prefix}-panel-#{id}",

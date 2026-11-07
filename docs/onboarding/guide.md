@@ -1,23 +1,25 @@
-# Welcome to Sure!
+<!-- Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 -->
+
+# Welcome to Finance!
 
 This guide aims to assist new users through:
 
-1. Creating a Sure account
+1. Creating a Finance account
 2. Adding your first accounts
 3. Recording transactions
 
-This guide also covers the differences between **asset** and **liability** accounts, a key concept for using and understanding balances in Sure!
+This guide also covers the differences between **asset** and **liability** accounts, a key concept for using and understanding balances in Finance!
 
-> **Important:** Sure is evolving quickly. If you find something inaccurate while following this guide, please:
+> **Important:** Finance is evolving quickly. If you find something inaccurate while following this guide, please:
 > 
 > - Ask in the [Discord](https://discord.gg/36ZGBsxYEK)
 > - Open an [issue](https://github.com/we-promise/sure/issues/new/choose)
 > - Or if you know the answer, open a [PR](https://github.com/we-promise/sure/compare)!
 
 
-## 1. Creating your Sure Account
+## 1. Creating your Finance Account
 
-Once Sure is installed, open a browser and navigate to [localhost:3000](http://localhost:3000).<br />
+Once Finance is installed, open a browser and navigate to [localhost:3000](http://localhost:3000).<br />
 On a fresh install you will land directly on the **Create account** page (pictured below) - there is no separate sign-up step.
 
 <img width="1280" height="713" alt="Landing page on a fresh install." src="assets/guide-create-account.png" />
@@ -27,12 +29,12 @@ On a fresh install you will land directly on the **Create account** page (pictur
 You'll be guided through a short series of screens to set your **login details**, **personal information**, and **preferences**.<br />
 When you arrive at the main dashboard, showing **No accounts yet**, you're all set up!
 
-<img width="1280" height="713" alt="Blank home screen of Sure, with no accounts yet." src="assets/guide-empty-dashboard.png" />
+<img width="1280" height="713" alt="Blank home screen of Finance, with no accounts yet." src="assets/guide-empty-dashboard.png" />
 <br />
 <br />
 
-> **Note:** The next sections of this guide cover how to **manually add accounts and transactions** in Sure.<br />
-> If you'd rather connect a data provider, Sure supports many of them, including:
+> **Note:** The next sections of this guide cover how to **manually add accounts and transactions** in Finance.<br />
+> If you'd rather connect a data provider, Finance supports many of them, including:
 >
 > - [**Plaid**](https://github.com/we-promise/sure/blob/main/docs/hosting/plaid.md) (US and EU)
 > - [**SimpleFIN**](https://beta-bridge.simplefin.org/)
@@ -47,12 +49,12 @@ When you arrive at the main dashboard, showing **No accounts yet**, you're all s
 >
 > See **Settings > Bank sync** in your instance for the full list of supported providers and their setup options. Only **admin** users can connect a provider.
 >
-> Even if you use an integration, we still recommend reading through this guide to understand **account types** and how they work in Sure.
+> Even if you use an integration, we still recommend reading through this guide to understand **account types** and how they work in Finance.
 
 
-## 2. Account Types in Sure
+## 2. Account Types in Finance
 
-Sure supports several account types, which are grouped into **Assets** (things you own) and **Debts/Liabilities** (things you owe):
+Finance supports several account types, which are grouped into **Assets** (things you own) and **Debts/Liabilities** (things you owe):
 
 | Assets      | Debts/Liabilities |
 | ----------- | ----------------- |
@@ -139,7 +141,7 @@ You'll now see:
 
 To get this bar moving let's add some transactions!
 
-<img width="1280" height="713" alt="Home screen of Sure, showing one account and no transactions." src="assets/guide-dashboard-one-account.png" />
+<img width="1280" height="713" alt="Home screen of Finance, showing one account and no transactions." src="assets/guide-dashboard-one-account.png" />
 
 ## 7. Adding Transactions
 
@@ -158,11 +160,11 @@ You will now see the transaction you added in your **transaction history**, as w
 
 ### Uploading statements
 
-You can keep your bank's statements next to an account and let Sure check its balances against them. Open an account and upload the PDF, CSV or XLSX files in **Statements**, or use **Settings → Statement Vault** to upload first and link later.
+You can keep your bank's statements next to an account and let Finance check its balances against them. Open an account and upload the PDF, CSV or XLSX files in **Statements**, or use **Settings → Statement Vault** to upload first and link later.
 
-Sure needs each statement's **period** to show which months are covered and to compare balances. It finds the period in this order:
+Finance needs each statement's **period** to show which months are covered and to compare balances. It finds the period in this order:
 
-1. **Inside the PDF**, when the statement states its period: as a date range, e.g. `01 Apr 2026 - 30 Apr 2026` or `01.04.2026 – 30.04.2026`, or as the dates of its opening and closing balance, e.g. "Saldo iniziale al 01.07.2025" and "Saldo finale al 30.09.2025". Sure also reads the opening and closing balance when the statement shows them in a balance summary or next to labels such as "Opening balance" and "Closing balance". Month names and labels are recognised in English, Italian, German, French, Spanish, Dutch and Portuguese. A file name without a date, like Trade Republic's `Account statement.pdf`, then doesn't matter.
+1. **Inside the PDF**, when the statement states its period: as a date range, e.g. `01 Apr 2026 - 30 Apr 2026` or `01.04.2026 – 30.04.2026`, or as the dates of its opening and closing balance, e.g. "Saldo iniziale al 01.07.2025" and "Saldo finale al 30.09.2025". Finance also reads the opening and closing balance when the statement shows them in a balance summary or next to labels such as "Opening balance" and "Closing balance". Month names and labels are recognised in English, Italian, German, French, Spanish, Dutch and Portuguese. A file name without a date, like Trade Republic's `Account statement.pdf`, then doesn't matter.
 2. **Dates in the filename**, for everything else, e.g. `2026-04`, `2026-04-30` or `Apr 2026`.
 3. **Manually**: open the statement and enter the period and balances yourself.
 
@@ -170,7 +172,7 @@ If your bank names every file the same way, add the month to the filename before
 
 ## 8. Managing Investment Accounts
 
-If you're tracking investments in Sure, there are additional features to help you manage your portfolio accurately.
+If you're tracking investments in Finance, there are additional features to help you manage your portfolio accurately.
 
 ### Cost Basis Tracking
 
@@ -178,7 +180,7 @@ Cost basis tracking helps you understand the original purchase price of your inv
 
 #### Cost Basis Sources
 
-Sure tracks cost basis from three sources:
+Finance tracks cost basis from three sources:
 
 | Source | Description |
 | --- | --- |
@@ -188,7 +190,7 @@ Sure tracks cost basis from three sources:
 
 #### Priority Hierarchy
 
-When multiple sources provide cost basis data, Sure uses this priority:
+When multiple sources provide cost basis data, Finance uses this priority:
 
 **Manual > Calculated > Provider**
 
@@ -199,7 +201,7 @@ This means:
 
 #### Lock Protection
 
-When you manually set a cost basis, Sure automatically locks it to prevent automatic updates from overwriting your value. This ensures your manual entries remain intact during account syncs.
+When you manually set a cost basis, Finance automatically locks it to prevent automatic updates from overwriting your value. This ensures your manual entries remain intact during account syncs.
 
 #### Setting Cost Basis Manually
 
@@ -263,7 +265,7 @@ Activity labels help you classify and understand investment transactions. They a
 
 #### Available Activity Types
 
-Sure supports these investment activity labels:
+Finance supports these investment activity labels:
 
 | Label | Description |
 | --- | --- |
@@ -325,7 +327,7 @@ They help you quickly identify the nature of each investment transaction without
 ## 9. Next Steps
 
 Now that you have one account and your first transaction:
-- Explore the other account types that Sure offers, adding ones relevant to your finances.
+- Explore the other account types that Finance offers, adding ones relevant to your finances.
 - **Categorize** and **Tag** transactions for better searching and reporting.
 - Experiment with **Budgets** to track your spending habits.
 - If you have many historical transactions, use **Import** (the Import button on the Transactions page, or **Settings > Imports**) to load them in.
