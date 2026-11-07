@@ -3,6 +3,24 @@ require "application_system_test_case"
 require "timeout"
 
 class Oknola::CspEnforcedTest < ApplicationSystemTestCase
+  test "restores empty cached script nonces before Turbo renders" do
+    sign_in users(:family_admin)
+
+    nonce = page.find('meta[name="csp-nonce"]', visible: false)["content"]
+    assert_not_empty nonce
+
+    script_nonces = page.evaluate_script(<<~JS)
+      (() => {
+        const newBody = document.createElement("body");
+        newBody.innerHTML = '<script nonce=""><\\/script><script nonce="existing"><\\/script><script><\\/script>';
+        document.dispatchEvent(new CustomEvent("turbo:before-render", { detail: { newBody } }));
+        return [...newBody.querySelectorAll("script")].map((script) => script.getAttribute("nonce"));
+      })()
+    JS
+
+    assert_equal [ nonce, "existing", nil ], script_nonces
+  end
+
   test "enforces CSP across primary pages and reports blocked inline scripts" do
     report_count = 0
     report_mutex = Mutex.new
