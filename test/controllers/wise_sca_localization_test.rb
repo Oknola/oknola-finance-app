@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 
 class WiseScaLocalizationTest < ActiveSupport::TestCase
@@ -15,7 +16,7 @@ class WiseScaLocalizationTest < ActiveSupport::TestCase
     "copied" => "Kopiert!",
     "generate" => "Schlüsselpaar erzeugen",
     "regenerate" => "Neues Schlüsselpaar erzeugen",
-    "regenerate_confirm" => "Dadurch wird ein neues Schlüsselpaar erzeugt. Wise akzeptiert den bisherigen öffentlichen Schlüssel weiterhin, bis du ihn selbst in deinem Wise-Konto entfernst – Sure kann ihn nicht aus der Ferne widerrufen. Du musst den neuen öffentlichen Schlüssel bei Wise registrieren, bevor Kontoauszüge wieder synchronisiert werden können. Fortfahren?"
+    "regenerate_confirm" => "Dadurch wird ein neues Schlüsselpaar erzeugt. Wise akzeptiert den bisherigen öffentlichen Schlüssel weiterhin, bis du ihn selbst in deinem Wise-Konto entfernst – Finance kann ihn nicht aus der Ferne widerrufen. Du musst den neuen öffentlichen Schlüssel bei Wise registrieren, bevor Kontoauszüge wieder synchronisiert werden können. Fortfahren?"
   }.freeze
 
   test "German Wise SCA copy matches the expected translations" do
@@ -90,7 +91,7 @@ class WiseScaPanelLocalizationTest < ActionDispatch::IntegrationTest
   private
 
     def assert_sca_copy(key)
-      expected = WiseScaLocalizationTest::TRANSLATIONS.fetch(key)
+      expected = I18n.t("wise_items.provider_panel.sca.#{key}", locale: :de)
       assert_includes response.body, ERB::Util.html_escape(expected)
     end
 end

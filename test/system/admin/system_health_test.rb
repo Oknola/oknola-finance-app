@@ -93,7 +93,7 @@ class Admin::SystemHealthTest < ApplicationSystemTestCase
     assert_selector "button[role='tab'][aria-selected='true']", text: "Jobs"
     assert_selector "h2", text: "Push notifications"
     assert_button "Send test push notification", disabled: true
-    assert_text "Enable push notifications in the Sure iOS app"
+    assert_text "Enable push notifications in the Finance iOS app"
 
     user = users(:sure_support_staff)
     user.push_subscriptions.create!(

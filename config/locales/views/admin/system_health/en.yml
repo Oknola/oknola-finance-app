@@ -1,4 +1,5 @@
 ---
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 en:
   admin:
     system_health:
@@ -85,7 +86,7 @@ en:
           queued: "Test notification queued. Refresh the results below to check its status."
           hosted_only: "Push notifications are available only in hosted mode."
           ineligible: "Only an active super-admin can send a test notification."
-          no_devices: "Enable push notifications in the Sure iOS app for this account to send a test."
+          no_devices: "Enable push notifications in the Finance iOS app for this account to send a test."
           disabled: "Push delivery has been disabled by the operator."
           not_configured: "APNs credentials are not configured."
           cooldown: "Please wait 30 seconds before sending another test."

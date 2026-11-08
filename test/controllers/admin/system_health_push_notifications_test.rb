@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 
 class Admin::SystemHealthPushNotificationsTest < ActionDispatch::IntegrationTest
@@ -14,7 +15,7 @@ class Admin::SystemHealthPushNotificationsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "button[role='tab']", count: 3
     assert_select "button[disabled][aria-describedby='push-notification-help']", text: "Send test push notification"
-    assert_match "Enable push notifications in the Sure iOS app", response.body
+    assert_match "Enable push notifications in the Finance iOS app", response.body
 
     register_device
     get admin_system_health_url(tab: "background_jobs")
