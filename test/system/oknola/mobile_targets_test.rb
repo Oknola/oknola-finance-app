@@ -58,8 +58,19 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       assert_target "#mobile-settings-nav button[type='submit']"
       assert_no_horizontal_scroll
 
-      visit account_path(accounts(:depository), tab: "transactions")
+      visit account_path(accounts(:loan), tab: "statements")
       assert_target "[role='tablist'] [role='tab']"
+      assert_no_horizontal_scroll
+
+      visit budget_path(Budget.date_to_param(Date.current))
+      budget_tabs = all("#main [role='tablist'] [role='tab']", visible: :visible)
+      assert_equal 2, budget_tabs.size
+      budget_tab_rects = budget_tabs.map do |tab|
+        tab.evaluate_script("(() => { const { left, right } = this.getBoundingClientRect(); return { left, right }; })()")
+      end
+      assert budget_tab_rects.all? { |rect| rect.fetch("left") >= 0 && rect.fetch("right") <= 375 },
+        "budget summary tabs should both be visible at 375px: #{budget_tab_rects}"
+      assert_operator budget_tab_rects[0].fetch("right"), :<=, budget_tab_rects[1].fetch("left") + 1
       assert_no_horizontal_scroll
 
       visit transactions_path

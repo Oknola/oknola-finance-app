@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0 %>
 <%= turbo_stream_from account %>
 
 <%= turbo_frame_tag id do %>
@@ -18,9 +19,9 @@
     <div data-testid="account-details">
       <% if tabs.count > 1 %>
         <%= render DS::Tabs.new(active_tab: active_tab, url_param_key: "tab") do |tabs_container| %>
-          <% tabs_container.with_nav(classes: "max-w-fit") do |nav| %>
+          <% tabs_container.with_nav(classes: "max-w-fit max-lg:max-w-full") do |nav| %>
             <% tabs.each do |tab| %>
-              <% nav.with_btn(id: tab, label: t("accounts.show.tabs.#{tab}", default: tab.to_s.humanize), classes: "px-6") %>
+              <% nav.with_btn(id: tab, label: t("accounts.show.tabs.#{tab}", default: tab.to_s.humanize), classes: "px-6 max-lg:w-max max-lg:shrink-0 max-lg:whitespace-nowrap") %>
             <% end %>
           <% end %>
 
