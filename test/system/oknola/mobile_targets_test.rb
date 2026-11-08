@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "application_system_test_case"
 
 class Oknola::MobileTargetsTest < ApplicationSystemTestCase
@@ -80,6 +80,7 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       assert_target "#transaction-filters-button"
       find("#transaction-filters-button").click
       assert_target "#transaction-filters-menu [role='tab']"
+      assert_filter_tabs_do_not_overlap
       assert_no_horizontal_scroll
 
       visit transactions_path(q: { search: "Mobile target" })
@@ -146,6 +147,24 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       segments.each_cons(2) do |left, right|
         assert_operator left.fetch("right"), :<=, right.fetch("left") + 1,
           "report period segments overlap: #{segments}"
+      end
+    end
+
+    def assert_filter_tabs_do_not_overlap
+      tabs = page.evaluate_script(<<~JS)
+        [...document.querySelectorAll("#transaction-filters-menu [role='tab']")].map((tab) => {
+          const { left, right, top, bottom } = tab.getBoundingClientRect();
+          return { left, right, top, bottom, text: tab.innerText };
+        })
+      JS
+
+      assert_equal 10, tabs.size, "transaction filter tabs were not all rendered: #{tabs}"
+      tabs.each_cons(2) do |left, right|
+        intersects = left.fetch("left") < right.fetch("right") &&
+          left.fetch("right") > right.fetch("left") &&
+          left.fetch("top") < right.fetch("bottom") &&
+          left.fetch("bottom") > right.fetch("top")
+        assert_not intersects, "transaction filter tabs overlap: #{left} / #{right}"
       end
     end
 end
