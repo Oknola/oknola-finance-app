@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 module AccountsHelper
   def summary_card(title:, &block)
     content = capture(&block)
@@ -57,7 +57,7 @@ module AccountsHelper
       end
 
     [
-      family.build_cache_key("account_sidebar_tabs_v7", invalidate_on_data_updates: true),
+      family.build_cache_key("account_sidebar_tabs_v8", invalidate_on_data_updates: true),
       Current.user&.id,
       shares_version,
       Current.side,

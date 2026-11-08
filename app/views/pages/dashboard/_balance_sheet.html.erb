@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0 %>
 <%# locals: (balance_sheet:, **args) %>
 
 <div class="space-y-6" id="balance-sheet"
@@ -40,18 +40,18 @@
 
         <div class="bg-container-inset rounded-xl p-1 space-y-1 overflow-x-auto">
           <div class="px-4 py-2 flex items-center uppercase text-xs font-medium text-secondary">
-            <div class="w-28 shrink-0"><%= t(".name") %></div>
+            <div class="w-40 max-lg:w-28 shrink-0"><%= t(".name") %></div>
             <div class="ml-auto text-right flex items-center gap-2">
-              <div class="w-16 shrink-0">
+              <div class="w-20 max-lg:w-16 shrink-0">
                 <p><%= t(".weight") %></p>
               </div>
-              <div class="w-20 shrink-0">
+              <div class="w-24 max-lg:w-20 shrink-0">
                 <p><%= t(".value") %></p>
               </div>
             </div>
           </div>
 
-          <div class="rounded-lg bg-container font-medium text-sm">
+          <div class="rounded-lg bg-container font-medium text-sm lg:min-w-fit">
             <% classification_group.account_groups.each_with_index do |account_group, idx| %>
               <details class="group open:bg-container
                 <%= idx == 0 ? "rounded-t-lg" : "" %>
@@ -59,18 +59,18 @@
               " data-group-key="<%= account_group.key %>"
               <%= "open" if Current.user.always_expanded_account_group?(account_group.key) %>>
                 <summary class="cursor-pointer p-4 group-open:bg-container rounded-lg flex items-center justify-between">
-                  <div class="w-28 shrink-0 flex items-center gap-1">
+                  <div class="w-40 max-lg:w-28 shrink-0 flex items-center gap-1">
                     <%= icon("chevron-right", class: "group-open:rotate-90") %>
 
                     <p><%= account_group.name %></p>
                   </div>
 
                   <div class="flex items-center justify-between text-right gap-2">
-                    <div class="w-16 shrink-0 flex items-center justify-end gap-2">
+                    <div class="w-20 max-lg:w-16 shrink-0 flex items-center justify-end gap-2">
                       <%= render "pages/dashboard/group_weight", weight: account_group.weight, color: account_group.color, hide_bar_on_mobile: true %>
                     </div>
 
-                    <div class="w-20 shrink-0">
+                    <div class="w-24 max-lg:w-20 shrink-0">
                       <p class="privacy-sensitive"><%= format_money(account_group.total_money, precision: 0) %></p>
                     </div>
                   </div>
@@ -86,7 +86,7 @@
                       </div>
 
                       <div class="ml-auto flex items-center text-right gap-2">
-                        <div class="w-16 shrink-0 flex items-center justify-end gap-2">
+                        <div class="w-20 max-lg:w-16 shrink-0 flex items-center justify-end gap-2">
                           <%
                               # Calculate weight as percentage of classification total
                               classification_total = classification_group.total_money.amount
@@ -95,7 +95,7 @@
                           <%= render "pages/dashboard/group_weight", weight: account_weight, color: account_group.color, hide_bar_on_mobile: true %>
                         </div>
 
-                        <div class="w-20 shrink-0">
+                        <div class="w-24 max-lg:w-20 shrink-0">
                           <p class="privacy-sensitive"><%= format_money(account.balance_money, precision: 0) %></p>
                         </div>
                       </div>

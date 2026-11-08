@@ -270,7 +270,7 @@ en:
           body: Are you sure you want to reset your account? This will delete all your accounts, categories, merchants, tags, and other data. This action cannot be undone.
           title: Reset account?
         confirm_reset_with_sample_data:
-          body: Are you sure you want to reset your account and load sample data? This will delete your existing data and replace it with demo data so you can explore Finance safely.
+          body: Are you sure you want to reset your account and load sample data? This will delete your existing data and replace it with demo data so you can explore Sure safely.
           title: Reset account and load sample data?
         confirm_remove_invitation:
           body: Are you sure you want to remove the invitation for %{email}?
@@ -344,7 +344,7 @@ en:
         page_title: MCP Server
         connect_unavailable: Connecting outside AI clients isn't available yet.
         connected_title: Connected clients
-        connected_subtitle: These apps currently have access to your Finance data. Revoke any you no longer use.
+        connected_subtitle: These apps currently have access to your Sure data. Revoke any you no longer use.
         unknown_client: Unknown client
         connected_ago: "Connected %{time} ago"
         revoke: Revoke
@@ -405,7 +405,7 @@ en:
       not_authorized: Not authorized
       bank_sync:
         page_title: Bank sync
-        lede: Connect external accounts so transactions, balances and holdings flow into Finance automatically.
+        lede: Connect external accounts so transactions, balances and holdings flow into Sure automatically.
       status:
         ok: Connected
         warn: Action needed
@@ -414,8 +414,8 @@ en:
       maturity:
         beta: Beta
         alpha: Alpha
-      drawer_trust_statement: "Read-only access. Finance can never move money, and your credentials are stored encrypted."
-      drawer_trust_statement_encryption_unconfigured: "Read-only access. Finance can never move money. Configure explicit encryption keys before storing provider credentials in production."
+      drawer_trust_statement: "Read-only access. Sure can never move money, and your credentials are stored encrypted."
+      drawer_trust_statement_encryption_unconfigured: "Read-only access. Sure can never move money. Configure explicit encryption keys before storing provider credentials in production."
       provider_setup_encryption_warning:
         title: Encryption keys missing
         message: "This self-hosted install has not configured explicit Active Record encryption keys. Configure primary_key, deterministic_key and key_derivation_salt before saving provider credentials in production."
@@ -426,7 +426,7 @@ en:
       financekit:
         app_store: App Store
         coming_soon: Coming soon!
-        description: "Manage Apple Wallet connections in the Finance iOS app. Wallet data syncs while the app is open; unattended background sync is not available yet."
+        description: "Manage Apple Wallet connections in the Sure iOS app. Wallet data syncs while the app is open; unattended background sync is not available yet."
         summary: Wallet sync
         accounts: Linked accounts
         linked_accounts:
@@ -434,8 +434,8 @@ en:
           other: "%{count} linked accounts"
         status:
           active: Sync active
-          repair_required: Repair required — open the Finance iOS app
-        last_accepted_at: Last accepted by Finance
+          repair_required: Repair required — open the Sure iOS app
+        last_accepted_at: Last accepted by Sure
         last_imported_at: Last imported into your family
         not_yet: Not yet
       groups:
@@ -464,7 +464,7 @@ en:
       sync_provider_in_progress: Sync started.
       recently_synced: Synced recently. Try again in a moment.
       taglines:
-        financekit: Sync (some) FinanceKit accounts through the Finance iOS app.
+        financekit: Sync (some) FinanceKit accounts through the Sure iOS app.
         akahu: Sync New Zealand financial institutions via Akahu.
         simplefin: Connect US bank accounts via the open SimpleFIN protocol.
         lunchflow: Connect 20k+ banks from 40+ countries (UK, EU, USA and more!)
@@ -526,7 +526,7 @@ en:
         step2: "Create a new API key with Enable Reading permission only"
         step3: "Paste your API Key and Secret below"
         no_withdraw_title: "Read-only key only"
-        no_withdraw_body: "Don't enable withdrawal permissions when creating your Binance API key. Finance only needs read access."
+        no_withdraw_body: "Don't enable withdrawal permissions when creating your Binance API key. Sure only needs read access."
         ip_hint_title: "IP whitelisting required"
         ip_hint_body: "Add the app server's egress IP to the Binance API Key whitelist:"
         ip_hint_contact_admin: "Contact your administrator to obtain the app server's egress IP address."
@@ -547,7 +547,7 @@ en:
         step2: "Create an API key with Query Funds and Query Closed Orders & Trades only."
         step3: "Paste the API key and private key below."
         read_only_title: "Read-only exchange sync only"
-        read_only_body: "Do not grant trading, cancellation, withdrawal, export, ledger, Earn, staking, or transfer permissions. Finance only imports balances, holdings, and spot trade fills."
+        read_only_body: "Do not grant trading, cancellation, withdrawal, export, ledger, Earn, staking, or transfer permissions. Sure only imports balances, holdings, and spot trade fills."
         default_connection_name: Kraken
         add_connection: Add Kraken connection
         update_connection: Update connection
@@ -569,7 +569,7 @@ en:
         step2: "Create an API key with read-only access to balances and history."
         step3: "Paste the API key and secret below."
         read_only_title: "Read-only exchange sync only"
-        read_only_body: "Do not grant send, withdrawal, trading, or transfer permissions. Finance only imports balances, AUD values, transfers, deposits, withdrawals, and completed order history."
+        read_only_body: "Do not grant send, withdrawal, trading, or transfer permissions. Sure only imports balances, AUD values, transfers, deposits, withdrawals, and completed order history."
         default_connection_name: CoinSpot
         add_connection: Add CoinSpot connection
         update_connection: Update connection
@@ -596,7 +596,7 @@ en:
         etherscan_hint: Ethereum reads work without a key. Adding an Etherscan key only raises the rate limit for Ethereum.
         keep_etherscan_api_key: Leave blank to keep the existing key
         manage_wallets: Manage wallets
-        keyless_body: Finance only ever reads public chain data. No keys, seed phrases or signatures are involved, and nothing can be spent.
+        keyless_body: Sure only ever reads public chain data. No keys, seed phrases or signatures are involved, and nothing can be spent.
         keyless_title: Read-only, no keys required
         save: Save
         sync_start_date_hint: Transfers before this date are ignored. Leave blank to import everything the explorer reports.
@@ -678,7 +678,7 @@ en:
         steps:
           step_1: 'In your IBKR Client Portal, navigate to "Performance & Reports" > "Flex Queries".'
           step_2: 'Click the "+" icon in the "Activity Flex Query" section to create a new query.'
-          step_3: 'Name your query (e.g., "Finance Sync"), then review the Flex Query details below and enable the listed sections, fields, and configuration options.'
+          step_3: 'Name your query (e.g., "Sure Sync"), then review the Flex Query details below and enable the listed sections, fields, and configuration options.'
           step_4: 'Save the query, note your "Query ID", then use the gear icon in the "Flex Web Service Configuration" section to generate an access Token.'
           step_5: "Paste your Query ID and Token below, save the configuration, then head to Accounts to link discovered IBKR accounts."
         flex_query_details:
@@ -714,7 +714,7 @@ en:
           date_time_separator: "Date/Time Separator: ; (semi-colon)"
           profit_and_loss: "Profit and Loss: Default"
           all_other_options: 'All other configuration options: "No"'
-        report_window_note: "IBKR Flex reports are limited to the query window you configured in IBKR. Finance will import full current holdings plus up to the last 365 days of activity from this report."
+        report_window_note: "IBKR Flex reports are limited to the query window you configured in IBKR. Sure will import full current holdings plus up to the last 365 days of activity from this report."
         sync: Sync
         disconnect_confirm: Disconnect Interactive Brokers?
         query_id_label: Query ID
@@ -749,10 +749,10 @@ en:
         complete_login: Continue
         authenticator_code_label: Authenticator code (if prompted)
         authenticator_code_placeholder: "6-digit code"
-        push_login_notice: Approve the login in your Trade Republic app now. Finance checks automatically in the background. You can also check the status yourself.
+        push_login_notice: Approve the login in your Trade Republic app now. Sure checks automatically in the background. You can also check the status yourself.
         check_login_status: Check status now
         authenticator_code_notice: Enter the code from your authenticator app.
-        approval_pending: Login started. Approve it in the Trade Republic app; Finance is checking automatically.
+        approval_pending: Login started. Approve it in the Trade Republic app; Sure is checking automatically.
         awaiting_confirmation: Approval in the Trade Republic app is pending.
         awaiting_authenticator_code: Authenticator code required.
         login_expired: The approval request has expired.
@@ -760,14 +760,14 @@ en:
         connection_success:
           title: Trade Republic connected successfully
           message: Your Trade Republic connection is ready.
-          description: Finance is now syncing your Trade Republic data in the background.
+          description: Sure is now syncing your Trade Republic data in the background.
           close: Done
         qr_login: Log in with QR code
         qr_cancel: Cancel QR login
         qr_back_to_credentials: Back to phone number and PIN or password
         qr_loading: Preparing QR code …
         qr_instruction: Scan the QR code with your phone's camera, then approve the login in the Trade Republic app.
-        qr_success: Login approved. Finance is refreshing the provider page.
+        qr_success: Login approved. Sure is refreshing the provider page.
         qr_error: QR login could not be started. Please try again.
         requires_update: Log in again to resume syncing.
         session_expires_in: "Login expires in %{time} (%{at})."

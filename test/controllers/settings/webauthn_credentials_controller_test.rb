@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 require "webauthn/fake_client"
 
@@ -23,6 +24,7 @@ class Settings::WebauthnCredentialsControllerTest < ActionDispatch::IntegrationT
   test "asks for a discoverable credential so it can be used for passwordless sign-in" do
     options = registration_options
 
+    assert_equal Rails.application.config.x.product_name, options.dig("rp", "name")
     assert_equal "preferred", options.dig("authenticatorSelection", "residentKey")
     assert_equal "preferred", options.dig("authenticatorSelection", "userVerification")
   end

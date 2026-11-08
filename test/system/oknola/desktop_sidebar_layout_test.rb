@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "application_system_test_case"
 
 class Oknola::DesktopSidebarLayoutTest < ApplicationSystemTestCase
@@ -12,7 +12,8 @@ class Oknola::DesktopSidebarLayoutTest < ApplicationSystemTestCase
     entry = create_transaction(
       account: account,
       category: categories(:food_and_drink),
-      name: "Desktop sidebar layout transaction"
+      name: "Desktop sidebar layout transaction",
+      merchant: merchants(:amazon)
     )
 
     page.driver.browser.execute_cdp(
@@ -29,13 +30,23 @@ class Oknola::DesktopSidebarLayoutTest < ApplicationSystemTestCase
     assert_selector "[data-app-layout-target='rightSidebar'].w-full", visible: true
 
     row = find("##{dom_id(entry)}", visible: true)
+    merchant = row.find("span", text: "#{entry.entryable.merchant.name} •", exact: true)
     account_link = row.find("a[href='#{account_path(account, tab: "transactions")}']", visible: true)
     category = row.find("[id='#{dom_id(entry.entryable, "category_menu_desktop")}']", visible: true)
+    merchant_rect = rect_for(merchant)
     account_rect = rect_for(account_link)
     category_rect = rect_for(category)
+    row_height = row.evaluate_script("this.getBoundingClientRect().height")
 
-    assert_operator account_rect.fetch("right"), :<=, category_rect.fetch("left"),
-      "account link overlaps the category cell: #{account_rect} / #{category_rect}"
+    assert_in_delta merchant_rect.fetch("top"), account_rect.fetch("top"), 1
+    [ merchant_rect, account_rect ].each do |rect|
+      intersects_category = rect.fetch("left") < category_rect.fetch("right") &&
+        rect.fetch("right") > category_rect.fetch("left") &&
+        rect.fetch("top") < category_rect.fetch("bottom") &&
+        rect.fetch("bottom") > category_rect.fetch("top")
+      assert_not intersects_category, "transaction text intersects the category pill: #{rect} / #{category_rect}"
+    end
+    assert_operator row_height, :<, 48, "transaction row is too tall: #{row_height}px"
   ensure
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride") if page&.driver
   end

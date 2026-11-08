@@ -1,5 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
-Rails.application.config.x.product_name ||= ENV.fetch("PRODUCT_NAME", "Finance")
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 
 module OknolaProductNameTranslations
   def store_translations(locale, data, options = {})
@@ -17,7 +16,7 @@ module OknolaProductNameTranslations
       when Array
         value.map { |child| replace_product_name(child, path) }
       when String
-        value.gsub(/\bSure\b/) { Rails.application.config.x.product_name }
+        value.gsub(/\bSure\b/) { Rails.application.config.x.product_name.presence || "Finance" }
       else
         value
       end

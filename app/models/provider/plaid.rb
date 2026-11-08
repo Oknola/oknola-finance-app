@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 class Provider::Plaid
   attr_reader :client, :region
 
@@ -45,7 +46,7 @@ class Provider::Plaid
   def get_link_token(user_id:, webhooks_url:, redirect_url:, accountable_type: nil, access_token: nil, account_selection_enabled: false)
     request_params = {
       user: { client_user_id: user_id },
-      client_name: "Sure Finances",
+      client_name: Rails.application.config.x.product_name,
       country_codes: country_codes,
       language: "en",
       webhook: webhooks_url,

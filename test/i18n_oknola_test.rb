@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 require "yaml"
 
@@ -33,7 +33,7 @@ class I18nOknolaTest < ActiveSupport::TestCase
   test "English translations use Finance outside the About credit" do
     offenses = []
 
-    translation_leaves(I18n.backend.translations.fetch(:en)) do |path, value|
+    translation_leaves(I18n.backend.translations(do_init: true).fetch(:en)) do |path, value|
       next if path.first(2).map(&:to_s) == %w[settings abouts]
       next unless value.match?(/\bSure\b/)
 
@@ -41,8 +41,8 @@ class I18nOknolaTest < ActiveSupport::TestCase
     end
 
     assert_empty offenses, "Unexpected product names:\n#{offenses.join("\n")}"
-    assert_equal "Try Finance for 45 days", I18n.t("onboardings.trial.title")
-    assert_equal "Finance, built on Sure (AGPL-3.0).", I18n.t("settings.abouts.show.built_on")
+    assert_equal "Try Finance for 45 days", I18n.t("onboardings.trial.title", locale: :en)
+    assert_equal "Finance, built on Sure (AGPL-3.0).", I18n.t("settings.abouts.show.built_on", locale: :en)
   end
 
   private

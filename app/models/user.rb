@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 class User < ApplicationRecord
   has_many :financekit_items, dependent: :destroy
 
@@ -913,7 +914,7 @@ class User < ApplicationRecord
     end
 
     def totp
-      ROTP::TOTP.new(otp_secret, issuer: "Sure Finances")
+      ROTP::TOTP.new(otp_secret, issuer: Rails.application.config.x.product_name)
     end
 
     # Two requests carrying the same code can both pass verify before either

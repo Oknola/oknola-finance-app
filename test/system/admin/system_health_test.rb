@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "application_system_test_case"
 
 class Admin::SystemHealthTest < ApplicationSystemTestCase
