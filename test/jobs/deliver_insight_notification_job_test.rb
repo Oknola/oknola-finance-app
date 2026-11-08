@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 
 class DeliverInsightNotificationJobTest < ActiveJob::TestCase
@@ -34,7 +35,7 @@ class DeliverInsightNotificationJobTest < ActiveJob::TestCase
     client.expects(:deliver).with(
       token: @subscription.token,
       title: "New financial insight",
-      body: "Open Sure to review your latest AI insight.",
+      body: "Open Finance to review your latest AI insight.",
       insight_id: @insight.id
     ).returns(response)
 
@@ -59,7 +60,7 @@ class DeliverInsightNotificationJobTest < ActiveJob::TestCase
     client.expects(:deliver).with(
       token: @subscription.token,
       title: "Neue Finanzanalyse",
-      body: "Öffne Sure, um deine neueste KI-Analyse anzusehen.",
+      body: "Öffne Finance, um deine neueste KI-Analyse anzusehen.",
       insight_id: @insight.id
     ).returns(response)
 
