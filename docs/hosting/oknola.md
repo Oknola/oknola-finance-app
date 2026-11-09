@@ -1,4 +1,4 @@
-<!-- Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 -->
+<!-- Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0 -->
 # Running finance.oknola.com (Oknola Finance App on Render)
 
 The runbook for Cardona Labs' production instance of the Oknola Finance App, a fork of Sure. The generic self-hosting guides in this folder still apply; this page covers what is specific to this instance.
@@ -28,6 +28,25 @@ All in the Render workspace "Cardona Labs", region Ohio, from `render.yaml` at t
 | R2 bucket (Cloudflare) | `oknola-finance-storage` | Active Storage: uploads, imports, exports. See Uploaded files. |
 
 Production refuses to boot unless all three `ACTIVE_RECORD_ENCRYPTION_*` values are set, `POSTHOG_FEEDBACK_ENABLED=false` and `REDIS_URL` is set (`config/initializers/oknola.rb`). A deploy that fails with "Oknola production configuration incomplete" names what is missing.
+
+## Market data
+
+The `finance-prod` env group enables two keyless providers approved by the owner
+for this hosted commercial service:
+
+- `EXCHANGE_RATE_PROVIDER=frankfurter`: exchange rates from central banks and
+  official sources through Frankfurter's v2 API, free for commercial use and
+  local caching.
+- `SECURITIES_PROVIDERS=binance_public`: crypto prices from Binance's public
+  market-data-only endpoint, `data-api.binance.vision`; no account sync.
+
+Yahoo Finance is deliberately not used: its terms do not cover this hosted
+commercial service. Stock and ETF prices await the owner's choice of a licensed
+provider; add it to `SECURITIES_PROVIDERS` once approved.
+
+These environment values override saved settings and lock the corresponding
+controls in **Settings → Self-Hosting**. Change the `finance-prod` env group and
+redeploy both web and worker to change providers.
 
 ## Secrets
 

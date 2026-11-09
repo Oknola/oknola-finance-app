@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0
 # Render Blueprint for finance.oknola.com (Oknola Finance App, a fork of Sure).
 # Runbook: docs/hosting/oknola.md. Spec: https://render.com/docs/blueprint-spec
 #
@@ -194,6 +194,12 @@ envVarGroups:
         value: anthropic
       - key: ANTHROPIC_MODEL
         value: claude-haiku-5-5
+      # Keyless exchange rates from central banks and official sources.
+      - key: EXCHANGE_RATE_PROVIDER
+        value: frankfurter
+      # Add the licensed stock-price provider here once the owner picks one.
+      - key: SECURITIES_PROVIDERS
+        value: binance_public
       # The ops super admin keeps password + MFA sign-in after local login closes.
       - key: AUTH_LOCAL_ADMIN_OVERRIDE_ENABLED
         value: "true"
