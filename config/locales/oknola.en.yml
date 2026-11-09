@@ -1,7 +1,11 @@
 ---
-# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0
 en:
   oknola:
+    open_from_oknola:
+      intro: "%{product_name} opens from Oknola."
+      instructions_html: "Open %{oknola_link} and choose %{product_name} in your apps."
+      link: "Oknola"
     doorkeeper:
       authorization_title: "%{product_name} Authorization"
     impersonation_sessions:

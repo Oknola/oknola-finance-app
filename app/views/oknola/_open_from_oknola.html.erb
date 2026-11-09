@@ -1,0 +1,5 @@
+<div class="mb-4">
+  <%= render DS::Alert.new(variant: :info) do %>
+    <p><%= t("oknola.open_from_oknola.intro", product_name: product_name) %> <%= t("oknola.open_from_oknola.instructions_html", oknola_link: link_to(t("oknola.open_from_oknola.link"), "https://oknola.com", class: "underline"), product_name: product_name) %></p>
+  <% end %>
+</div>

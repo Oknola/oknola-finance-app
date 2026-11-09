@@ -1,3 +1,5 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0 %>
+<%= render "oknola/open_from_oknola" unless AuthConfig.local_login_enabled? %>
 <% if @prefill_demo_credentials %>
   <div class="mb-4">
     <%= render DS::Alert.new(

@@ -1,4 +1,4 @@
-# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
+# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0
 require "application_system_test_case"
 
 class Oknola::MobileTargetsTest < ApplicationSystemTestCase
@@ -55,7 +55,11 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       visit settings_providers_path
       assert_target "[data-providers-filter-target='chip'][data-kind='all']"
       assert_target "#mobile-settings-nav a[href]"
-      assert_target "#mobile-settings-nav button[type='submit']"
+      if embedded
+        assert_no_selector "#mobile-settings-nav button[type='submit']"
+      else
+        assert_target "#mobile-settings-nav button[type='submit']"
+      end
       assert_no_horizontal_scroll
 
       visit account_path(accounts(:loan), tab: "statements")
