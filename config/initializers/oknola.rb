@@ -2,7 +2,6 @@
 
 # Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0
 # Oknola Finance App hardening: production boot checks and the handoff throttle.
-Rails.application.config.x.product_name = ENV.fetch("PRODUCT_NAME", "Finance")
 
 require Rails.root.join("lib/active_record_encryption_config").to_s
 require Rails.root.join("app/middleware/oknola/csp_report_query_sanitizer").to_s
@@ -15,6 +14,10 @@ end
 
 module OknolaHardening
   module_function
+
+  def product_name(env: ENV)
+    env["PRODUCT_NAME"].presence || "Finance"
+  end
 
   def boot_errors(env: ENV, cache: Rails.cache, posthog: Rails.configuration.x.posthog)
     errors = []
@@ -43,6 +46,8 @@ module OknolaHardening
     raise "Oknola production configuration incomplete: #{errors.join('; ')}" if errors.any?
   end
 end
+
+Rails.application.config.x.product_name = OknolaHardening.product_name
 
 # After initialization, so posthog.rb and the cache store are configured. The
 # image build precompiles assets in production with a dummy secret and no
