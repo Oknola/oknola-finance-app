@@ -51,7 +51,61 @@ class Oknola::DesktopSidebarLayoutTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride") if page&.driver
   end
 
+  test "report summary cards respond to the width available beside the sidebars" do
+    user = users(:family_admin)
+    user.update!(show_sidebar: true, show_ai_sidebar: true)
+    create_transaction(
+      account: accounts(:depository),
+      category: categories(:food_and_drink),
+      name: "Desktop report summary transaction"
+    )
+
+    page.driver.browser.execute_cdp(
+      "Emulation.setDeviceMetricsOverride",
+      width: 1440,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false
+    )
+    sign_in user
+    visit reports_path
+
+    assert_equal 1440, page.evaluate_script("window.innerWidth")
+    assert_selector "[data-app-layout-target='rightSidebar'].w-full", visible: true
+    tops = report_summary_card_tops
+    assert_equal 4, tops.size
+    assert_equal [ 2, 2 ], tops.map(&:round).tally.values.sort,
+      "report summary cards should form two rows of two with both sidebars open: #{tops}"
+
+    page.driver.browser.execute_cdp(
+      "Emulation.setDeviceMetricsOverride",
+      width: 1920,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false
+    )
+    visit reports_path
+
+    assert_equal 1920, page.evaluate_script("window.innerWidth")
+    tops = report_summary_card_tops
+    assert_equal 4, tops.size
+    assert_equal 1, tops.map(&:round).uniq.size,
+      "report summary cards should share one row in the wide layout: #{tops}"
+  ensure
+    page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride") if page&.driver
+  end
+
   private
+    def report_summary_card_tops
+      page.evaluate_script(<<~JS)
+        (() => {
+          const section = document.querySelector("#main section[class~='@container']");
+          const grid = section?.firstElementChild;
+          return grid ? [...grid.children].map((card) => card.getBoundingClientRect().top) : [];
+        })()
+      JS
+    end
+
     def rect_for(element)
       element.evaluate_script(<<~JS)
         (() => {
