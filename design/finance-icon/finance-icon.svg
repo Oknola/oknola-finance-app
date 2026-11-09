@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Finance app icon (Oknola). A money bag with a dollar sign in one amber glass tube, matching the Oknola glass
+       brain: paper plate #F7F1E7 on Apple's 1024 grid (824 px continuous-corner plate, soft drop shadow).
+       Rendered to PNG with headless Chromium; see render-icon.sh. -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF8F2"/>
+      <stop offset="1" stop-color="#F2E9DA"/>
+    </linearGradient>
+    <filter id="plateShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/>
+      <feOffset dy="14"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.2"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glass" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="bump"/>
+      <feSpecularLighting in="bump" surfaceScale="4" specularConstant="0.9" specularExponent="30" lighting-color="#FFF4D6" result="spec">
+        <feDistantLight azimuth="225" elevation="50"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn"/>
+      <feComposite in="SourceGraphic" in2="specIn" operator="arithmetic" k1="0" k2="1" k3="0.55" k4="0" result="lit"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="sb"/>
+      <feOffset in="sb" dy="10" result="so"/>
+      <feFlood flood-color="#7A4300" flood-opacity="0.28"/>
+      <feComposite in2="so" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="lit"/></feMerge>
+    </filter>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  </defs>
+
+  <path d="M924 512 L924 608 L924 639 L923 661 L923 679 L923 694 L922 708 L921 721 L920 732 L919 742 L918 752 L917 761 L916 770 L914 778 L913 785 L911 793 L909 799 L907 806 L905 812 L903 818 L901 824 L899 830 L896 835 L893 840 L891 845 L888 850 L884 854 L881 859 L878 863 L874 867 L871 871 L867 874 L863 878 L859 881 L854 884 L850 888 L845 891 L840 893 L835 896 L830 899 L824 901 L818 903 L812 905 L806 907 L799 909 L793 911 L785 913 L778 914 L770 916 L761 917 L752 918 L742 919 L732 920 L721 921 L708 922 L694 923 L679 923 L661 923 L639 924 L608 924 L512 924 L416 924 L385 924 L363 923 L345 923 L330 923 L316 922 L303 921 L292 920 L282 919 L272 918 L263 917 L254 916 L246 914 L239 913 L231 911 L225 909 L218 907 L212 905 L206 903 L200 901 L194 899 L189 896 L184 893 L179 891 L174 888 L170 884 L165 881 L161 878 L157 874 L153 871 L150 867 L146 863 L143 859 L140 854 L136 850 L133 845 L131 840 L128 835 L125 830 L123 824 L121 818 L119 812 L117 806 L115 799 L113 793 L111 785 L110 778 L108 770 L107 761 L106 752 L105 742 L104 732 L103 721 L102 708 L101 694 L101 679 L101 661 L100 639 L100 608 L100 512 L100 416 L100 385 L101 363 L101 345 L101 330 L102 316 L103 303 L104 292 L105 282 L106 272 L107 263 L108 254 L110 246 L111 239 L113 231 L115 225 L117 218 L119 212 L121 206 L123 200 L125 194 L128 189 L131 184 L133 179 L136 174 L140 170 L143 165 L146 161 L150 157 L153 153 L157 150 L161 146 L165 143 L170 140 L174 136 L179 133 L184 131 L189 128 L194 125 L200 123 L206 121 L212 119 L218 117 L225 115 L231 113 L239 111 L246 110 L254 108 L263 107 L272 106 L282 105 L292 104 L303 103 L316 102 L330 101 L345 101 L363 101 L385 100 L416 100 L512 100 L608 100 L639 100 L661 101 L679 101 L694 101 L708 102 L721 103 L732 104 L742 105 L752 106 L761 107 L770 108 L778 110 L785 111 L793 113 L799 115 L806 117 L812 119 L818 121 L824 123 L830 125 L835 128 L840 131 L845 133 L850 136 L854 140 L859 143 L863 146 L867 150 L871 153 L874 157 L878 161 L881 165 L884 170 L888 174 L891 179 L893 184 L896 189 L899 194 L901 200 L903 206 L905 212 L907 218 L909 225 L911 231 L913 239 L914 246 L916 254 L917 263 L918 272 L919 282 L920 292 L921 303 L922 316 L923 330 L923 345 L923 363 L924 385 L924 416Z" fill="url(#plate)" filter="url(#plateShadow)"/>
+
+  <g filter="url(#glass)">
+    <!-- rim -->
+    <g fill="none" stroke="#D7841A" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 452 416 C 334 470 262 598 276 702 C 290 792 384 818 512 818 C 640 818 734 792 748 702 C 762 598 690 470 572 416"/>
+      <path d="M 458 392 C 430 344 404 306 430 282 C 456 260 486 300 512 300 C 538 300 568 260 594 282 C 620 306 594 344 566 392"/>
+      <path d="M 440 404 Q 512 424 584 404"/>
+      <path d="M 584 404 C 640 398 676 370 672 326"/>
+      <path d="M 578 556 C 560 524 470 516 454 560 C 438 604 494 618 516 626 C 546 636 594 654 574 700 C 556 740 466 738 442 704"/>
+      <path d="M 512 496 L 512 540"/>
+      <path d="M 512 720 L 512 762"/>
+    </g>
+    <!-- body -->
+    <g fill="none" stroke="#F4A22E" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 452 416 C 334 470 262 598 276 702 C 290 792 384 818 512 818 C 640 818 734 792 748 702 C 762 598 690 470 572 416"/>
+      <path d="M 458 392 C 430 344 404 306 430 282 C 456 260 486 300 512 300 C 538 300 568 260 594 282 C 620 306 594 344 566 392"/>
+      <path d="M 440 404 Q 512 424 584 404"/>
+      <path d="M 584 404 C 640 398 676 370 672 326"/>
+      <path d="M 578 556 C 560 524 470 516 454 560 C 438 604 494 618 516 626 C 546 636 594 654 574 700 C 556 740 466 738 442 704"/>
+      <path d="M 512 496 L 512 540"/>
+      <path d="M 512 720 L 512 762"/>
+    </g>
+    <!-- highlight, up and left of the centre line -->
+    <g filter="url(#soft)" transform="translate(-4 -5)" fill="none" stroke="#FFF3D2" stroke-opacity="0.8" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 452 416 C 334 470 262 598 276 702 C 290 792 384 818 512 818 C 640 818 734 792 748 702 C 762 598 690 470 572 416"/>
+      <path d="M 458 392 C 430 344 404 306 430 282 C 456 260 486 300 512 300 C 538 300 568 260 594 282 C 620 306 594 344 566 392"/>
+      <path d="M 440 404 Q 512 424 584 404"/>
+      <path d="M 584 404 C 640 398 676 370 672 326"/>
+      <path d="M 578 556 C 560 524 470 516 454 560 C 438 604 494 618 516 626 C 546 636 594 654 574 700 C 556 740 466 738 442 704"/>
+      <path d="M 512 496 L 512 540"/>
+      <path d="M 512 720 L 512 762"/>
+    </g>
+    <!-- nodes -->
+    <g fill="#C5741A" stroke="#A85F10" stroke-width="3">
+      <circle cx="512" cy="494" r="24"/>
+      <circle cx="512" cy="764" r="24"/>
+      <circle cx="672" cy="322" r="26"/>
+    </g>
+    <g fill="#FFE7B8" fill-opacity="0.85" filter="url(#soft)">
+      <circle cx="503" cy="485" r="7"/>
+      <circle cx="503" cy="755" r="7"/>
+      <circle cx="662" cy="312" r="8"/>
+    </g>
+  </g>
+</svg>
