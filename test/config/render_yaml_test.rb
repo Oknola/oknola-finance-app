@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0
 require "test_helper"
 
 # Oknola fork: render.yaml is the production Blueprint for finance.oknola.com.
@@ -106,6 +107,9 @@ class RenderYamlTest < ActiveSupport::TestCase
     assert_equal "Finance", values["PRODUCT_NAME"]
     assert_equal "finance.oknola.com", values["APP_DOMAIN"]
     assert_equal "anthropic", values["LLM_PROVIDER"]
+    assert_equal "frankfurter", values["EXCHANGE_RATE_PROVIDER"]
+    assert_equal "binance_public", values["SECURITIES_PROVIDERS"]
+    assert_not_includes values.fetch("SECURITIES_PROVIDERS").split(",").map(&:strip), "yahoo_finance"
     assert_equal "link_only", values["AUTH_JIT_MODE"]
     assert_equal "cloudflare", values["ACTIVE_STORAGE_SERVICE"], "web and worker must share one Active Storage bucket"
     assert values["CLOUDFLARE_BUCKET"].present?
