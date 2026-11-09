@@ -61,6 +61,9 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       visit account_path(accounts(:loan), tab: "statements")
       assert_target "[role='tablist'] [role='tab']"
       assert_no_horizontal_scroll
+      find("[data-action~='app-layout#openMobileSidebar']", visible: :visible).click
+      assert_target "#account-sidebar-tabs [role='tablist'] [role='tab']", count: 3
+      assert_no_horizontal_scroll
 
       visit budget_path(Budget.date_to_param(Date.current))
       budget_tabs = all("#main [role='tablist'] [role='tab']", visible: :visible)
@@ -80,7 +83,7 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       assert_target "#transaction-filters-button"
       find("#transaction-filters-button").click
       assert_target "#transaction-filters-menu [role='tab']"
-      assert_filter_tabs_do_not_overlap
+      assert_filter_tab_content_fits
       assert_no_horizontal_scroll
 
       visit transactions_path(q: { search: "Mobile target" })
@@ -150,21 +153,39 @@ class Oknola::MobileTargetsTest < ApplicationSystemTestCase
       end
     end
 
-    def assert_filter_tabs_do_not_overlap
+    def assert_filter_tab_content_fits
       tabs = page.evaluate_script(<<~JS)
         [...document.querySelectorAll("#transaction-filters-menu [role='tab']")].map((tab) => {
-          const { left, right, top, bottom } = tab.getBoundingClientRect();
-          return { left, right, top, bottom, text: tab.innerText };
+          const tabRect = tab.getBoundingClientRect();
+          const children = [...tab.querySelectorAll("*")].map((child) => {
+            const { left, right, top, bottom } = child.getBoundingClientRect();
+            return { left, right, top, bottom };
+          });
+          return {
+            text: tab.innerText,
+            scrollWidth: tab.scrollWidth,
+            clientWidth: tab.clientWidth,
+            rect: { left: tabRect.left, right: tabRect.right, top: tabRect.top, bottom: tabRect.bottom },
+            children
+          };
         })
       JS
 
       assert_equal 10, tabs.size, "transaction filter tabs were not all rendered: #{tabs}"
-      tabs.each_cons(2) do |left, right|
-        intersects = left.fetch("left") < right.fetch("right") &&
-          left.fetch("right") > right.fetch("left") &&
-          left.fetch("top") < right.fetch("bottom") &&
-          left.fetch("bottom") > right.fetch("top")
-        assert_not intersects, "transaction filter tabs overlap: #{left} / #{right}"
+      tabs.each do |tab|
+        assert_operator tab.fetch("scrollWidth"), :<=, tab.fetch("clientWidth") + 1,
+          "filter tab content overflows #{tab.fetch("text").inspect}: #{tab}"
+        tab.fetch("children").each do |child|
+          rect = tab.fetch("rect")
+          assert_operator child.fetch("left"), :>=, rect.fetch("left") - 1,
+            "filter tab child extends left of #{tab.fetch("text").inspect}: #{child} / #{rect}"
+          assert_operator child.fetch("right"), :<=, rect.fetch("right") + 1,
+            "filter tab child extends right of #{tab.fetch("text").inspect}: #{child} / #{rect}"
+          assert_operator child.fetch("top"), :>=, rect.fetch("top") - 1,
+            "filter tab child extends above #{tab.fetch("text").inspect}: #{child} / #{rect}"
+          assert_operator child.fetch("bottom"), :<=, rect.fetch("bottom") + 1,
+            "filter tab child extends below #{tab.fetch("text").inspect}: #{child} / #{rect}"
+        end
       end
     end
 end

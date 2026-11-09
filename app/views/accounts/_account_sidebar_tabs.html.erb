@@ -27,9 +27,9 @@
 
   <%= render DS::Tabs.new(active_tab: active_tab, session_key: "account_sidebar_tab", testid: "account-sidebar-tabs") do |tabs| %>
     <% tabs.with_nav do |nav| %>
-      <% nav.with_btn(id: "all", label: t("accounts.sidebar.tabs.all"), classes: "max-lg:!w-max max-lg:shrink-0 max-lg:whitespace-nowrap") %>
-      <% nav.with_btn(id: "asset", label: t("accounts.sidebar.tabs.assets"), classes: "max-lg:!w-max max-lg:shrink-0 max-lg:whitespace-nowrap") %>
-      <% nav.with_btn(id: "liability", label: t("accounts.sidebar.tabs.debts"), classes: "max-lg:!w-max max-lg:shrink-0 max-lg:whitespace-nowrap") %>
+      <% nav.with_btn(id: "all", label: t("accounts.sidebar.tabs.all"), classes: "max-lg:!w-max max-lg:min-w-11 max-lg:shrink-0 max-lg:whitespace-nowrap") %>
+      <% nav.with_btn(id: "asset", label: t("accounts.sidebar.tabs.assets"), classes: "max-lg:!w-max max-lg:min-w-11 max-lg:shrink-0 max-lg:whitespace-nowrap") %>
+      <% nav.with_btn(id: "liability", label: t("accounts.sidebar.tabs.debts"), classes: "max-lg:!w-max max-lg:min-w-11 max-lg:shrink-0 max-lg:whitespace-nowrap") %>
     <% end %>
 
     <% tabs.with_panel(tab_id: "asset") do %>
