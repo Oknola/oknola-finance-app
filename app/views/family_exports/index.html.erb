@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= content_for :page_title, t(".title") %>
 
 <%= settings_section do %>
@@ -70,7 +71,7 @@
                         <% if export.presumed_lost? %>
                           <%= button_to cancel_family_export_path(export),
                                         method: :post,
-                                        class: "flex items-center gap-2 text-secondary hover:text-primary",
+                                        class: "flex items-center justify-center gap-2 text-secondary hover:text-primary max-lg:min-h-11 max-lg:min-w-11",
                                         aria: { label: t("family_exports.table.row.actions.mark_failed") },
                                         data: {
                                           turbo_confirm: t("family_exports.table.row.actions.confirm_mark_failed"),
@@ -86,7 +87,7 @@
                       <div class="flex items-center gap-2 justify-end">
                         <%= button_to family_export_path(export),
                                       method: :delete,
-                                      class: "flex items-center gap-2 text-destructive hover:text-destructive-hover",
+                                      class: "flex items-center justify-center gap-2 text-destructive hover:text-destructive-hover max-lg:min-h-11 max-lg:min-w-11",
                                       aria: { label: t("family_exports.table.row.actions.delete") },
                                       data: {
                                         turbo_confirm: t("family_exports.delete_confirmation"),
@@ -96,7 +97,7 @@
                         <% end %>
 
                         <%= link_to download_family_export_path(export),
-                                    class: "flex items-center gap-2 text-primary hover:text-primary-hover",
+                                    class: "flex items-center justify-center gap-2 text-primary hover:text-primary-hover max-lg:min-h-11 max-lg:min-w-11",
                                     aria: { label: t("family_exports.table.row.actions.download") },
                                     data: { turbo_frame: "_top" } do %>
                           <%= icon "download", class: "w-5 h-5" %>
@@ -110,7 +111,7 @@
 
                         <%= button_to family_export_path(export),
                                       method: :delete,
-                                      class: "flex items-center gap-2 text-destructive hover:text-destructive-hover",
+                                      class: "flex items-center justify-center gap-2 text-destructive hover:text-destructive-hover max-lg:min-h-11 max-lg:min-w-11",
                                       aria: { label: t("family_exports.table.row.actions.delete") },
                                       data: {
                                         turbo_confirm: t("family_exports.delete_failed_confirmation"),
@@ -141,7 +142,7 @@
     <% end %>
 
     <%= link_to new_family_export_path,
-                class: "bg-container-inset inline-flex items-center justify-center gap-2 hover:bg-container-inset-hover rounded-lg px-4 py-2 w-full font-medium text-primary text-sm text-center",
+                class: "bg-container-inset inline-flex items-center justify-center gap-2 hover:bg-container-inset-hover rounded-lg px-4 py-2 w-full font-medium text-primary text-sm text-center max-lg:min-h-11",
                 data: { turbo_frame: :modal } do %>
       <%= icon("plus") %>
       <%= t(".new") %>

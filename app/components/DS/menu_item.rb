@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 class DS::MenuItem < DesignSystemComponent
   VARIANTS = %i[link button divider].freeze
 
@@ -81,7 +82,7 @@ class DS::MenuItem < DesignSystemComponent
 
     def container_classes
       [
-        "flex items-center gap-2 p-2 rounded-md w-full focus-ring",
+        "flex items-center gap-2 p-2 rounded-md w-full focus-ring max-lg:min-h-11",
         destructive? ? "hover:bg-red-tint-5 theme-dark:hover:bg-red-tint-10" : "hover:bg-container-hover"
       ].join(" ")
     end

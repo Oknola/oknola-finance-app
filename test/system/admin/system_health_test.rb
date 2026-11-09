@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "application_system_test_case"
 
 class Admin::SystemHealthTest < ApplicationSystemTestCase
@@ -93,7 +94,7 @@ class Admin::SystemHealthTest < ApplicationSystemTestCase
     assert_selector "button[role='tab'][aria-selected='true']", text: "Jobs"
     assert_selector "h2", text: "Push notifications"
     assert_button "Send test push notification", disabled: true
-    assert_text "Enable push notifications in the Sure iOS app"
+    assert_text "Enable push notifications in the Finance iOS app"
 
     user = users(:sure_support_staff)
     user.push_subscriptions.create!(

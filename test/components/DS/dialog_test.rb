@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require "test_helper"
 
 class DS::DialogTest < ViewComponent::TestCase
@@ -28,7 +29,7 @@ class DS::DialogTest < ViewComponent::TestCase
 
   # Transaction, trade and other detail drawers put this button in their
   # custom headers and have no other way out on a phone.
-  test "a responsive dialog's close button shows at every width" do
+  test "a responsive dialog's close button shows and meets the mobile target size" do
     dialog = DS::Dialog.new(frame: "drawer", responsive: true)
     render_inline(dialog) do
       dialog.with_header(custom_header: true) { dialog.close_button }
@@ -36,6 +37,8 @@ class DS::DialogTest < ViewComponent::TestCase
 
     close = page.find("button[data-action='DS--dialog#close']")
     refute_includes close[:class].split, "hidden"
+    assert_includes close[:class].split, "max-lg:min-h-11"
+    assert_includes close[:class].split, "max-lg:min-w-11"
   end
 
   test "a modal fetched into the modal frame is left out of Turbo's page cache" do

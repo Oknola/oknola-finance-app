@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# locals: (investment_statement:, period:, **args) %>
 
 <% if investment_statement.investment_accounts.any? %>
@@ -28,7 +29,7 @@
     <% holdings = investment_statement.top_holdings(limit: 5) %>
     <% if holdings.any? %>
       <div class="bg-container-inset rounded-xl p-1 mx-4 overflow-x-auto">
-        <div class="rounded-lg shadow-border-xs bg-container overflow-hidden">
+        <div class="rounded-lg shadow-border-xs bg-container overflow-x-auto">
         <table class="w-full">
           <thead class="bg-container-inset">
             <tr class="uppercase text-xs font-medium text-secondary">

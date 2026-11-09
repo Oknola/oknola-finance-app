@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 class Trend
   include ActiveModel::Validations
 
@@ -92,6 +93,6 @@ class Trend
     end
 
     def gray_hex
-      "var(--color-gray)"
+      "var(--utility-text-secondary)"
     end
 end

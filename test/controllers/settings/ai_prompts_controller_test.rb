@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require "test_helper"
 
 class Settings::AiPromptsControllerTest < ActionDispatch::IntegrationTest
@@ -5,6 +6,7 @@ class Settings::AiPromptsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:family_admin)
     get settings_ai_prompts_path
     assert_response :success
+    assert_select ".translation_missing", count: 0
   end
 
   test "admin can override the insight dig in message" do

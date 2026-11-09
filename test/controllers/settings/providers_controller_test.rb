@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require "test_helper"
 require_relative "../../support/financekit_test_helper"
 
@@ -42,7 +43,7 @@ class Settings::ProvidersControllerTest < ActionDispatch::IntegrationTest
     assert_select "details#financekit-connection" do
       assert_select "a[href=?]", account_path(@source.account), text: "Test Wallet"
       assert_select "span", text: "Sync active"
-      assert_select "dt", text: "Last accepted by Sure"
+      assert_select "dt", text: "Last accepted by Finance"
       assert_select "dt", text: "Last imported into your family"
       assert_select "time[datetime=?]", @item.last_accepted_at.iso8601
       assert_select "time[datetime=?]", @item.last_imported_at.iso8601
@@ -60,7 +61,7 @@ class Settings::ProvidersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "details#financekit-connection" do
-      assert_select "span", text: "Repair required — open the Sure iOS app"
+      assert_select "span", text: "Repair required — open the Finance iOS app"
       assert_select "dd", text: "Not yet", count: 2
       assert_select "a", text: "Test Wallet"
     end

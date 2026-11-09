@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0 %>
 <% content_for :page_header do %>
   <div class="space-y-4 mb-6">
     <%= render "oknola/side_switch" %>
@@ -24,7 +24,7 @@
                   target: "_blank",
                   rel: "noopener",
                   aria: { label: t("reports.index.print_report") },
-                  class: "font-medium whitespace-nowrap inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-primary border border-secondary bg-transparent hover:bg-surface-hover" do %>
+                  class: "font-medium whitespace-nowrap inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-primary border border-secondary bg-transparent hover:bg-surface-hover max-lg:min-h-11 max-lg:min-w-11" do %>
         <%= icon("printer", size: "sm") %>
         <span class="hidden sm:inline"><%= t("reports.index.print_report") %></span>
       <% end %>
@@ -132,7 +132,7 @@
 <div class="w-full space-y-6 lg:pb-6">
   <% if Current.family.transactions.any? %>
     <%# Summary Dashboard - Always visible, not collapsible %>
-    <section>
+    <section class="@container">
       <%= render partial: "reports/summary_dashboard", locals: {
         metrics: @summary_metrics,
         period_type: @period_type
@@ -181,7 +181,7 @@
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="text-secondary hover:text-primary transition-colors p-0.5"
+                class="max-lg:inline-flex items-center justify-center text-secondary hover:text-primary transition-colors p-0.5 max-lg:min-h-11 max-lg:min-w-11"
                 data-action="click->reports-section#toggle keydown->reports-section#handleToggleKeydown"
                 data-reports-section-target="button"
                 aria-label="<%= t("reports.index.toggle_section") %>"

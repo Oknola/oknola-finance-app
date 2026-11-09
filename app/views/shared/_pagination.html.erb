@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# locals: (pagy:) %>
 
 <nav class="flex w-full items-center justify-between">
@@ -8,11 +9,11 @@
       <% if pagy.prev %>
         <%= link_to pagy_url_for(pagy, pagy.prev),
               data: { turbo_frame: :_top },
-              class: "inline-flex items-center p-2 text-sm font-medium text-secondary hover:border-secondary hover:text-secondary" do %>
+              class: "inline-flex items-center justify-center p-2 text-sm font-medium text-secondary hover:border-secondary hover:text-secondary max-lg:min-h-11 max-lg:min-w-11" do %>
           <%= icon("chevron-left") %>
         <% end %>
       <% else %>
-        <div class="inline-flex items-center p-2 text-sm font-medium hover:border-secondary">
+        <div class="inline-flex items-center justify-center p-2 text-sm font-medium hover:border-secondary max-lg:min-h-11 max-lg:min-w-11">
           <%= icon("chevron-left") %>
         </div>
       <% end %>
@@ -35,13 +36,13 @@
         <% if series_item.is_a?(Integer) %>
           <%= link_to pagy_url_for(pagy, series_item),
                 data: { turbo_frame: :_top },
-                class: class_names("rounded-md px-2 py-1 shrink-0 items-center text-sm font-medium text-secondary hover:border-secondary hover:text-secondary", mobile_state == :visible ? "inline-flex" : "hidden sm:inline-flex") do %>
+                class: class_names("rounded-md px-2 py-1 shrink-0 items-center text-sm font-medium text-secondary hover:border-secondary hover:text-secondary max-lg:min-h-11 max-lg:min-w-11 justify-center", mobile_state == :visible ? "inline-flex" : "hidden sm:inline-flex") do %>
             <%= series_item %>
           <% end %>
         <% elsif series_item.is_a?(String) %>
           <%= link_to pagy_url_for(pagy, series_item),
                 data: { turbo_frame: :_top },
-                class: "rounded-md px-2 py-1 bg-container border border-secondary shadow-xs inline-flex shrink-0 items-center text-sm font-medium text-primary" do %>
+                class: "rounded-md px-2 py-1 bg-container border border-secondary shadow-xs inline-flex shrink-0 items-center justify-center text-sm font-medium text-primary max-lg:min-h-11 max-lg:min-w-11" do %>
             <%= series_item %>
           <% end %>
         <% elsif series_item == :gap %>
@@ -53,11 +54,11 @@
       <% if pagy.next %>
         <%= link_to pagy_url_for(pagy, pagy.next),
               data: { turbo_frame: :_top },
-              class: "inline-flex items-center p-2 text-sm font-medium text-secondary hover:border-secondary hover:text-secondary" do %>
+              class: "inline-flex items-center justify-center p-2 text-sm font-medium text-secondary hover:border-secondary hover:text-secondary max-lg:min-h-11 max-lg:min-w-11" do %>
           <%= icon("chevron-right") %>
         <% end %>
       <% else %>
-        <div class="inline-flex items-center p-2 text-sm font-medium hover:border-secondary">
+        <div class="inline-flex items-center justify-center p-2 text-sm font-medium hover:border-secondary max-lg:min-h-11 max-lg:min-w-11">
           <%= icon("chevron-right") %>
         </div>
       <% end %>
@@ -67,6 +68,6 @@
     <%= select_tag :per_page,
                    options_for_select(["10", "20", "30", "50", "100"], pagy.limit),
                    data: { controller: "selectable-link" },
-                   class: "py-1.5 pr-8 text-sm text-primary font-medium bg-container-inset border border-secondary rounded-lg focus:border-secondary focus:ring-secondary focus-visible:ring-secondary" %>
+                   class: "py-1.5 pr-8 text-sm text-primary font-medium bg-container-inset border border-secondary rounded-lg focus:border-secondary focus:ring-secondary focus-visible:ring-secondary max-lg:min-h-11" %>
   </div>
 </nav>

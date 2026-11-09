@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 # Bills subsystem: adds the `accent` and `outline_muted` variants, with their
 # colours declared in design/tokens/sure.tokens.json alongside every other
 # button colour.
@@ -52,14 +53,11 @@ class DS::Buttonish < DesignSystemComponent
   }.freeze
 
   # Icon-only containers share a height rail with the text buttons of the
-  # same size (sm ≈ 28px, md ≈ 36px, lg ≈ 48px), so a mixed row — icon
-  # trigger next to text buttons, the most common header layout — lines up
-  # instead of mixing 32/44px squares with 36px buttons.
+  # same size on desktop, so mixed rows line up instead of mixing squares
+  # with text buttons.
   #
-  # pointer-coarse restores the 44px square on touch devices: the visual
-  # rail is a pointer-precision tradeoff, and WCAG 2.5.5's 44x44 target
-  # minimum is about fingers, not mice. Coarse-pointer users get the full
-  # target; fine-pointer users get the aligned row.
+  # On narrow viewports, controls meet the 44px touch target regardless of
+  # pointer type. Wider touch devices retain the larger icon targets.
   SIZES = {
     sm: {
       container_classes: "px-2 py-1",
@@ -109,7 +107,7 @@ class DS::Buttonish < DesignSystemComponent
       # `aria-disabled` to stay clickable/focusable (e.g. submit buttons whose
       # click handler surfaces validation errors — a truly disabled default
       # submit would also swallow Enter-key implicit submission).
-      "font-medium whitespace-nowrap focus-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+      "font-medium whitespace-nowrap focus-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed aria-disabled:opacity-50 max-lg:min-w-11 max-lg:min-h-11",
       merged_base_classes,
       full_width ? "w-full justify-center" : nil,
       container_size_classes,

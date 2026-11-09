@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-05, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= render "layouts/shared/htmldoc" do %>
   <div class="flex flex-col h-full overflow-y-auto">
     <div class="flex flex-col min-h-full px-6 py-12 bg-surface">
@@ -17,11 +17,11 @@
               <div class="space-y-3 w-full my-4">
                 <div class="bg-surface-inset rounded-lg p-1 flex">
                   <%= link_to new_session_path,
-      class: "w-1/2 px-2 py-1 rounded-md text-sm text-center font-medium #{on_sign_in ? 'bg-surface shadow-sm text-primary' : 'text-secondary'}" do %>
+      class: "w-1/2 px-2 py-1 rounded-md text-sm text-center font-medium max-lg:min-h-11 #{on_sign_in ? 'bg-surface shadow-sm text-primary' : 'text-secondary'}" do %>
                     <%= t("layouts.auth.sign_in") %>
                   <% end %>
                   <%= link_to new_registration_path,
-      class: "w-1/2 px-2 py-1 rounded-md text-sm text-center font-medium #{!on_sign_in ? 'bg-surface shadow-sm text-primary' : 'text-secondary'}" do %>
+      class: "w-1/2 px-2 py-1 rounded-md text-sm text-center font-medium max-lg:min-h-11 #{!on_sign_in ? 'bg-surface shadow-sm text-primary' : 'text-secondary'}" do %>
                     <%= t("layouts.auth.sign_up") %>
                   <% end %>
                 </div>

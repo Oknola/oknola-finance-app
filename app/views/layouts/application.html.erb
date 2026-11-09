@@ -64,13 +64,13 @@ end %>
         </div>
       <% end %>
 
-      <%= link_to home_path, class: "absolute left-1/2 -translate-x-1/2" do %>
+      <%= link_to home_path, class: "absolute left-1/2 -translate-x-1/2 max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center" do %>
         <%= image_tag "logomark-color.svg", alt: product_name, class: "w-9 h-9 mx-auto" %>
       <% end %>
 
       <div class="flex items-center gap-1">
         <button type="button"
-                class="inline-flex items-center justify-center w-9 h-9 pointer-coarse:w-11 pointer-coarse:h-11 rounded-lg text-secondary hover:text-primary hover:bg-container-inset-hover transition-colors focus-ring"
+                class="inline-flex items-center justify-center w-9 h-9 max-lg:w-11 max-lg:h-11 pointer-coarse:w-11 pointer-coarse:h-11 rounded-lg text-secondary hover:text-primary hover:bg-container-inset-hover transition-colors focus-ring"
                 data-action="click->privacy-mode#toggle"
                 data-privacy-mode-target="toggle"
                 title="<%= t("layouts.application.privacy_mode") %>"

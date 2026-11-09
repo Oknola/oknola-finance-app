@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 
 class PushNotificationTestTest < ActiveJob::TestCase
@@ -38,8 +39,8 @@ class PushNotificationTestTest < ActiveJob::TestCase
     client = mock
     Apns::Client.expects(:new).with(environment: "sandbox").returns(client)
     client.expects(:deliver_test).with(
-      token: @subscription.token, title: "Sure test notification",
-      body: "This is a test push notification for your Sure account.", request_id: @test.latest[:id]
+      token: @subscription.token, title: "Finance test notification",
+      body: "This is a test push notification for your Finance account.", request_id: @test.latest[:id]
     ).returns(stub(ok?: true))
 
     assert_no_difference "Insight.count" do
@@ -53,8 +54,8 @@ class PushNotificationTestTest < ActiveJob::TestCase
     @user.update!(locale: "de")
     @test.request!
     Apns::Client.any_instance.expects(:deliver_test).with(
-      token: @subscription.token, title: "Sure-Testbenachrichtigung",
-      body: "Dies ist eine Testbenachrichtigung für dein Sure-Konto.", request_id: @test.latest[:id]
+      token: @subscription.token, title: "Finance-Testbenachrichtigung",
+      body: "Dies ist eine Testbenachrichtigung für dein Finance-Konto.", request_id: @test.latest[:id]
     ).returns(stub(ok?: true))
     deliver
     assert_equal "accepted", result_status

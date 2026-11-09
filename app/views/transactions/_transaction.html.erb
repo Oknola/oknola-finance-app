@@ -1,5 +1,5 @@
 <%# locals: (entry:, balance_trend: nil, view_ctx: "global", in_split_group: false) %>
-<%# Modified by Cardona Labs, LLC, 2026-11-04, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0 %>
 
 <% transaction = entry.entryable %>
 <% side = (transaction.oknola_side.presence || entry.account.oknola_side).capitalize %>
@@ -42,7 +42,7 @@
         </div>
 
         <div class="flex-1 max-w-full min-w-0 <%= "opacity-50 text-secondary" if entry.excluded %>">
-          <%= content_tag :div, class: ["flex items-center gap-3 lg:gap-4"] do %>
+          <%= content_tag :div, class: ["flex min-w-0 items-center gap-3 lg:gap-4"] do %>
             <div class="hidden lg:flex shrink-0">
               <% if transaction.transfer? %>
                 <%= render DS::FilledIcon.new(
@@ -148,7 +148,7 @@
                   </div>
                 </div>
 
-                <div class="text-secondary text-xs font-normal leading-4">
+                <div class="text-secondary text-xs font-normal max-lg:leading-5 lg:flex lg:items-center lg:gap-1 lg:leading-4">
                   <% if side.present? %>
                     <%= render DS::Pill.new(
                       label: t("transactions.transaction.side.#{side.downcase}"),
@@ -157,7 +157,26 @@
                     ) %>
                   <% end %>
                   <% if transaction.transfer? %>
-                    <span class="text-secondary">
+                    <div class="hidden lg:flex min-w-0 items-center gap-1">
+                      <span class="min-w-0 truncate text-secondary">
+                        <%= transaction.loan_payment? ? t("transactions.show.loan_payment") : t("transactions.show.transfer") %> •
+                        <% if transaction.transfer.present? %>
+                          <% counterpart = transaction.transfer_as_outflow.present? ? transaction.transfer.to_account : transaction.transfer.from_account %>
+                          <% if counterpart.present? && @accessible_account_ids&.include?(counterpart.id) %>
+                            <% if transaction.transfer_as_outflow.present? %>
+                              <%= entry.account.name %> → <%= counterpart.name %>
+                            <% else %>
+                              <%= entry.account.name %> ← <%= counterpart.name %>
+                            <% end %>
+                          <% else %>
+                            <%= entry.account.name %>
+                          <% end %>
+                        <% else %>
+                          <%= entry.account.name %>
+                        <% end %>
+                      </span>
+                    </div>
+                    <span class="text-secondary lg:hidden">
                       <%= transaction.loan_payment? ? t("transactions.show.loan_payment") : t("transactions.show.transfer") %> •
                       <% if transaction.transfer.present? %>
                         <% counterpart = transaction.transfer_as_outflow.present? ? transaction.transfer.to_account : transaction.transfer.from_account %>
@@ -175,15 +194,15 @@
                       <% end %>
                     </span>
                   <% else %>
-                    <% if transaction.merchant&.present? %>
-                      <span class="hidden lg:inline truncate"><%= transaction.merchant.name %> • </span>
-                    <% end %>
-                    <span class="text-secondary hidden lg:inline">
+                    <div class="hidden lg:flex min-w-0 items-center gap-1">
+                      <% if transaction.merchant&.present? %>
+                        <span class="shrink-0 max-w-1/2 truncate"><%= transaction.merchant.name %> •</span>
+                      <% end %>
                       <%= link_to entry.account.name,
                           account_path(entry.account, tab: "transactions"),
                           data: { turbo_frame: "_top" },
-                          class: "hover:underline" %>
-                    </span>
+                          class: "min-w-0 truncate text-secondary hover:underline" %>
+                    </div>
                     <div class="flex min-w-0 items-center gap-1">
                       <%= render "categories/category_name_mobile", transaction: transaction %>
                         <% if transaction.merchant&.present? %>

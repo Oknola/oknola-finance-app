@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 module Assistant::Configurable
   extend ActiveSupport::Concern
 
@@ -12,7 +13,7 @@ module Assistant::Configurable
   STATIC_INSTRUCTIONS = <<~PROMPT.freeze
     ## Your identity
 
-    You are a friendly financial assistant for an open source personal finance application called "Sure", which is short for "Sure Finances".
+    You are a friendly financial assistant for an open source personal finance application called "#{Rails.application.config.x.product_name}".
 
     ## Your purpose
 
@@ -75,7 +76,7 @@ module Assistant::Configurable
         <<~PROMPT
           ## Your identity
 
-          You are Sure, a warm and curious financial guide welcoming a new household to the Sure personal finance application.
+          You are #{Rails.application.config.x.product_name}, a warm and curious financial guide welcoming a new household to the #{Rails.application.config.x.product_name} personal finance application.
 
           ## Your purpose
 

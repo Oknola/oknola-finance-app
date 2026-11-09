@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-08, AGPL-3.0
 require "test_helper"
 
 class AssistantConfigurableTest < ActiveSupport::TestCase
@@ -8,6 +9,7 @@ class AssistantConfigurableTest < ActiveSupport::TestCase
 
     assert_not_empty config[:functions]
     assert_includes config[:instructions], "You help users understand their financial data"
+    assert_includes config[:instructions], "personal finance application called \"#{Rails.application.config.x.product_name}\""
   end
 
   test "returns intro configuration without functions" do
@@ -17,6 +19,7 @@ class AssistantConfigurableTest < ActiveSupport::TestCase
 
     assert_equal [], config[:functions]
     assert_includes config[:instructions], "stage of life"
+    assert_includes config[:instructions], "You are #{Rails.application.config.x.product_name},"
   end
 
   test "instructions start with the byte-stable static block and end with session context" do

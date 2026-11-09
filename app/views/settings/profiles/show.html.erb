@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-03, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= content_for :page_title, t(".page_title") %>
 
 <%= settings_section title: t(".profile_title"), subtitle: t(".profile_subtitle", product_name: product_name) do %>
@@ -118,7 +118,7 @@
         <% end %>
         <% if Current.user.admin? %>
           <%= link_to new_invitation_path,
-                  class: "bg-container-inset flex items-center justify-center gap-2 text-secondary mt-1 hover:bg-container-inset-hover rounded-lg px-4 py-2 w-full text-center",
+                  class: "bg-container-inset flex items-center justify-center gap-2 text-secondary mt-1 hover:bg-container-inset-hover rounded-lg px-4 py-2 w-full text-center max-lg:min-h-11",
                   data: { turbo_frame: :modal } do %>
             <%= icon("plus") %>
             <%= t(".invite_member") %>

@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%= content_for :page_title, t("recurring_transactions.title") %>
 <%= content_for :page_actions do %>
   <% unless @family.recurring_transactions_disabled? %>
@@ -60,8 +61,8 @@
       <%# The Bills workspace is preview-gated, so the card that leads into it
           only renders for opted-in users. %>
       <% if preview_features_enabled? %>
-        <div class="bg-container rounded-xl shadow-border-xs p-4 flex items-center justify-between gap-4">
-          <div>
+        <div class="bg-container rounded-xl shadow-border-xs p-4 flex flex-wrap items-center justify-between gap-4">
+          <div class="min-w-0">
             <p class="text-sm font-medium text-primary"><%= t("recurring_transactions.manage.title") %></p>
             <p class="text-xs text-secondary"><%= t("recurring_transactions.manage.description") %></p>
           </div>
@@ -69,7 +70,8 @@
                 text: t("recurring_transactions.manage.cta"),
                 icon: "receipt",
                 variant: "outline",
-                href: bills_path(view: "all")
+                href: bills_path(view: "all"),
+                class: "max-sm:w-full"
               ) %>
         </div>
       <% end %>

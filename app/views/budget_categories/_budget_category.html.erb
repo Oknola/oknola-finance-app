@@ -1,3 +1,4 @@
+<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
 <%# locals: (budget_category:, show_budget_meta: true) %>
 
 <% category_display_name = budget_category.category.display_name %>
@@ -93,7 +94,7 @@
         <div class="whitespace-nowrap w-full sm:w-auto lg:ml-auto">
           <% if budget_category.available_to_spend >= 0 %>
             <span class="text-sm text-secondary"><%= t("reports.budget_performance.remaining") %>:</span>
-            <span class="font-medium <%= (budget_category.near_limit? ? "text-yellow-500" : "text-green-500") %> privacy-sensitive">
+            <span class="font-medium <%= (budget_category.near_limit? ? "text-warning" : "text-success") %> privacy-sensitive">
               <%= format_money(budget_category.available_to_spend_money) %>
             </span>
           <% else %>

@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0
 require "test_helper"
 
 class TrendTest < ActiveSupport::TestCase
@@ -25,7 +26,7 @@ class TrendTest < ActiveSupport::TestCase
     trend2 = Trend.new(current: 100, previous: nil)
     assert_equal "flat", trend1.direction
     assert_equal "up", trend2.direction
-    assert_equal "var(--color-gray)", trend1.color
+    assert_equal "var(--utility-text-secondary)", trend1.color
   end
 
   test "infinitely up" do

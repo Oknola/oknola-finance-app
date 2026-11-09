@@ -1,3 +1,4 @@
+# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0
 require "test_helper"
 
 class OknolaBootCheckTest < ActiveSupport::TestCase
@@ -16,6 +17,10 @@ class OknolaBootCheckTest < ActiveSupport::TestCase
     assert_nothing_raised do
       OknolaHardening.verify!(env: COMPLETE_ENV, cache: @redis_cache, posthog: @feedback_off)
     end
+  end
+
+  test "an empty product name uses Finance" do
+    assert_equal "Finance", OknolaHardening.product_name(env: { "PRODUCT_NAME" => "" })
   end
 
   test "missing encryption env vars stop the boot" do

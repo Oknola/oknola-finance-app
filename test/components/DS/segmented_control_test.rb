@@ -10,6 +10,7 @@ class DS::SegmentedControlTest < ViewComponent::TestCase
 
     assert_selector "div.segmented-control[role=group]"
     assert_selector "button.segmented-control__segment", count: 2
+    assert_selector "button.segmented-control__segment[class*='max-lg:min-w-11'][class*='max-lg:min-h-11'][class*='max-lg:shrink-0']", count: 2
     assert_selector "button.segmented-control__segment--active", text: "All", count: 1
     refute_selector "button.segmented-control__segment--active", text: "Over Budget"
   end
