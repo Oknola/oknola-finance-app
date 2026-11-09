@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Finance app icon, full bleed (Oknola): for iOS and maskable Android icons, which crop to their own shape. A money bag with a dollar sign in one amber glass tube, matching the Oknola glass
+       brain: paper plate #F7F1E7 on Apple's 1024 grid (824 px continuous-corner plate, soft drop shadow).
+       Rendered to PNG with headless Chromium; see render-icon.sh. -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF8F2"/>
+      <stop offset="1" stop-color="#F2E9DA"/>
+    </linearGradient>
+    <filter id="glass" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="bump"/>
+      <feSpecularLighting in="bump" surfaceScale="4" specularConstant="0.9" specularExponent="30" lighting-color="#FFF4D6" result="spec">
+        <feDistantLight azimuth="225" elevation="50"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn"/>
+      <feComposite in="SourceGraphic" in2="specIn" operator="arithmetic" k1="0" k2="1" k3="0.55" k4="0" result="lit"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="sb"/>
+      <feOffset in="sb" dy="10" result="so"/>
+      <feFlood flood-color="#7A4300" flood-opacity="0.28"/>
+      <feComposite in2="so" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="lit"/></feMerge>
+    </filter>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#plate)"/>
+
+  <g filter="url(#glass)">
+    <!-- rim -->
+    <g fill="none" stroke="#D7841A" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 452 416 C 334 470 262 598 276 702 C 290 792 384 818 512 818 C 640 818 734 792 748 702 C 762 598 690 470 572 416"/>
+      <path d="M 458 392 C 430 344 404 306 430 282 C 456 260 486 300 512 300 C 538 300 568 260 594 282 C 620 306 594 344 566 392"/>
+      <path d="M 440 404 Q 512 424 584 404"/>
+      <path d="M 584 404 C 640 398 676 370 672 326"/>
+      <path d="M 578 556 C 560 524 470 516 454 560 C 438 604 494 618 516 626 C 546 636 594 654 574 700 C 556 740 466 738 442 704"/>
+      <path d="M 512 496 L 512 540"/>
+      <path d="M 512 720 L 512 762"/>
+    </g>
+    <!-- body -->
+    <g fill="none" stroke="#F4A22E" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 452 416 C 334 470 262 598 276 702 C 290 792 384 818 512 818 C 640 818 734 792 748 702 C 762 598 690 470 572 416"/>
+      <path d="M 458 392 C 430 344 404 306 430 282 C 456 260 486 300 512 300 C 538 300 568 260 594 282 C 620 306 594 344 566 392"/>
+      <path d="M 440 404 Q 512 424 584 404"/>
+      <path d="M 584 404 C 640 398 676 370 672 326"/>
+      <path d="M 578 556 C 560 524 470 516 454 560 C 438 604 494 618 516 626 C 546 636 594 654 574 700 C 556 740 466 738 442 704"/>
+      <path d="M 512 496 L 512 540"/>
+      <path d="M 512 720 L 512 762"/>
+    </g>
+    <!-- highlight, up and left of the centre line -->
+    <g filter="url(#soft)" transform="translate(-4 -5)" fill="none" stroke="#FFF3D2" stroke-opacity="0.8" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 452 416 C 334 470 262 598 276 702 C 290 792 384 818 512 818 C 640 818 734 792 748 702 C 762 598 690 470 572 416"/>
+      <path d="M 458 392 C 430 344 404 306 430 282 C 456 260 486 300 512 300 C 538 300 568 260 594 282 C 620 306 594 344 566 392"/>
+      <path d="M 440 404 Q 512 424 584 404"/>
+      <path d="M 584 404 C 640 398 676 370 672 326"/>
+      <path d="M 578 556 C 560 524 470 516 454 560 C 438 604 494 618 516 626 C 546 636 594 654 574 700 C 556 740 466 738 442 704"/>
+      <path d="M 512 496 L 512 540"/>
+      <path d="M 512 720 L 512 762"/>
+    </g>
+    <!-- nodes -->
+    <g fill="#C5741A" stroke="#A85F10" stroke-width="3">
+      <circle cx="512" cy="494" r="24"/>
+      <circle cx="512" cy="764" r="24"/>
+      <circle cx="672" cy="322" r="26"/>
+    </g>
+    <g fill="#FFE7B8" fill-opacity="0.85" filter="url(#soft)">
+      <circle cx="503" cy="485" r="7"/>
+      <circle cx="503" cy="755" r="7"/>
+      <circle cx="662" cy="312" r="8"/>
+    </g>
+  </g>
+</svg>
