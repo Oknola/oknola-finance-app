@@ -1,4 +1,4 @@
-<%# Modified by Cardona Labs, LLC, 2026-11-07, AGPL-3.0 %>
+<%# Modified by Cardona Labs, LLC, 2026-11-09, AGPL-3.0 %>
 <%
 nav_sections = [
   {
@@ -81,12 +81,12 @@ nav_sections = [
         </ul>
       </section>
     <% end %>
-    <section>
+    <% unless session[:oknola_embedded] %><section>
       <%= button_to session_path(Current.session), method: :delete, class: "flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-surface-hover w-full max-lg:min-h-11" do %>
         <%= icon("log-out", color: "current") %>
         <span><%= t(".logout") %></span>
       <% end %>
-    </section>
+    </section><% end %>
   </nav>
   <nav class="space-y-4 overflow-x-auto md:hidden no-scrollbar overscroll-none" id="mobile-settings-nav" data-controller="preserve-scroll scroll-on-connect">
     <ul class="flex flex-nowrap space-x-1">
@@ -106,12 +106,12 @@ nav_sections = [
           </li>
         <% end %>
       <% end %>
-      <li>
+      <% unless session[:oknola_embedded] %><li>
         <%= button_to session_path(Current.session), method: :delete, class: "flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-surface-hover w-full max-lg:min-h-11" do %>
           <%= icon("log-out", color: "current") %>
           <span><%= t(".logout") %></span>
         <% end %>
-      </li>
+      </li><% end %>
     </ul>
   </nav>
 </div>
