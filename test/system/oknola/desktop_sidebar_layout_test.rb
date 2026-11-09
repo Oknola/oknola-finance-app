@@ -72,6 +72,11 @@ class Oknola::DesktopSidebarLayoutTest < ApplicationSystemTestCase
 
     assert_equal 1440, page.evaluate_script("window.innerWidth")
     assert_selector "[data-app-layout-target='rightSidebar'].w-full", visible: true
+    net_worth_tables = page.evaluate_script(<<~JS)
+      [...document.querySelectorAll("[data-section-key='net_worth'] .rounded-lg.shadow-border-xs.bg-container")]
+        .map((table) => getComputedStyle(table).overflowX)
+    JS
+    assert_equal [ "auto", "auto" ], net_worth_tables
     tops = report_summary_card_tops
     assert_equal 4, tops.size
     assert_equal [ 2, 2 ], tops.map(&:round).tally.values.sort,
